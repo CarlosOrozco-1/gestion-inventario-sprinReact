@@ -1,0 +1,147 @@
+{
+  "info": {
+    "name": "Inventario Spring Boot - Fase Core",
+    "description": "Endpoints actualizados para probar la lógica base del sistema (Insumos y Movimientos) sin JWT de forma temporal.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Insumos",
+      "item": [
+        {
+          "name": "Crear Insumo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numero\": 101,\n  \"insumo\": \"Jeringas de 5ml\",\n  \"presentacion\": \"Caja\",\n  \"tamanoPresentacion\": \"100 unidades\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/insumos",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "insumos"]
+            }
+          }
+        },
+        {
+          "name": "Listar Insumos",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/api/insumos",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "insumos"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Movimientos",
+      "item": [
+        {
+          "name": "Registrar Entrada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"insumoId\": 1,\n  \"tipo\": \"ENTRADA\",\n  \"usuarioId\": 1,\n  \"cantidad\": 50,\n  \"detalle\": \"Ingreso inicial de bodega central\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/movimientos",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "movimientos"]
+            }
+          }
+        },
+        {
+          "name": "Registrar Salida",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"insumoId\": 1,\n  \"tipo\": \"SALIDA\",\n  \"usuarioId\": 1,\n  \"cantidad\": 5\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/movimientos",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "movimientos"]
+            }
+          }
+        },
+        {
+          "name": "Registrar Ajuste (Prueba de Error por justificación corta)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"insumoId\": 1,\n  \"tipo\": \"AJUSTE_NEGATIVO\",\n  \"usuarioId\": 1,\n  \"cantidad\": 2,\n  \"detalle\": \"Robo\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/movimientos",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "movimientos"]
+            }
+          }
+        },
+        {
+          "name": "Registrar Salida (Prueba de Error por Stock Insuficiente)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"insumoId\": 1,\n  \"tipo\": \"SALIDA\",\n  \"usuarioId\": 1,\n  \"cantidad\": 9999\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/movimientos",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "movimientos"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -11,9 +11,9 @@ import java.util.Date;
 @Component
 public class JwtUtil {
     
-    @Value("${jwt.secret}")
-    private String secret;
-    private final long expiration = 86400000; // 1 día en milisegundos
+    @Value("${jwt.secret}") 
+    private String secret; //obtiene la clave secreta de la variable de entorno jwt.secret
+    private final long expiration = 86400000; // 1 día en milisegundos, cambiar a conveniencia.
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes());

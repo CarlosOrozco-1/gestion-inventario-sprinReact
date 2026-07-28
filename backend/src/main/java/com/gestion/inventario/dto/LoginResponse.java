@@ -12,7 +12,7 @@ public class LoginResponse {
     @Data
     @AllArgsConstructor
     public static class UsuarioInfo {
-        private Integer id;
+        private Long id;
         private String nombre;
         private String email;
         private String rol;

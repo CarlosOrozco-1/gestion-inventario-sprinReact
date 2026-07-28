@@ -1,31 +1,36 @@
 @import "tailwindcss";
 
-/* 
-  Aquí vivirá nuestro diseño Premium 
-  Utilizamos variables CSS para crear un tema que deslumbre 
+/*
+  Aquí vivirá nuestro diseño Premium
+  Utilizamos variables CSS para crear un tema que deslumbre
 */
 @theme {
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-900: #1e3a8a;
-  
-  --color-surface-dark: #0f172a;
-  --color-surface-card: #1e293b;
-  
-  --font-sans: 'Inter', system-ui, sans-serif;
+    --color-brand-50: #eff6ff;
+    --color-brand-100: #dbeafe;
+    --color-brand-200: #bfdbfe;
+    --color-brand-300: #93c5fd;
+    --color-brand-400: #60a5fa;
+    --color-brand-500: #3b82f6;
+    --color-brand-600: #2563eb;
+    --color-brand-700: #1d4ed8;
+    --color-brand-800: #1e40af;
+    --color-brand-900: #1e3a8a;
+
+    --color-surface-dark: #0f172a;
+    --color-surface-card: #1e293b;
+
+    --font-sans: "Inter", system-ui, sans-serif;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased selection:bg-brand-500 selection:text-white;
+    @apply bg-slate-50 text-slate-900 antialiased selection:bg-brand-500 selection:text-white;
 }
 
 /* Clases de utilidad personalizadas para animaciones y glassmorphism */
 @utility glass-panel {
-  @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-xl;
+    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-xl;
 }
 
 @utility glass-panel-dark {
-  @apply bg-surface-card/80 backdrop-blur-md border border-white/10 shadow-2xl;
+    @apply bg-surface-card/80 backdrop-blur-md border border-white/10 shadow-2xl;
 }

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Insumos from './pages/Insumos';
+import Movimientos from './pages/Movimientos';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuthStore } from './store/useAuthStore';
@@ -23,6 +24,7 @@ function App() {
           <Route element={<Layout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/insumos" element={<Insumos />} />
+            <Route path="/movimientos" element={<Movimientos />} />
           </Route>
         </Route>
       </Routes>

@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 
+import org.springframework.transaction.annotation.Transactional;
+
 @Service
 @RequiredArgsConstructor
 public class UserDetailsServiceImpl implements UserDetailsService {
@@ -19,6 +21,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private final UsuarioRepository usuarioRepository;
 
     @Override
+    @Transactional
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + email));

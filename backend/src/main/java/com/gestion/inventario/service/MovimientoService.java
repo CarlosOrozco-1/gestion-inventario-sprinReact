@@ -78,4 +78,26 @@ public class MovimientoService {
 
         return movimientoRepository.save(movimiento);
     }
+
+    @Transactional(readOnly = true)
+    public java.util.List<com.gestion.inventario.dto.MovimientoResponseDTO> listarMovimientos() {
+        return movimientoRepository.findAllByOrderByCreatedAtDesc().stream().map(mov -> {
+            com.gestion.inventario.dto.MovimientoResponseDTO dto = new com.gestion.inventario.dto.MovimientoResponseDTO();
+            dto.setId(mov.getId());
+            dto.setTipo(mov.getTipo());
+            dto.setCantidad(mov.getCantidad());
+            dto.setDetalle(mov.getDetalle());
+            dto.setCreatedAt(mov.getCreatedAt());
+            // Hibernate ejecutará una consulta adicional (o usará caché) por cada acceso
+            // pero estamos bajo @Transactional por lo que no habrá error de LazyLoading
+            if (mov.getInsumo() != null) {
+                dto.setInsumoNombre(mov.getInsumo().getInsumo());
+                dto.setInsumoPresentacion(mov.getInsumo().getPresentacion() + " " + mov.getInsumo().getTamanoPresentacion());
+            }
+            if (mov.getUsuario() != null) {
+                dto.setUsuarioNombre(mov.getUsuario().getNombre());
+            }
+            return dto;
+        }).toList();
+    }
 }

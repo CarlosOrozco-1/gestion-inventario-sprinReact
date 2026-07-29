@@ -26,6 +26,9 @@ export default function Layout() {
           <Link to="/insumos" className="block px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors">
             Insumos
           </Link>
+          <Link to="/movimientos" className="block px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors">
+            Movimientos (Kárdex)
+          </Link>
         </nav>
 
         <div className="p-4 border-t border-slate-800">

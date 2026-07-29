@@ -102,7 +102,7 @@ export default function Login() {
       </div>
 
       {/* Right Panel — Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 bg-gradient-to-br from-slate-50 via-brand-50/30 to-white relative">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 bg-gradient-to-br from-slate-100 via-slate-50 to-brand-50/40 relative">
         {/* Subtle dot pattern on right side */}
         <div
           className="absolute inset-0 opacity-[0.02] pointer-events-none"
@@ -115,7 +115,7 @@ export default function Login() {
 
         <div className="w-full max-w-md relative">
           {/* Form card */}
-          <div className="bg-white/70 backdrop-blur-xl p-10 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/70 ring-1 ring-black/[0.02]">
+          <div className="bg-white/40 backdrop-blur-xl p-10 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-200/60 ring-1 ring-black/[0.02]">
             {/* Header */}
             <div className="text-center mb-10">
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-brand-50 mb-6 shadow-sm border border-brand-100">
@@ -191,7 +191,7 @@ export default function Login() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all duration-200 group-hover:border-slate-300"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all duration-200 group-hover:border-slate-300"
                     placeholder="ejemplo@inventario.com"
                     required
                   />
@@ -231,7 +231,7 @@ export default function Login() {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-12 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all duration-200 group-hover:border-slate-300"
+                    className="w-full pl-10 pr-12 py-2.5 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all duration-200 group-hover:border-slate-300"
                     placeholder="••••••••"
                     required
                   />

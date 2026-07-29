@@ -49,7 +49,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            // Si el token falló, no hacemos nada y dejamos que Spring retorne 401
+            // Si el token falló, imprimimos el error para depurar
+            System.err.println("Error en JwtAuthenticationFilter:");
+            e.printStackTrace();
         }
         
         filterChain.doFilter(request, response);

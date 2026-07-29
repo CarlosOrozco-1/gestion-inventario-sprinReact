@@ -23,4 +23,18 @@ public class InsumoController {
     public Insumo crearInsumo(@RequestBody Insumo insumo) {
         return insumoRepository.save(insumo);
     }
+
+    @PutMapping("/{id}")
+    public Insumo actualizarInsumo(@PathVariable Long id, @RequestBody Insumo insumoActualizado) {
+        return insumoRepository.findById(id)
+                .map(insumo -> {
+                    insumo.setNumero(insumoActualizado.getNumero());
+                    insumo.setInsumo(insumoActualizado.getInsumo());
+                    insumo.setPresentacion(insumoActualizado.getPresentacion());
+                    insumo.setTamanoPresentacion(insumoActualizado.getTamanoPresentacion());
+                    // No actualizamos stock ni entradas aquí, eso lo hace el motor de movimientos
+                    return insumoRepository.save(insumo);
+                })
+                .orElseThrow(() -> new RuntimeException("Insumo no encontrado"));
+    }
 }

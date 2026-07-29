@@ -26,4 +26,9 @@ public class MovimientoController {
         );
         return ResponseEntity.ok(mov);
     }
+
+    @GetMapping
+    public ResponseEntity<java.util.List<com.gestion.inventario.dto.MovimientoResponseDTO>> listarMovimientos() {
+        return ResponseEntity.ok(movimientoService.listarMovimientos());
+    }
 }

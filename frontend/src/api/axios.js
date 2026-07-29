@@ -10,15 +10,14 @@ const api = axios.create({
     }
 });
 
-// Interceptor para manejar respuestas del backend
-api.interceptors.response.use(
+// Interceptor para interceptar las PETICIONES (requests) antes de que salgan
+api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem("token");
 
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
-        // Aqui podemos agregar tokens de autenticación si fuera necesario.
         return config;
     },
     (error) => Promise.reject(error)

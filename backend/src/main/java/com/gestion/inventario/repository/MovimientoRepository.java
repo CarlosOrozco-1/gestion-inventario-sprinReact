@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
     List<Movimiento> findByInsumoId(Long insumoId);
+    List<Movimiento> findAllByOrderByCreatedAtDesc();
 }

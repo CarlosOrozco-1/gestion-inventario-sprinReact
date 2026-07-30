@@ -108,8 +108,6 @@ export default function MovimientoModal({ isOpen, onClose, onSave, insumos }) {
                 >
                   <option value="ENTRADA">Entrada</option>
                   <option value="SALIDA">Salida</option>
-                  <option value="AJUSTE_POSITIVO">Ajuste Positivo (+)</option>
-                  <option value="AJUSTE_NEGATIVO">Ajuste Negativo (-)</option>
                 </select>
               </div>
 
@@ -121,6 +119,8 @@ export default function MovimientoModal({ isOpen, onClose, onSave, insumos }) {
                   min="1"
                   value={formData.cantidad}
                   onChange={handleChange}
+                  onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Por favor, ingresa una cantidad mayor a 0')}
+                  onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                   required
                   className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
                   placeholder="Ej. 10"
@@ -130,16 +130,15 @@ export default function MovimientoModal({ isOpen, onClose, onSave, insumos }) {
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">
-                Justificación (Obligatoria para Ajustes)
+                Detalles Adicionales (Opcional)
               </label>
               <textarea 
                 name="detalle"
                 value={formData.detalle}
                 onChange={handleChange}
-                rows="3"
-                required={formData.tipo.includes('AJUSTE')}
+                rows={2}
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
-                placeholder={formData.tipo.includes('AJUSTE') ? "Explique el motivo del ajuste (mínimo 20 caracteres)..." : "Detalles opcionales..."}
+                placeholder="Comentarios sobre el movimiento..."
               ></textarea>
             </div>
           </div>

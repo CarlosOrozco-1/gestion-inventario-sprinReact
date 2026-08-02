@@ -188,7 +188,7 @@ export default function InsumoModal({ isOpen, onClose, onSave, insumoEdit }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Costo Unit. Estimado ($)</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Costo Unit. Estimado (Q)</label>
                   <input 
                     type="number" 
                     name="costoEstimado"

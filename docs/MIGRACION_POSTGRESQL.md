@@ -128,11 +128,17 @@ incluyendo la migración de datos.
 ### Fase 3: Migración de Datos
 **Objetivo:** trasladar los datos actuales de `inventario.db` a PostgreSQL.
 
-- [ ] Exportar datos de SQLite a CSV/SQL (catálogo de insumos, movimientos,
-      saldos, requerimientos, usuarios, roles).
-- [ ] Importar a PostgreSQL manteniendo claves foráneas e IDs.
+- [x] Crear `scripts/migrar_sqlite_a_postgres.py`: genera un `.sql` con los
+      `INSERT` en el orden correcto de las claves foráneas, convierte los
+      timestamps (epoch en ms → `timestamp`), normaliza booleanos y
+      restablece las secuencias (`setval`) para no colisionar con
+      `GenerationType.IDENTITY`.
+- [x] Generar `migracion_postgres.sql` desde `backend/data/inventario.db`
+      (artefacto con datos; **no se versiona**).
+- [ ] Aplicarlo en PostgreSQL y validar:
+      `psql -U inventario -h <host> -d inventario -f <SALIDA_SQL>`
 - [ ] Validar conteos (filas por tabla en origen vs destino) y datos
-      sensibles (stock, movimientos).
+      críticos (stock, movimientos, usuarios con su rol).
 
 ### Fase 4: Endurecimiento y Mantenimiento
 **Objetivo:** convertir la base en una pieza operativa a largo plazo.
@@ -165,7 +171,8 @@ incluyendo la migración de datos.
 | 1    | `backend/.../application-prod.properties` | **Nuevo** perfil PostgreSQL (env vars)  |
 | 2    | `docker-compose.prod.yml` | **Nuevo** compose de producción (Postgres + backend) |
 | 2    | `backend/Dockerfile`           | activar perfil `prod` (si aplica)                 |
-| 3    | scripts de migración           | export SQLite → import PostgreSQL                 |
+| 3    | `scripts/migrar_sqlite_a_postgres.py` | **Nuevo** generador de SQL de migración |
+| 3    | `scripts/migracion_postgres.sql` | **Generado** (datos, sin versionar)      |
 | 4    | `build.gradle`                 | + `flyway-core` (o liquibase)                     |
 | 4    | `db/migration/`                | scripts versionados de esquema                    |
 | 4    | `application-prod.properties`  | `ddl-auto=validate`, credenciales seguras         |

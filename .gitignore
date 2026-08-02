@@ -1,0 +1,3 @@
+# Artefactos generados (contienen datos) de la migración SQLite → PostgreSQL
+backend/data/migracion_postgres.sql
+scripts/migracion_postgres.sql

@@ -43,33 +43,70 @@ export default function Layout() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
       )
+    },
+    {
+      name: 'Auditoría (Ajustes)',
+      path: '/ajustes',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      )
+    },
+    {
+      name: 'Reportería',
+      path: '/reportes',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      )
+    },
+    {
+      name: 'Proyecciones (Beta)',
+      path: '/proyecciones',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+      )
     }
   ];
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
       
-      {/* Botón de Menú Hamburguesa (Solo Móvil) */}
-      <button 
-        onClick={() => setIsMobileMenuOpen(true)}
-        className="md:hidden fixed top-4 left-4 z-40 p-2 bg-white rounded-lg shadow-sm border border-slate-200 text-slate-600 hover:text-brand-600 hover:bg-slate-50 transition-colors"
-      >
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
+      {/* Mobile Top Header (Solo Móvil) */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 z-30 flex items-center px-4 shadow-sm">
+        <button 
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="p-2 -ml-2 text-slate-600 hover:text-brand-600 hover:bg-slate-50 rounded-lg transition-colors"
+        >
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <div className="ml-4 flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md bg-brand-500 flex items-center justify-center">
+            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h1 className="font-bold text-slate-800 text-lg">SIGES</h1>
+        </div>
+      </header>
 
       {/* Overlay oscuro para móvil cuando el sidebar está abierto */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden transition-opacity"
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden transition-opacity"
           onClick={() => setIsMobileMenuOpen(false)}
         ></div>
       )}
 
       {/* Sidebar (Menú Lateral) */}
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-white flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-white flex flex-col transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -86,7 +123,7 @@ export default function Layout() {
           {/* Botón cerrar sidebar (Solo Móvil) */}
           <button 
             onClick={() => setIsMobileMenuOpen(false)}
-            className="md:hidden p-1 text-slate-400 hover:text-white transition-colors"
+            className="lg:hidden p-1 text-slate-400 hover:text-white transition-colors"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -139,8 +176,8 @@ export default function Layout() {
       </aside>
 
       {/* Contenido Principal */}
-      <main className="flex-1 overflow-y-auto w-full md:w-auto relative bg-slate-50">
-        <div className="p-4 md:p-8 pt-16 md:pt-8 min-h-full">
+      <main className="flex-1 overflow-y-auto w-full lg:w-auto relative bg-slate-50 pt-16 lg:pt-0">
+        <div className="p-4 md:p-8 min-h-full">
           <Outlet />
         </div>
       </main>

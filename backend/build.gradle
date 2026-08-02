@@ -19,6 +19,13 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
+	
+	// Apache POI para Reportería Excel (Fase 9)
+	implementation 'org.apache.poi:poi-ooxml:5.2.3'
+	
+	// OpenPDF para Reportería PDF (Fase 9)
+	implementation 'com.github.librepdf:openpdf:1.3.30'
+
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
 	compileOnly 'org.projectlombok:lombok'

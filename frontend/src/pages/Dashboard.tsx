@@ -38,7 +38,7 @@ export default function Dashboard() {
 
   // --- CÁLCULO DE KPIs ---
   const totalInsumos = insumos.length;
-  const stockCritico = insumos.filter(i => i.stock < 20);
+  const stockCritico = insumos.filter(i => i.stock <= (i.stockMinimo || 5));
   
   // Total Entradas y Salidas
   let totalEntradas = 0;
@@ -128,7 +128,7 @@ export default function Dashboard() {
             </svg>
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-500">Stock Crítico ({"<"} 20 uds)</p>
+            <p className="text-sm font-medium text-slate-500">Stock Crítico (Bajo Mínimo)</p>
             <h3 className="text-3xl font-bold text-slate-800">{stockCritico.length}</h3>
           </div>
         </div>

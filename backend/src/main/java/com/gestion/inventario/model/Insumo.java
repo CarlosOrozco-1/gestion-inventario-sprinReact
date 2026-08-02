@@ -38,6 +38,15 @@ public class Insumo {
     @Column(nullable = false)
     private Integer entrada = 0;
 
+    @Column(name = "stock_minimo")
+    private Integer stockMinimo = 5;
+
+    @Column(name = "stock_maximo")
+    private Integer stockMaximo = 50;
+
+    @Column(name = "costo_estimado", precision = 10, scale = 2) //precion por unidad, se multiplica por el stock para obtener el costo total
+    private java.math.BigDecimal costoEstimado = java.math.BigDecimal.ZERO;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

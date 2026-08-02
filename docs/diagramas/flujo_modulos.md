@@ -1,0 +1,61 @@
+# Diagramas de Flujo del Sistema (Mermaid)
+
+Este documento contiene los diagramas arquitectónicos y de flujo operativo del sistema.
+
+## 1. Flujo de Módulo de Movimientos (Kárdex y Transacciones)
+```mermaid
+graph TD
+    A[Usuario solicita Movimiento] --> B{¿Es Entrada o Salida?}
+    B -->|Entrada| C[Sumar Cantidad al Stock]
+    B -->|Salida| D{¿Stock >= Cantidad?}
+    D -->|Sí| E[Restar Cantidad al Stock]
+    D -->|No| F[Excepción: Stock Insuficiente - Abortar]
+    
+    C --> G[Registrar en Historial de Movimientos]
+    E --> G
+    
+    G --> H[Finalizar Transacción Segura]
+    F --> I[Mostrar Error en Interfaz]
+```
+
+## 2. Flujo de Módulo de Auditoría (Ajustes)
+```mermaid
+graph TD
+    A[Administrador inicia Ajuste] --> B[Seleccionar Insumo y Tipo de Ajuste]
+    B --> C[Ingresar Justificación Obligatoria > 20 Caracteres]
+    C --> D{¿Validación Exitosa?}
+    D -->|Sí| E[Registrar Ajuste a nombre del Administrador]
+    D -->|No| F[Rechazar Petición - Error 400]
+    E --> G[Alterar Stock Matemáticamente]
+```
+
+## 3. Flujo de Reportería (Generación Excel)
+```mermaid
+graph LR
+    A[Usuario interactúa con Filtros React] --> B[Filtrado Local Dinámico]
+    B --> C[Usuario presiona Exportar Excel]
+    C --> D[React extrae Array de IDs filtrados]
+    D --> E[POST /api/reportes/excel con IDs]
+    E --> F[Spring Boot: MovimientoRepository.findAllById]
+    F --> G[Apache POI: Dibuja celdas y estilos]
+    G --> H[Respuesta Blob Binario xlsx]
+    H --> I[Navegador Fuerza Descarga del Archivo]
+```
+
+## 4. (Futuro) Flujo de Recuperación de Contraseña (Fase 12)
+```mermaid
+sequenceDiagram
+    participant Usuario
+    participant React UI
+    participant Spring Boot
+    participant SMTP Server
+    
+    Usuario->>React UI: Clic en "Olvidé mi contraseña"
+    React UI->>Spring Boot: POST /api/auth/recuperar (email)
+    Spring Boot->>Spring Boot: Genera Token/PIN Temporal
+    Spring Boot->>SMTP Server: Enviar Email al Usuario
+    SMTP Server-->>Usuario: Recibe PIN
+    Usuario->>React UI: Ingresa PIN y Nueva Clave
+    React UI->>Spring Boot: POST /api/auth/reset (PIN, Clave)
+    Spring Boot-->>React UI: Contraseña Actualizada
+```

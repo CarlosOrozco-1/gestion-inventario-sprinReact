@@ -32,6 +32,12 @@ public class InsumoController {
                     insumo.setInsumo(insumoActualizado.getInsumo());
                     insumo.setPresentacion(insumoActualizado.getPresentacion());
                     insumo.setTamanoPresentacion(insumoActualizado.getTamanoPresentacion());
+                    
+                    // Nuevos campos de configuración de stock (Fase 8)
+                    if (insumoActualizado.getStockMinimo() != null) insumo.setStockMinimo(insumoActualizado.getStockMinimo());
+                    if (insumoActualizado.getStockMaximo() != null) insumo.setStockMaximo(insumoActualizado.getStockMaximo());
+                    if (insumoActualizado.getCostoEstimado() != null) insumo.setCostoEstimado(insumoActualizado.getCostoEstimado());
+
                     // No actualizamos stock ni entradas aquí, eso lo hace el motor de movimientos
                     return insumoRepository.save(insumo);
                 })

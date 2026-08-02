@@ -6,7 +6,10 @@ export default function InsumoModal({ isOpen, onClose, onSave, insumoEdit }) {
     numero: '',
     insumo: '',
     presentacion: '',
-    tamanoPresentacion: ''
+    tamanoPresentacion: '',
+    stockMinimo: 5,
+    stockMaximo: 50,
+    costoEstimado: 0
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,14 +21,20 @@ export default function InsumoModal({ isOpen, onClose, onSave, insumoEdit }) {
         numero: insumoEdit.numero || '',
         insumo: insumoEdit.insumo || '',
         presentacion: insumoEdit.presentacion || '',
-        tamanoPresentacion: insumoEdit.tamanoPresentacion || ''
+        tamanoPresentacion: insumoEdit.tamanoPresentacion || '',
+        stockMinimo: insumoEdit.stockMinimo || 5,
+        stockMaximo: insumoEdit.stockMaximo || 50,
+        costoEstimado: insumoEdit.costoEstimado || 0
       });
     } else {
       setFormData({
         numero: '',
         insumo: '',
         presentacion: '',
-        tamanoPresentacion: ''
+        tamanoPresentacion: '',
+        stockMinimo: 5,
+        stockMaximo: 50,
+        costoEstimado: 0
       });
     }
     setError('');
@@ -147,6 +156,50 @@ export default function InsumoModal({ isOpen, onClose, onSave, insumoEdit }) {
                   className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
                   placeholder="Ej. 100 uds"
                 />
+              </div>
+            </div>
+
+            {/* FASE 8: Configuración de Stock (Smart Stock) */}
+            <div className="pt-4 border-t border-slate-100">
+              <h3 className="text-sm font-bold text-slate-800 mb-3">Configuración de Inventario (Proyecciones)</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Stock Mínimo</label>
+                  <input 
+                    type="number" 
+                    name="stockMinimo"
+                    min="1"
+                    value={formData.stockMinimo}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                    placeholder="Alerta roja"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Stock Máximo (Óptimo)</label>
+                  <input 
+                    type="number" 
+                    name="stockMaximo"
+                    min="1"
+                    value={formData.stockMaximo}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                    placeholder="Meta de compra"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Costo Unit. Estimado ($)</label>
+                  <input 
+                    type="number" 
+                    name="costoEstimado"
+                    min="0"
+                    step="0.01"
+                    value={formData.costoEstimado}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+                    placeholder="Ej. 15.50"
+                  />
+                </div>
               </div>
             </div>
           </div>

@@ -47,14 +47,12 @@ export default function Proyecciones() {
   const aplicarSugerencia = async (sugerencia: any) => {
     setAplicandoId(sugerencia.id);
     try {
-      await api.put(`/insumos/${sugerencia.id}`, {
-        numero: sugerencia.numero,
-        insumo: sugerencia.insumo,
-        presentacion: sugerencia.presentacion,
-        tamanoPresentacion: sugerencia.tamanoPresentacion,
-        stockMinimo: sugerencia.stockMinimoSugerido,
-        stockMaximo: sugerencia.stockMaximoSugerido,
-        costoEstimado: sugerencia.costoEstimado ?? 0,
+      await api.put(`/presentations/${sugerencia.id}`, {
+        name: sugerencia.presentacion,
+        size: sugerencia.tamanoPresentacion,
+        minStock: sugerencia.stockMinimoSugerido,
+        maxStock: sugerencia.stockMaximoSugerido,
+        estimatedCost: sugerencia.costoEstimado ?? 0,
       });
       showToast(
         `Stock de "${sugerencia.insumo}" actualizado (${sugerencia.stockMinimoSugerido} – ${sugerencia.stockMaximoSugerido}).`,

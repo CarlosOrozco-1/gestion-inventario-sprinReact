@@ -20,7 +20,7 @@ public class MovimientoController {
     @PreAuthorize("hasAnyRole('ADMIN','JEFE','AUXILIAR')")
     public ResponseEntity<Movimiento> registrarMovimiento(@Valid @RequestBody MovimientoDTO request) {
         Movimiento mov = movimientoService.registrarMovimiento(
-                request.getInsumoId(),
+                request.getPresentationId(),
                 request.getTipo(),
                 request.getCantidad(),
                 request.getDetalle(),

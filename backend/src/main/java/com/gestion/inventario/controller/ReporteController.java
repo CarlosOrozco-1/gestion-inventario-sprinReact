@@ -60,7 +60,7 @@ public class ReporteController {
                 row.createCell(0).setCellValue(mov.getCreatedAt().format(dtf));
                 row.createCell(1).setCellValue(mov.getUsuario().getNombre());
                 row.createCell(2).setCellValue(mov.getTipo());
-                row.createCell(3).setCellValue(mov.getInsumo().getInsumo());
+                row.createCell(3).setCellValue(mov.getPresentation().getItem().getName());
                 row.createCell(4).setCellValue(mov.getCantidad());
                 row.createCell(5).setCellValue(mov.getDetalle() != null ? mov.getDetalle() : "");
             }
@@ -128,7 +128,7 @@ public class ReporteController {
                 table.addCell(new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(mov.getCreatedAt().format(dtf), cellFont)));
                 table.addCell(new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(mov.getUsuario().getNombre(), cellFont)));
                 table.addCell(new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(mov.getTipo(), cellFont)));
-                table.addCell(new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(mov.getInsumo().getInsumo(), cellFont)));
+                table.addCell(new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(mov.getPresentation().getItem().getName(), cellFont)));
                 table.addCell(new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(mov.getCantidad().toString(), cellFont)));
                 table.addCell(new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(mov.getDetalle() != null ? mov.getDetalle() : "", cellFont)));
             }

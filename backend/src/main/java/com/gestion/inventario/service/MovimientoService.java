@@ -1,15 +1,18 @@
 package com.gestion.inventario.service;
 
 import com.gestion.inventario.exception.InsufficientStockException;
-import com.gestion.inventario.model.Insumo;
+import com.gestion.inventario.dto.MovimientoResponseDTO;
 import com.gestion.inventario.model.Movimiento;
+import com.gestion.inventario.model.Presentation;
 import com.gestion.inventario.model.Usuario;
-import com.gestion.inventario.repository.InsumoRepository;
 import com.gestion.inventario.repository.MovimientoRepository;
+import com.gestion.inventario.repository.PresentationRepository;
 import com.gestion.inventario.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class MovimientoService {
@@ -18,23 +21,23 @@ public class MovimientoService {
     private MovimientoRepository movimientoRepository;
 
     @Autowired
-    private InsumoRepository insumoRepository;
+    private PresentationRepository presentationRepository;
 
     @Autowired
     private UsuarioRepository usuarioRepository;
 
     @Transactional
-    public Movimiento registrarMovimiento(Long insumoId, String tipo, Integer cantidad, String detalle, Long usuarioId) {
-        
+    public Movimiento registrarMovimiento(Long presentationId, String tipo, Integer cantidad, String detalle, Long usuarioId) {
+
         // 1. Validar que la cantidad sea positiva
         if (cantidad == null || cantidad <= 0) {
             throw new IllegalArgumentException("La cantidad debe ser mayor a cero.");
         }
 
         // 2. Buscar las entidades asociadas
-        Insumo insumo = insumoRepository.findById(insumoId)
-                .orElseThrow(() -> new IllegalArgumentException("Insumo no encontrado."));
-                
+        Presentation presentation = presentationRepository.findById(presentationId)
+                .orElseThrow(() -> new IllegalArgumentException("Presentación no encontrada."));
+
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
 
@@ -42,20 +45,17 @@ public class MovimientoService {
         switch (tipo.toUpperCase()) {
             case "ENTRADA":
             case "AJUSTE_POSITIVO":
-                insumo.setStock(insumo.getStock() + cantidad);
-                if (tipo.equalsIgnoreCase("ENTRADA")) {
-                    insumo.setEntrada(insumo.getEntrada() + cantidad);
-                }
+                presentation.setStock(presentation.getStock() + cantidad);
                 break;
-                
+
             case "SALIDA":
             case "AJUSTE_NEGATIVO":
-                if (cantidad > insumo.getStock()) {
-                    throw new InsufficientStockException("Stock insuficiente. Solicitado: " + cantidad + ", Disponible: " + insumo.getStock());
+                if (cantidad > presentation.getStock()) {
+                    throw new InsufficientStockException("Stock insuficiente. Solicitado: " + cantidad + ", Disponible: " + presentation.getStock());
                 }
-                insumo.setStock(insumo.getStock() - cantidad);
+                presentation.setStock(presentation.getStock() - cantidad);
                 break;
-                
+
             default:
                 throw new IllegalArgumentException("Tipo de movimiento inválido.");
         }
@@ -66,10 +66,10 @@ public class MovimientoService {
         }
 
         // 5. Guardar los cambios (Spring Data JPA hace los UPDATE e INSERT por detrás)
-        insumoRepository.save(insumo);
+        presentationRepository.save(presentation);
 
         Movimiento movimiento = new Movimiento();
-        movimiento.setInsumo(insumo);
+        movimiento.setPresentation(presentation);
         movimiento.setTipo(tipo.toUpperCase());
         movimiento.setCantidad(cantidad);
         movimiento.setDetalle(detalle);
@@ -80,9 +80,9 @@ public class MovimientoService {
     }
 
     @Transactional(readOnly = true)
-    public java.util.List<com.gestion.inventario.dto.MovimientoResponseDTO> listarMovimientos() {
+    public List<MovimientoResponseDTO> listarMovimientos() {
         return movimientoRepository.findAllByOrderByCreatedAtDesc().stream().map(mov -> {
-            com.gestion.inventario.dto.MovimientoResponseDTO dto = new com.gestion.inventario.dto.MovimientoResponseDTO();
+            MovimientoResponseDTO dto = new MovimientoResponseDTO();
             dto.setId(mov.getId());
             dto.setTipo(mov.getTipo());
             dto.setCantidad(mov.getCantidad());
@@ -90,9 +90,9 @@ public class MovimientoService {
             dto.setCreatedAt(mov.getCreatedAt());
             // Hibernate ejecutará una consulta adicional (o usará caché) por cada acceso
             // pero estamos bajo @Transactional por lo que no habrá error de LazyLoading
-            if (mov.getInsumo() != null) {
-                dto.setInsumoNombre(mov.getInsumo().getInsumo());
-                dto.setInsumoPresentacion(mov.getInsumo().getPresentacion() + " " + mov.getInsumo().getTamanoPresentacion());
+            if (mov.getPresentation() != null && mov.getPresentation().getItem() != null) {
+                dto.setInsumoNombre(mov.getPresentation().getItem().getName());
+                dto.setInsumoPresentacion(mov.getPresentation().getName() + " " + mov.getPresentation().getSize());
             }
             if (mov.getUsuario() != null) {
                 dto.setUsuarioNombre(mov.getUsuario().getNombre());

@@ -3,7 +3,7 @@ import api from '../api/axios';
 
 export default function MovimientoModal({ isOpen, onClose, onSave, insumos }) {
   const [formData, setFormData] = useState({
-    insumoId: '',
+    presentationId: '',
     tipo: 'ENTRADA',
     cantidad: '',
     detalle: ''
@@ -15,7 +15,7 @@ export default function MovimientoModal({ isOpen, onClose, onSave, insumos }) {
   useEffect(() => {
     if (isOpen) {
       setFormData({
-        insumoId: '',
+        presentationId: '',
         tipo: 'ENTRADA',
         cantidad: '',
         detalle: ''
@@ -79,18 +79,18 @@ export default function MovimientoModal({ isOpen, onClose, onSave, insumos }) {
           
           <div className="grid grid-cols-1 gap-5">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Insumo</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Insumo / Presentación</label>
               <select 
-                name="insumoId"
-                value={formData.insumoId}
+                name="presentationId"
+                value={formData.presentationId}
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
               >
-                <option value="">-- Seleccione un insumo --</option>
+                <option value="">-- Seleccione una presentación --</option>
                 {insumos.map(insumo => (
                   <option key={insumo.id} value={insumo.id}>
-                    {insumo.numero} - {insumo.insumo} ({insumo.presentacion}) | Stock: {insumo.stock}
+                    {insumo.numero} - {insumo.insumo} ({insumo.presentacion} {insumo.tamanoPresentacion}) | Stock: {insumo.stock}
                   </option>
                 ))}
               </select>

@@ -1,10 +1,11 @@
 package com.gestion.inventario.service;
 
 import com.gestion.inventario.dto.SugerenciaStockDTO;
-import com.gestion.inventario.model.Insumo;
+import com.gestion.inventario.model.Item;
 import com.gestion.inventario.model.Movimiento;
-import com.gestion.inventario.repository.InsumoRepository;
+import com.gestion.inventario.model.Presentation;
 import com.gestion.inventario.repository.MovimientoRepository;
+import com.gestion.inventario.repository.PresentationRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -21,27 +22,31 @@ import static org.mockito.Mockito.when;
 public class SugerenciaStockServiceTest {
 
     @Mock
-    private InsumoRepository insumoRepository;
+    private PresentationRepository presentationRepository;
 
     @Mock
     private MovimientoRepository movimientoRepository;
 
     private SugerenciaStockService service() {
-        return new SugerenciaStockService(insumoRepository, movimientoRepository, 90, 7, 30);
+        return new SugerenciaStockService(presentationRepository, movimientoRepository, 90, 7, 30);
     }
 
-    private Insumo insumo(int stock, Integer minimo, Integer maximo) {
-        Insumo insumo = new Insumo();
-        insumo.setId(1L);
-        insumo.setNumero(1);
-        insumo.setInsumo("Gasa");
-        insumo.setPresentacion("Caja");
-        insumo.setTamanoPresentacion("10x10");
-        insumo.setStock(stock);
-        insumo.setStockMinimo(minimo);
-        insumo.setStockMaximo(maximo);
-        insumo.setCostoEstimado(new BigDecimal("25.00"));
-        return insumo;
+    private Presentation presentation(int stock, Integer minimo, Integer maximo) {
+        Item item = new Item();
+        item.setId(1L);
+        item.setCode(1);
+        item.setName("Gasa");
+
+        Presentation presentation = new Presentation();
+        presentation.setId(1L);
+        presentation.setItem(item);
+        presentation.setName("Caja");
+        presentation.setSize("10x10");
+        presentation.setStock(stock);
+        presentation.setMinStock(minimo);
+        presentation.setMaxStock(maximo);
+        presentation.setEstimatedCost(new BigDecimal("25.00"));
+        return presentation;
     }
 
     private Movimiento movimiento(int cantidad) {
@@ -52,7 +57,7 @@ public class SugerenciaStockServiceTest {
 
     @Test
     void debeSugerirMinYMaxSegunConsumoPromedioDiario() {
-        when(insumoRepository.findAll()).thenReturn(List.of(insumo(10, 5, 50)));
+        when(presentationRepository.findAll()).thenReturn(List.of(presentation(10, 5, 50)));
         when(movimientoRepository.findConsumosDesde(eq(1L), any())).thenReturn(
                 List.of(movimiento(30), movimiento(30), movimiento(30))); // 90 en 90 días => CPD 1.0
 
@@ -67,7 +72,7 @@ public class SugerenciaStockServiceTest {
 
     @Test
     void debeRedondearHaciaArribaElConsumoFraccionario() {
-        when(insumoRepository.findAll()).thenReturn(List.of(insumo(10, 5, 50)));
+        when(presentationRepository.findAll()).thenReturn(List.of(presentation(10, 5, 50)));
         when(movimientoRepository.findConsumosDesde(eq(1L), any())).thenReturn(List.of(movimiento(15))); // 15/90 => 0.17
 
         SugerenciaStockDTO dto = service().sugerirStock().get(0);
@@ -78,7 +83,7 @@ public class SugerenciaStockServiceTest {
 
     @Test
     void debeMarcarSinConsumoCuandoNoHayMovimientos() {
-        when(insumoRepository.findAll()).thenReturn(List.of(insumo(10, 5, 50)));
+        when(presentationRepository.findAll()).thenReturn(List.of(presentation(10, 5, 50)));
         when(movimientoRepository.findConsumosDesde(eq(1L), any())).thenReturn(List.of());
 
         SugerenciaStockDTO dto = service().sugerirStock().get(0);
@@ -91,7 +96,7 @@ public class SugerenciaStockServiceTest {
 
     @Test
     void debeMarcarDifiereFalsoCuandoYaCoincidenLosValores() {
-        when(insumoRepository.findAll()).thenReturn(List.of(insumo(10, 7, 37)));
+        when(presentationRepository.findAll()).thenReturn(List.of(presentation(10, 7, 37)));
         when(movimientoRepository.findConsumosDesde(eq(1L), any())).thenReturn(
                 List.of(movimiento(30), movimiento(30), movimiento(30)));
 
@@ -104,7 +109,7 @@ public class SugerenciaStockServiceTest {
 
     @Test
     void debeGarantizarMaximoMayorAlMinimo() {
-        when(insumoRepository.findAll()).thenReturn(List.of(insumo(10, 5, 50)));
+        when(presentationRepository.findAll()).thenReturn(List.of(presentation(10, 5, 50)));
         when(movimientoRepository.findConsumosDesde(eq(1L), any())).thenReturn(List.of(movimiento(3))); // CPD 0.03
 
         SugerenciaStockDTO dto = service().sugerirStock().get(0);

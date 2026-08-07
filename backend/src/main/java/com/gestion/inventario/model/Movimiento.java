@@ -15,9 +15,9 @@ public class Movimiento {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY) // Relación de muchos a uno con Insumo
+    @ManyToOne(fetch = FetchType.LAZY) // Los movimientos apuntan a la presentación (variante)
     @JoinColumn(name = "inventario_id", nullable = false)
-    private Insumo insumo;
+    private Presentation presentation;
 
     @Column(nullable = false)
     private String tipo;

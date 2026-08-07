@@ -6,8 +6,8 @@ import lombok.Data;
 
 @Data
 public class MovimientoDTO {
-    @NotNull(message = "El ID del insumo es obligatorio")
-    private Long insumoId;
+    @NotNull(message = "El ID de la presentación es obligatorio")
+    private Long presentationId;
 
     @NotNull(message = "El tipo de movimiento es obligatorio")
     private String tipo;

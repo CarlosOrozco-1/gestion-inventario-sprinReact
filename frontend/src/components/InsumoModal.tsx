@@ -1,44 +1,71 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 
-export default function InsumoModal({ isOpen, onClose, onSave, insumoEdit }) {
-  const [formData, setFormData] = useState({
-    numero: '',
-    insumo: '',
-    presentacion: '',
-    tamanoPresentacion: '',
-    stockMinimo: 5,
-    stockMaximo: 50,
-    costoEstimado: 0
-  });
+const MODES = {
+  'create-item': {
+    title: 'Registrar Nuevo Material',
+    includesPresentation: true,
+    includesItem: true,
+  },
+  'edit-item': {
+    title: 'Editar Material',
+    includesPresentation: false,
+    includesItem: true,
+  },
+  'create-presentation': {
+    title: 'Agregar Presentación',
+    includesPresentation: true,
+    includesItem: false,
+  },
+  'edit-presentation': {
+    title: 'Editar Presentación',
+    includesPresentation: true,
+    includesItem: false,
+  },
+};
+
+const emptyForm = {
+  code: '',
+  name: '',
+  presName: '',
+  presSize: '',
+  minStock: 5,
+  maxStock: 50,
+  estimatedCost: 0,
+};
+
+export default function InsumoModal({ isOpen, onClose, onSave, modalConfig }) {
+  const mode = modalConfig?.mode || 'create-item';
+  const item = modalConfig?.item || null;
+  const presentation = modalConfig?.presentation || null;
+  const { title, includesPresentation, includesItem } = MODES[mode] || MODES['create-item'];
+
+  const [formData, setFormData] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Si estamos editando, cargar los datos en el formulario
+  // Cargar los datos según el modo cada vez que se abre
   useEffect(() => {
-    if (insumoEdit) {
-      setFormData({
-        numero: insumoEdit.numero || '',
-        insumo: insumoEdit.insumo || '',
-        presentacion: insumoEdit.presentacion || '',
-        tamanoPresentacion: insumoEdit.tamanoPresentacion || '',
-        stockMinimo: insumoEdit.stockMinimo || 5,
-        stockMaximo: insumoEdit.stockMaximo || 50,
-        costoEstimado: insumoEdit.costoEstimado || 0
-      });
-    } else {
-      setFormData({
-        numero: '',
-        insumo: '',
-        presentacion: '',
-        tamanoPresentacion: '',
-        stockMinimo: 5,
-        stockMaximo: 50,
-        costoEstimado: 0
-      });
+    if (isOpen) {
+      if (mode === 'edit-item' && item) {
+        setFormData({ ...emptyForm, code: item.code ?? '', name: item.name ?? '' });
+      } else if (mode === 'edit-presentation' && presentation) {
+        setFormData({
+          ...emptyForm,
+          presName: presentation.name ?? '',
+          presSize: presentation.size ?? '',
+          minStock: presentation.minStock ?? 5,
+          maxStock: presentation.maxStock ?? 50,
+          estimatedCost: presentation.estimatedCost ?? 0,
+        });
+      } else if (mode === 'create-presentation' && item) {
+        setFormData(emptyForm);
+      } else {
+        setFormData(emptyForm);
+      }
+      setError('');
     }
-    setError('');
-  }, [insumoEdit, isOpen]);
+  }, [isOpen, mode, item, presentation]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -51,17 +78,53 @@ export default function InsumoModal({ isOpen, onClose, onSave, insumoEdit }) {
     setError('');
 
     try {
-      if (insumoEdit) {
-        // Ejecuta la actualización en el backend
-        await api.put(`/insumos/${insumoEdit.id}`, formData);
-        onSave('Insumo actualizado exitosamente'); // Pasamos el mensaje de éxito
+      if (mode === 'create-item') {
+        await api.post('/items', {
+          code: Number(formData.code),
+          name: formData.name,
+          presentations: [
+            {
+              name: formData.presName,
+              size: formData.presSize,
+              minStock: Number(formData.minStock),
+              maxStock: Number(formData.maxStock),
+              estimatedCost: Number(formData.estimatedCost),
+            },
+          ],
+        });
+        onSave('Material creado exitosamente');
+      } else if (mode === 'edit-item') {
+        await api.put(`/items/${item.id}`, {
+          code: Number(formData.code),
+          name: formData.name,
+        });
+        onSave('Material actualizado exitosamente');
+      } else if (mode === 'create-presentation') {
+        await api.post(`/items/${item.id}/presentations`, {
+          name: formData.presName,
+          size: formData.presSize,
+          minStock: Number(formData.minStock),
+          maxStock: Number(formData.maxStock),
+          estimatedCost: Number(formData.estimatedCost),
+        });
+        onSave('Presentación agregada exitosamente');
       } else {
-        await api.post('/insumos', formData);
-        onSave('Insumo creado exitosamente'); // Pasamos el mensaje de éxito
+        await api.put(`/presentations/${presentation.id}`, {
+          name: formData.presName,
+          size: formData.presSize,
+          minStock: Number(formData.minStock),
+          maxStock: Number(formData.maxStock),
+          estimatedCost: Number(formData.estimatedCost),
+        });
+        onSave('Presentación actualizada exitosamente');
       }
-      onClose(); // Cerrar modal
+      onClose();
     } catch (err) {
-      setError('Ocurrió un error al guardar el insumo. Verifica los datos.');
+      const backendMessage =
+        err.response?.data?.message ||
+        err.response?.data?.details?.name ||
+        'Ocurrió un error al guardar. Verifica los datos.';
+      setError(backendMessage);
     } finally {
       setLoading(false);
     }
@@ -72,13 +135,11 @@ export default function InsumoModal({ isOpen, onClose, onSave, insumoEdit }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        
+
         {/* Header Modal */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h2 className="text-xl font-bold text-slate-800">
-            {insumoEdit ? 'Editar Insumo' : 'Registrar Nuevo Insumo'}
-          </h2>
-          <button 
+          <h2 className="text-xl font-bold text-slate-800">{title}</h2>
+          <button
             onClick={onClose}
             className="text-slate-400 hover:text-slate-600 transition-colors p-1"
           >
@@ -91,130 +152,135 @@ export default function InsumoModal({ isOpen, onClose, onSave, insumoEdit }) {
         {/* Cuerpo del Formulario */}
         <form onSubmit={handleSubmit} className="p-6">
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">
+            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-100">
               {error}
             </div>
           )}
-          
+
           <div className="grid grid-cols-1 gap-5">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">
-                Número / Código interno
-              </label>
-              <input 
-                type="number" 
-                name="numero"
-                value={formData.numero}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
-                placeholder="Ej. 101"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">
-                Nombre del Insumo
-              </label>
-              <input 
-                type="text" 
-                name="insumo"
-                value={formData.insumo}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
-                placeholder="Ej. Guantes de Látex"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">
-                  Presentación
-                </label>
-                <input 
-                  type="text" 
-                  name="presentacion"
-                  value={formData.presentacion}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
-                  placeholder="Ej. Caja"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">
-                  Tamaño / Capacidad
-                </label>
-                <input 
-                  type="text" 
-                  name="tamanoPresentacion"
-                  value={formData.tamanoPresentacion}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
-                  placeholder="Ej. 100 uds"
-                />
-              </div>
-            </div>
-
-            {/* FASE 8: Configuración de Stock (Smart Stock) */}
-            <div className="pt-4 border-t border-slate-100">
-              <h3 className="text-sm font-bold text-slate-800 mb-3">Configuración de Inventario (Proyecciones)</h3>
-              <div className="grid grid-cols-3 gap-4">
+            {includesItem && (
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Stock Mínimo</label>
-                  <input 
-                    type="number" 
-                    name="stockMinimo"
-                    min="1"
-                    value={formData.stockMinimo}
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Número / Código interno
+                  </label>
+                  <input
+                    type="number"
+                    name="code"
+                    value={formData.code}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
-                    placeholder="Alerta roja"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Stock Máximo (Óptimo)</label>
-                  <input 
-                    type="number" 
-                    name="stockMaximo"
-                    min="1"
-                    value={formData.stockMaximo}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                    placeholder="Meta de compra"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Costo Unit. Estimado (Q)</label>
-                  <input 
-                    type="number" 
-                    name="costoEstimado"
-                    min="0"
-                    step="0.01"
-                    value={formData.costoEstimado}
-                    onChange={handleChange}
+                    required
                     className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
-                    placeholder="Ej. 15.50"
+                    placeholder="Ej. 101"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Nombre del Material
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+                    placeholder="Ej. Pasta Térmica"
                   />
                 </div>
               </div>
-            </div>
+            )}
+
+            {includesPresentation && (
+              <>
+                <div className="pt-2 border-t border-slate-100">
+                  <h3 className="text-sm font-bold text-slate-800 mb-3">Presentación / Variante</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">
+                        Nombre
+                      </label>
+                      <input
+                        type="text"
+                        name="presName"
+                        value={formData.presName}
+                        onChange={handleChange}
+                        required
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+                        placeholder="Ej. Sobre"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">
+                        Tamaño / Capacidad
+                      </label>
+                      <input
+                        type="text"
+                        name="presSize"
+                        value={formData.presSize}
+                        onChange={handleChange}
+                        required
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+                        placeholder="Ej. 2g"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100">
+                  <h3 className="text-sm font-bold text-slate-800 mb-3">Configuración de Inventario (Proyecciones)</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Stock Mínimo</label>
+                      <input
+                        type="number"
+                        name="minStock"
+                        min="1"
+                        value={formData.minStock}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Stock Máximo (Óptimo)</label>
+                      <input
+                        type="number"
+                        name="maxStock"
+                        min="1"
+                        value={formData.maxStock}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Costo Unit. Estimado (Q)</label>
+                      <input
+                        type="number"
+                        name="estimatedCost"
+                        min="0"
+                        step="0.01"
+                        value={formData.estimatedCost}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Botones de Acción */}
           <div className="mt-8 flex justify-end gap-3">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={onClose}
               className="px-5 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors"
             >
               Cancelar
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={loading}
               className="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg transition-colors shadow-sm focus:ring-2 focus:ring-brand-500/50 disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
             >
@@ -224,7 +290,7 @@ export default function InsumoModal({ isOpen, onClose, onSave, insumoEdit }) {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               )}
-              {loading ? 'Guardando...' : 'Guardar Insumo'}
+              {loading ? 'Guardando...' : 'Guardar'}
             </button>
           </div>
         </form>

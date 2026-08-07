@@ -149,11 +149,11 @@ graph TD
   - `presentations` (variantes): `id, item_id FK, name, size, min_stock, max_stock, estimated_cost, stock, created_at, updated_at` — cada presentación (ej. "Sobre 2g", "Sobre 4g") con su propio stock.
   - Los **movimientos** apuntan a `presentations.id` (el stock se controla por variante, igual que hoy).
 - **Est. de esfuerzo: ~1.5-2 días** (media-alta: toca entidades, FK de movimientos, DTOs, CRUD frontend y sugerencias).
-- [ ] Backend: migración Flyway que crea `items` + `presentations`, migra los datos actuales de `inventario_insumos` (agrupando por `insumo` → un `item`; cada fila → una `presentation`) y re-apunta `inventario_movimientos.inventario_id` → `presentations.id`.
-- [ ] Backend: entidades `Item` y `Presentation` (+ `ItemRepository`, `PresentationRepository`); mover `stock/min/max/cost` a la variante; `Movimiento` apunta a `Presentation`.
-- [ ] Backend: endpoints de catálogo (`GET/POST/PUT /api/items`, `GET/POST/PUT /api/items/{id}/presentations`) y adaptar `MovimientoController` y `SugerenciaStockService`.
-- [ ] Frontend: vista de catálogo con variantes (elegir material → gestionar sus presentaciones); actualizar selección de insumo en movimientos/ajustes/reportes/proyecciones.
-- [ ] Validar: alta de "Pasta Térmica" con 2 presentaciones; movimientos por variante; sugerencias de stock por variante.
+- [x] Backend: migración Flyway `V3__presentaciones_multiples.sql` que crea `items` + `presentations`, migra los datos actuales de `inventario_insumos` (agrupando por `insumo` → un `item`; cada fila → una `presentation`, conservando los ids) y re-apunta `inventario_movimientos.inventario_id` → `presentations.id`. `inventario_insumos` se conserva como archivo legado (la referencian `inventario_saldos_mensuales` e `inventario_requerimientos_anuales`).
+- [x] Backend: entidades `Item` y `Presentation` (+ `ItemRepository`, `PresentationRepository`); el stock/min/max/cost viven en la variante; `Movimiento` apunta a `Presentation`.
+- [x] Backend: endpoints de catálogo (`GET/POST/PUT /api/items`, `GET/POST /api/items/{id}/presentations`, `PUT /api/presentations/{id}`) y adaptar `MovimientoController`, `SugerenciaStockService` y `ReporteController`. `GET /api/insumos` conserva el contrato aplanado legado (vista de presentaciones) para no romper el frontend.
+- [x] Frontend: vista de catálogo con variantes (material → sus presentaciones: agregar/editar variante, editar material); selección de presentación en movimientos/ajustes; aplicar sugerencia vía `PUT /presentations/{id}`.
+- [x] Validar: alta de material con varias presentaciones; movimientos por variante; sugerencias de stock por variante (E2E 58 PASS / 0 FAIL vía proxy `:80`).
 
 ### Fase 17: Normalización del esquema a inglés — Backend y Base de datos
 - **Objetivo:** unificar a **inglés** todos los nombres de columnas/campos de la BD (hoy mezcla: `email`/`password` EN, `nombre`/`activo`/`detalle` ES).
@@ -169,12 +169,12 @@ graph TD
   | `password_reset_tokens` | `codigo_hash`→`code_hash`, `expiracion`→`expires_at`, `usado`→`used`, `intentos_fallidos`→`failed_attempts` |
   - **Regla:** si Fase 16 ya creó `items`/`presentations`, las columnas de insumos se normalizan ahí directamente (no se renombran dos veces).
 - **Est. de esfuerzo: ~1-1.5 días** (media; mueve modelos, DTOs, repositorios, servicios, controladores, seguridad y consultas).
-- [ ] Migración Flyway `V3__normalizar_schema_al_ingles.sql` con `ALTER TABLE ... RENAME COLUMN` (preserva datos; **NO** editar V1/V2 para no romper checksums). Actualizar referencias `database/postgres/*.sql`.
+- [ ] Migración Flyway `V4__normalizar_schema_al_ingles.sql` con `ALTER TABLE ... RENAME COLUMN` (preserva datos; **NO** editar V1/V2/V3 para no romper checksums). Actualizar referencias `database/postgres/*.sql`.
 - [ ] Renombrar campos en entidades (7): `Usuario`, `Rol`, `Insumo`, `Movimiento`, `SaldoMensual`, `RequerimientoAnual`, `PasswordResetToken` + `@Column(name=...)`.
 - [ ] Renombrar DTOs (6): `LoginResponse.UsuarioInfo`, `MovimientoResponseDTO`, `MovimientoDTO`, `ActualizarUsuarioDTO`, `NuevoUsuarioDTO`, `ProyeccionDTO`, `SugerenciaStockDTO`.
 - [ ] Renombrar repositorios/servicios/controladores/`UserDetailsServiceImpl` (getters/setters + `@Query` y validaciones).
 - [ ] Actualizar tests unitarios y `scripts/smoke_test_e2e.py` (nuevos nombres de campos).
-- [ ] Verificar: build Gradle + tests verdes + arranque con Flyway aplicando V3 sobre datos existentes.
+- [ ] Verificar: build Gradle + tests verdes + arranque con Flyway aplicando V4 sobre datos existentes.
 
 ### Fase 18: Normalización del esquema a inglés — Frontend
 - **Objetivo:** actualizar el contrato de la API en React (campos `nombre`, `activo`, `tipo`, `cantidad`, `detalle`, `presentacion`, `stockMinimo`, etc.).
@@ -208,7 +208,7 @@ De ellos, la refactorización de normalización a inglés (17+18) suma **~2-2.5 
 | 13   | Gestión de Usuarios: actualizar + rol | **Completada** |
 | 14   | Imagen Docker del Frontend         | **Completada** |
 | 15   | Toast de login exitoso             | **Completada** |
-| 16   | Presentaciones múltiples por insumo| Pendiente  |
+| 16   | Presentaciones múltiples por insumo| **Completada** |
 | 17   | Normalización a inglés (Backend/BD)| Pendiente  |
 | 18   | Normalización a inglés (Frontend)  | Pendiente  |
 | 19   | E2E, documentación y cierre        | Pendiente  |

@@ -1,10 +1,11 @@
 package com.gestion.inventario.service;
 
 import com.gestion.inventario.dto.SugerenciaStockDTO;
-import com.gestion.inventario.model.Insumo;
+import com.gestion.inventario.model.Item;
 import com.gestion.inventario.model.Movimiento;
-import com.gestion.inventario.repository.InsumoRepository;
+import com.gestion.inventario.model.Presentation;
 import com.gestion.inventario.repository.MovimientoRepository;
+import com.gestion.inventario.repository.PresentationRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,18 +34,18 @@ import java.util.Objects;
 @Service
 public class SugerenciaStockService {
 
-    private final InsumoRepository insumoRepository;
+    private final PresentationRepository presentationRepository;
     private final MovimientoRepository movimientoRepository;
     private final int ventanaDias;
     private final int leadTimeDias;
     private final int diasCobertura;
 
-    public SugerenciaStockService(InsumoRepository insumoRepository,
+    public SugerenciaStockService(PresentationRepository presentationRepository,
                                   MovimientoRepository movimientoRepository,
                                   @Value("${inventario.proyeccion.ventana-dias:90}") int ventanaDias,
                                   @Value("${inventario.proyeccion.lead-time-dias:7}") int leadTimeDias,
                                   @Value("${inventario.proyeccion.dias-cobertura:30}") int diasCobertura) {
-        this.insumoRepository = insumoRepository;
+        this.presentationRepository = presentationRepository;
         this.movimientoRepository = movimientoRepository;
         this.ventanaDias = ventanaDias;
         this.leadTimeDias = leadTimeDias;
@@ -56,21 +57,22 @@ public class SugerenciaStockService {
         LocalDateTime desde = LocalDateTime.now().minusDays(ventanaDias);
         List<SugerenciaStockDTO> sugerencias = new ArrayList<>();
 
-        for (Insumo insumo : insumoRepository.findAll()) {
-            long totalConsumido = movimientoRepository.findConsumosDesde(insumo.getId(), desde).stream()
+        for (Presentation presentation : presentationRepository.findAll()) {
+            Item item = presentation.getItem();
+            long totalConsumido = movimientoRepository.findConsumosDesde(presentation.getId(), desde).stream()
                     .mapToLong(Movimiento::getCantidad)
                     .sum();
 
             SugerenciaStockDTO dto = new SugerenciaStockDTO();
-            dto.setId(insumo.getId());
-            dto.setNumero(insumo.getNumero());
-            dto.setInsumo(insumo.getInsumo());
-            dto.setPresentacion(insumo.getPresentacion());
-            dto.setTamanoPresentacion(insumo.getTamanoPresentacion());
-            dto.setStock(insumo.getStock());
-            dto.setCostoEstimado(insumo.getCostoEstimado());
-            dto.setStockMinimoActual(insumo.getStockMinimo());
-            dto.setStockMaximoActual(insumo.getStockMaximo());
+            dto.setId(presentation.getId());
+            dto.setNumero(item.getCode());
+            dto.setInsumo(item.getName());
+            dto.setPresentacion(presentation.getName());
+            dto.setTamanoPresentacion(presentation.getSize());
+            dto.setStock(presentation.getStock());
+            dto.setCostoEstimado(presentation.getEstimatedCost());
+            dto.setStockMinimoActual(presentation.getMinStock());
+            dto.setStockMaximoActual(presentation.getMaxStock());
 
             if (totalConsumido <= 0) {
                 dto.setConsumoDiario(BigDecimal.ZERO);
@@ -97,8 +99,8 @@ public class SugerenciaStockService {
             dto.setStockMinimoSugerido(minimoSugerido);
             dto.setStockMaximoSugerido(maximoSugerido);
             dto.setSinConsumo(false);
-            dto.setDifiere(!Objects.equals(insumo.getStockMinimo(), minimoSugerido)
-                    || !Objects.equals(insumo.getStockMaximo(), maximoSugerido));
+            dto.setDifiere(!Objects.equals(presentation.getMinStock(), minimoSugerido)
+                    || !Objects.equals(presentation.getMaxStock(), maximoSugerido));
             sugerencias.add(dto);
         }
 

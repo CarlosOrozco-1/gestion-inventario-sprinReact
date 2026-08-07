@@ -11,10 +11,10 @@ import java.util.List;
 
 @Repository
 public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
-    List<Movimiento> findByInsumoId(Long insumoId);
+    List<Movimiento> findByPresentationId(Long presentationId);
     List<Movimiento> findAllByOrderByCreatedAtDesc();
 
-    // Consumo de un insumo: salidas + ajustes negativos dentro de un período (Fase 10)
-    @Query("SELECT m FROM Movimiento m WHERE m.insumo.id = :insumoId AND m.tipo IN ('SALIDA', 'AJUSTE_NEGATIVO') AND m.createdAt >= :desde")
-    List<Movimiento> findConsumosDesde(@Param("insumoId") Long insumoId, @Param("desde") LocalDateTime desde);
+    // Consumo de una presentación: salidas + ajustes negativos dentro de un período (Fase 10)
+    @Query("SELECT m FROM Movimiento m WHERE m.presentation.id = :presentationId AND m.tipo IN ('SALIDA', 'AJUSTE_NEGATIVO') AND m.createdAt >= :desde")
+    List<Movimiento> findConsumosDesde(@Param("presentationId") Long presentationId, @Param("desde") LocalDateTime desde);
 }

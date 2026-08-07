@@ -127,6 +127,74 @@ graph TD
 
 ---
 
+## Fases Nuevas (Mejoras y Refactorización)
+
+> **Nota de planificación:** las Fases 16-18 se tocan entre sí (el rediseño de
+> presentaciones crea tablas nuevas y la normalización a inglés renombra el
+> resto). **Orden recomendado:** Fase 15 (independiente y corta) → Fase 16
+> (presentaciones, diseñando ya con nombres en inglés) → Fases 17-18
+> (normalización del resto) → Fase 19 (cierre).
+
+### Fase 15: Toast de login exitoso
+- **Objetivo:** reemplazar el mensaje nativo `alert("¡Login Exitoso! Token guardado.")` (`frontend/src/pages/Login.tsx`) por un **toast** de confirmación.
+- **Est. de esfuerzo: ~2-3 horas** (baja complejidad, independiente).
+- [ ] Crear un toast global reutilizable: `frontend/src/store/useToastStore.ts` (zustand) + `frontend/src/components/Toast.tsx` (flotante, auto-dismiss), renderizado una sola vez en `Layout.tsx`.
+- [ ] En `Login.tsx`: al autenticar exitosamente, `showToast("Sesión iniciada correctamente", "success")` y luego navegar. El toast sobrevive a la navegación porque vive en el Layout.
+- [ ] (Opcional, recomendado) Migrar los toasts ad-hoc de `Insumos.tsx` y `Proyecciones.tsx` al mismo store para centralizar.
+
+### Fase 16: Presentaciones múltiples por insumo (Catálogo + Variantes)
+- **Pregunta resuelta:** *"¿registrar nuevamente la pasta térmica o crear una tabla de presentaciones?"* → **Opción B: tabla nueva `presentaciones`** (modelo normalizado). Registrar de nuevo (Opción A, el modelo actual) funciona hoy, pero no hay concepto de "el mismo material": se duplica el nombre por variante y es imposible agrupar/enforcar por material.
+- **Modelo propuesto (con nombres ya en inglés):**
+  - `items` (catálogo): `id, code, name, created_at, updated_at` — el material (ej. "Pasta Térmica").
+  - `presentations` (variantes): `id, item_id FK, name, size, min_stock, max_stock, estimated_cost, stock, created_at, updated_at` — cada presentación (ej. "Sobre 2g", "Sobre 4g") con su propio stock.
+  - Los **movimientos** apuntan a `presentations.id` (el stock se controla por variante, igual que hoy).
+- **Est. de esfuerzo: ~1.5-2 días** (media-alta: toca entidades, FK de movimientos, DTOs, CRUD frontend y sugerencias).
+- [ ] Backend: migración Flyway que crea `items` + `presentations`, migra los datos actuales de `inventario_insumos` (agrupando por `insumo` → un `item`; cada fila → una `presentation`) y re-apunta `inventario_movimientos.inventario_id` → `presentations.id`.
+- [ ] Backend: entidades `Item` y `Presentation` (+ `ItemRepository`, `PresentationRepository`); mover `stock/min/max/cost` a la variante; `Movimiento` apunta a `Presentation`.
+- [ ] Backend: endpoints de catálogo (`GET/POST/PUT /api/items`, `GET/POST/PUT /api/items/{id}/presentations`) y adaptar `MovimientoController` y `SugerenciaStockService`.
+- [ ] Frontend: vista de catálogo con variantes (elegir material → gestionar sus presentaciones); actualizar selección de insumo en movimientos/ajustes/reportes/proyecciones.
+- [ ] Validar: alta de "Pasta Térmica" con 2 presentaciones; movimientos por variante; sugerencias de stock por variante.
+
+### Fase 17: Normalización del esquema a inglés — Backend y Base de datos
+- **Objetivo:** unificar a **inglés** todos los nombres de columnas/campos de la BD (hoy mezcla: `email`/`password` EN, `nombre`/`activo`/`detalle` ES).
+- **Mapa de renombrado (columnas):**
+  | Tabla | Columna actual → inglesa |
+  |---|---|
+  | `roles` | `nombre`→`name`, `nivel`→`level`, `descripcion`→`description` |
+  | `usuarios` | `nombre`→`name`, `activo`→`active` |
+  | `inventario_insumos` | `numero`→`code`, `insumo`→`name`, `presentacion`→`presentation`, `tamano_presentacion`→`size`, `entrada`→`entries`, `stock_minimo`→`min_stock`, `stock_maximo`→`max_stock`, `costo_estimado`→`estimated_cost` |
+  | `inventario_movimientos` | `tipo`→`type`, `mes`→`month`, `anio`→`year`, `cantidad`→`quantity`, `detalle`→`detail` |
+  | `inventario_saldos_mensuales` | `anio`→`year`, `mes`→`month`, `egresos`→`outflows` |
+  | `inventario_requerimientos_anuales` | `anio`→`year`, `cantidad`→`quantity` |
+  | `password_reset_tokens` | `codigo_hash`→`code_hash`, `expiracion`→`expires_at`, `usado`→`used`, `intentos_fallidos`→`failed_attempts` |
+  - **Regla:** si Fase 16 ya creó `items`/`presentations`, las columnas de insumos se normalizan ahí directamente (no se renombran dos veces).
+- **Est. de esfuerzo: ~1-1.5 días** (media; mueve modelos, DTOs, repositorios, servicios, controladores, seguridad y consultas).
+- [ ] Migración Flyway `V3__normalizar_schema_al_ingles.sql` con `ALTER TABLE ... RENAME COLUMN` (preserva datos; **NO** editar V1/V2 para no romper checksums). Actualizar referencias `database/postgres/*.sql`.
+- [ ] Renombrar campos en entidades (7): `Usuario`, `Rol`, `Insumo`, `Movimiento`, `SaldoMensual`, `RequerimientoAnual`, `PasswordResetToken` + `@Column(name=...)`.
+- [ ] Renombrar DTOs (6): `LoginResponse.UsuarioInfo`, `MovimientoResponseDTO`, `MovimientoDTO`, `ActualizarUsuarioDTO`, `NuevoUsuarioDTO`, `ProyeccionDTO`, `SugerenciaStockDTO`.
+- [ ] Renombrar repositorios/servicios/controladores/`UserDetailsServiceImpl` (getters/setters + `@Query` y validaciones).
+- [ ] Actualizar tests unitarios y `scripts/smoke_test_e2e.py` (nuevos nombres de campos).
+- [ ] Verificar: build Gradle + tests verdes + arranque con Flyway aplicando V3 sobre datos existentes.
+
+### Fase 18: Normalización del esquema a inglés — Frontend
+- **Objetivo:** actualizar el contrato de la API en React (campos `nombre`, `activo`, `tipo`, `cantidad`, `detalle`, `presentacion`, `stockMinimo`, etc.).
+- **Alcance estimado:** ~74 referencias en ~12 archivos (`access.ts`, `Layout.tsx`, `Login.tsx`, `Usuarios.tsx`, `UsuarioModal.tsx`, `Insumos.tsx`, `InsumoModal.tsx`, `Movimientos.tsx`, `MovimientoModal.tsx`, `Ajustes.tsx`, `AjusteModal.tsx`, `Dashboard.tsx`, `Reportes.tsx`, `Proyecciones.tsx`, `store/useAuthStore.ts`).
+- **Est. de esfuerzo: ~1 día** (media; mecánico pero extenso).
+- [ ] Renombrar todas las referencias de campos de la API a los nuevos nombres en inglés.
+- [ ] Ajustar formularios (names de inputs), tablas, tarjetas del Dashboard, sugerencias de stock y reportes.
+- [ ] Lint + build + E2E completo a través del proxy `:80`.
+
+### Fase 19: Verificación E2E, documentación y cierre
+- **Est. de esfuerzo: ~0.5 día.**
+- [ ] Actualizar `scripts/smoke_test_e2e.py` y `scripts/limpiar_e2e.sql` a los nuevos nombres y estructura (items/presentations).
+- [ ] Revisar y actualizar `README.md`, `ARQUITECTURA_PATRONES.md`, `MIGRACION_POSTGRESQL.md` y diagramas.
+- [ ] Marcar fases completadas en este documento y `git commit`.
+
+**Total estimado del paquete (15-19): ~4.5-6 días de trabajo neto.**
+De ellos, la refactorización de normalización a inglés (17+18) suma **~2-2.5 días**, y las presentaciones (16) **~1.5-2 días**.
+
+---
+
 ## Estado General
 
 | Fase | Descripción                        | Estado      |
@@ -139,3 +207,8 @@ graph TD
 | 12   | Recuperación de Contraseña         | **Completada** |
 | 13   | Gestión de Usuarios: actualizar + rol | **Completada** |
 | 14   | Imagen Docker del Frontend         | **Completada** |
+| 15   | Toast de login exitoso             | Pendiente  |
+| 16   | Presentaciones múltiples por insumo| Pendiente  |
+| 17   | Normalización a inglés (Backend/BD)| Pendiente  |
+| 18   | Normalización a inglés (Frontend)  | Pendiente  |
+| 19   | E2E, documentación y cierre        | Pendiente  |

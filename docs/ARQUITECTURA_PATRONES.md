@@ -9,29 +9,6 @@
 
 ---
 
-## 1. Aclaración Conceptual: MVC, Capas y Clean Architecture
-
-Es común confundir estos términos. No son lo mismo:
-
-- **MVC (Model-View-Controller):** patrón clásico para aplicaciones con
-  vistas (HTML/JSP). El Controller orquesta, la View muestra y el Model
-  representa los datos.
-- **Arquitectura en Capas (Layered Architecture):** es la **evolución del
-  MVC** en el contexto de APIs REST, donde la "vista" deja de existir como
-  plantilla y el servidor expone JSON. Divide el backend en capas
-  horizontales (Controller → Service → Repository → Model).
-- **Clean Architecture (Robert C. Martin / Uncle Bob):** es un enfoque
-  **distinto y más abstracto**, no una evolución del MVC. Se basa en la
-  **inversión de dependencias**: las reglas de negocio (entidades y casos de
-  uso) viven en el centro, y las tecnologías externas (base de datos, HTTP,
-  frameworks) se conectan como "adaptadores" en la periferia, apuntando las
-  dependencias hacia adentro.
-
-**Conclusión:** este proyecto **NO usa Clean Architecture**. Usa
-**Arquitectura en Capas**, de forma pragmática, combinada con los patrones de
-diseño estándar del ecosistema Spring (documentados en la sección 3).
-
----
 
 ## 2. Arquitectura del Sistema
 
@@ -55,7 +32,7 @@ diseño estándar del ecosistema Spring (documentados en la sección 3).
 │          │  Movimiento, SaldoMensual, ...)   ┌──────────┐     │
 │          │  viajan a través de las capas     │  Base de │     │
 │          └──────────────────────────────────▶│  Datos   │     │
-│                                               │SQLite/Post│   │
+│                                               │PostgreSQL│     │
 │                                               └──────────┘     │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -132,8 +109,8 @@ frontend/src
 
 ## 4. Decisiones de Diseño y Deuda Técnica
 
-- **Base de datos intercambiable:** JPA abstrae la base (SQLite en desarrollo,
-  PostgreSQL en producción) → la migración es de bajo costo.
+- **Base de datos intercambiable:** JPA abstrae la base (PostgreSQL en
+  todos los entornos) → la arquitectura es portable a otro motor si hiciera falta.
 - **`ddl-auto=update`:** genera el esquema automáticamente, pero en
   producción a largo plazo conviene **Flyway/Liquibase** + `ddl-auto=validate`.
 - **`InsumoController` omite la capa Service** (usa el Repository directo).

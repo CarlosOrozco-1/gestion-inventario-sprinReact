@@ -1,6 +1,19 @@
 # Diagramas de Flujo del Sistema (Mermaid)
 
 Este documento contiene los diagramas arquitectónicos y de flujo operativo del sistema.
+Los flujos de cada módulo tienen un archivo propio; este documento los indexa:
+
+## Índice de diagramas por módulo
+
+| Módulo / Flujo | Archivo |
+| -------------- | ------- |
+| Autenticación — Login | [`flujo_login.md`](./flujo_login.md) |
+| Autenticación — Recuperación de contraseña | [`flujo_recuperar_contrasena.md`](./flujo_recuperar_contrasena.md) |
+| Movimientos (Kárdex y Transacciones) | sección 1 abajo |
+| Auditoría (Ajustes) | sección 2 abajo |
+| Reportería (Excel) | sección 3 abajo |
+
+---
 
 ## 1. Flujo de Módulo de Movimientos (Kárdex y Transacciones)
 ```mermaid
@@ -42,7 +55,11 @@ graph LR
     H --> I[Navegador Fuerza Descarga del Archivo]
 ```
 
-## 4. (Futuro) Flujo de Recuperación de Contraseña (Fase 12)
+## 4. Flujo de Recuperación de Contraseña (Fase 12)
+> ✅ Implementado y documentado a detalle en
+> [`flujo_recuperar_contrasena.md`](./flujo_recuperar_contrasena.md).
+> Vista resumida (secuencia):
+
 ```mermaid
 sequenceDiagram
     participant Usuario
@@ -56,6 +73,6 @@ sequenceDiagram
     Spring Boot->>SMTP Server: Enviar Email al Usuario
     SMTP Server-->>Usuario: Recibe PIN
     Usuario->>React UI: Ingresa PIN y Nueva Clave
-    React UI->>Spring Boot: POST /api/auth/reset (PIN, Clave)
+    React UI->>Spring Boot: POST /api/auth/verificar-codigo + /restablecer
     Spring Boot-->>React UI: Contraseña Actualizada
 ```

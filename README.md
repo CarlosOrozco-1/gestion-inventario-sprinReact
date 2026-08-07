@@ -10,7 +10,7 @@ Sistema web para el control y gestion de inventario de insumos, con soporte para
 |------|------------|---------|
 | Backend | Spring Boot | 4.1.0 |
 | Persistencia | Spring Data JPA / Hibernate | 7.4.1 |
-| Base de Datos | SQLite | - |
+| Base de Datos | PostgreSQL | 16 |
 | Seguridad | Spring Security + JWT | - |
 | Build | Gradle | 8.7 |
 | Contenedor | Docker / Docker Compose | - |
@@ -35,19 +35,23 @@ migracion-springboot-react/
 │   │       ├── security/
 │   │       └── service/
 │   ├── src/main/resources/
-│   │   └── application.properties
+│   │   ├── application.properties
+│   │   ├── application-prod.properties
+│   │   └── db/migration/        # Migraciones Flyway (PostgreSQL)
 │   ├── build.gradle
-│   ├── Dockerfile
-│   └── data/                 # Persistencia SQLite (montaje de volumen)
+│   └── Dockerfile
 ├── database/
-│   ├── schema.sql            # Esquema SQL completo
-│   ├── ER.md                 # Diagrama Entidad-Relacion
-│   ├── flujo-sistema.md      # Diagramas de flujo
-│   └── casos-uso.md          # Casos de uso y matriz de permisos
+│   ├── postgres/                # Esquema PostgreSQL y guías de conexión
+│   ├── ER.md                    # Diagrama Entidad-Relacion
+│   ├── flujo-sistema.md         # Diagramas de flujo
+│   └── casos-uso.md             # Casos de uso y matriz de permisos
 ├── docs/
 │   ├── BITACORA_PROBLEMAS.md
+│   ├── COMO_LEVANTAR_LOS_SERVICIOS.md
 │   └── FASES_DESARROLLO.md
-└── docker-compose.yml
+├── frontend/                    # React + Vite (+ Dockerfile/nginx.conf)
+├── docker-compose.yml           # Alias de docker-compose.prod.yml
+└── docker-compose.prod.yml      # Produccion (db + backend + frontend)
 ```
 
 ---
@@ -228,8 +232,14 @@ flowchart TD
 
 ## Ejecucion con Docker
 
+> Ejecuta los comandos desde la **raiz del proyecto** (`migracion-springboot-react/`,
+> donde estan los `docker-compose*.yml`), no desde `backend/` ni `frontend/`.
+>
+> Requiere archivo `.env` (crea uno a partir de `.env.example`):
+> `cp .env.example .env`
+
 ```bash
-# Construir y ejecutar
+# Construir y ejecutar los 3 servicios (db + backend + frontend)
 docker compose up --build -d
 
 # Ver logs
@@ -239,7 +249,11 @@ docker compose logs -f backend
 docker compose down
 ```
 
-La API estara disponible en `http://localhost:8080`
+- **App completa:** `http://localhost` (Nginx sirve el build de React y proxya `/api` al backend)
+- **API directa:** `http://localhost:8080`
+
+> El `docker-compose.yml` por defecto es un alias de `docker-compose.prod.yml`;
+> ambos son identicos y levantan PostgreSQL + frontend (no SQLite).
 
 ---
 

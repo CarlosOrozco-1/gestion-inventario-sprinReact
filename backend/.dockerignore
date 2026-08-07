@@ -1,0 +1,5 @@
+.gradle
+.gradle-ctn
+build
+bin
+*.db

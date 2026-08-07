@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useAuthStore } from "../store/useAuthStore";
 
@@ -9,6 +10,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
 
   const login = useAuthStore((state) => state.login);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -206,6 +208,7 @@ export default function Login() {
                   </label>
                   <button
                     type="button"
+                    onClick={() => navigate("/recuperar")}
                     className="text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors focus:outline-none"
                   >
                     ¿Olvidaste tu contraseña?

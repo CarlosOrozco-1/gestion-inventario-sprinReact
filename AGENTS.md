@@ -1,7 +1,7 @@
 # AGENTS.md — Migración a Spring Boot + React
 
 > **Proyecto:** Sistema de Gestión de Inventario de Insumos (V2)
-> **Stack Nuevo:** Spring Boot (Java) + React + SQLite
+> **Stack Nuevo:** Spring Boot (Java) + React + PostgreSQL
 > **Objetivo:** Sistema ultra-preciso para el manejo de entradas, salidas y ajustes justificados, con validaciones estrictas y arquitectura orientada a transacciones seguras.
 
 ---
@@ -11,7 +11,7 @@
 ### Backend (Spring Boot)
 - **Framework:** Spring Boot 3.x (Java 17 o 21).
 - **Persistencia:** Spring Data JPA / Hibernate.
-- **Base de Datos:** PostgreSQL (recomendado sobre SQLite por el manejo de concurrencia en inventarios) / SQLite (para despliegues locales o desarrollo). USAREMOS SQLITE
+- **Base de Datos:** PostgreSQL (producción vía Docker + Flyway; el sistema ya NO usa SQLite).
 - **Seguridad:** Spring Security + JWT (JSON Web Tokens).
 - **Manejo de Errores:** `@RestControllerAdvice` para centralización de excepciones.
 - **Precisión Numérica:** **ESTRICTAMENTE** usar `BigDecimal` o `Integer` (si no hay decimales) para todo cálculo de cantidades/dinero. **Prohibido usar `float` o `double`** por problemas de precisión en coma flotante.

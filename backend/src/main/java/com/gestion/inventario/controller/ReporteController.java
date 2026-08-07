@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayOutputStream;
@@ -26,6 +27,7 @@ public class ReporteController {
 
     @PostMapping("/excel")
     @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMIN','JEFE','AUXILIAR')")
     public ResponseEntity<byte[]> generarReporteExcel(@RequestBody List<Long> idsMovimientos) {
         
         List<Movimiento> movimientos = movimientoRepository.findAllById(idsMovimientos);
@@ -86,6 +88,7 @@ public class ReporteController {
 
     @PostMapping("/pdf")
     @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMIN','JEFE','AUXILIAR')")
     public ResponseEntity<byte[]> generarReportePdf(@RequestBody List<Long> idsMovimientos) {
         
         List<Movimiento> movimientos = movimientoRepository.findAllById(idsMovimientos);
@@ -147,6 +150,7 @@ public class ReporteController {
     }
 
     @PostMapping("/proyecciones/excel")
+    @PreAuthorize("hasAnyRole('ADMIN','JEFE')")
     public ResponseEntity<byte[]> generarProyeccionesExcel(@RequestBody List<com.gestion.inventario.dto.ProyeccionDTO> proyecciones) {
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Proyecciones de Compra");
@@ -194,6 +198,7 @@ public class ReporteController {
     }
 
     @PostMapping("/proyecciones/pdf")
+    @PreAuthorize("hasAnyRole('ADMIN','JEFE')")
     public ResponseEntity<byte[]> generarProyeccionesPdf(@RequestBody List<com.gestion.inventario.dto.ProyeccionDTO> proyecciones) {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             com.lowagie.text.Document document = new com.lowagie.text.Document(com.lowagie.text.PageSize.A4);

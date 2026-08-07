@@ -1,8 +1,8 @@
 # ============================================================
 # Docker Compose para PRODUCCIÓN: Spring Boot + PostgreSQL
 # Uso: docker compose -f docker-compose.prod.yml up -d --build
-# Las credenciales se pueden sobrescribir con un archivo .env
-# o variables de entorno (DB_USERNAME, DB_PASSWORD).
+# Las credenciales se cargan del archivo .env (DB_USERNAME,
+# DB_PASSWORD, MAIL_USERNAME, MAIL_PASSWORD). Ver .env.example.
 # ============================================================
 services:
   backend:
@@ -11,11 +11,11 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    env_file:
+      - .env
     environment:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:postgresql://db:5432/inventario
-      DB_USERNAME: ${DB_USERNAME:-inventario}
-      DB_PASSWORD: ${DB_PASSWORD:-inventario}
     depends_on:
       db:
         condition: service_healthy
@@ -36,6 +36,16 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
     restart: unless-stopped
 
 volumes:

@@ -1,3 +1,5 @@
-# Artefactos generados (contienen datos) de la migración SQLite → PostgreSQL
-backend/data/migracion_postgres.sql
-scripts/migracion_postgres.sql
+# Datos SQLite legacy (ya no forma parte del flujo; todo corre sobre PostgreSQL)
+backend/data/
+
+# Secretos locales (nunca commitear). Ver .env.example
+.env

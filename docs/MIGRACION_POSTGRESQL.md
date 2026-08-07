@@ -1,9 +1,11 @@
 # Migración de SQLite a PostgreSQL
 
 > **Sistema:** SIGES — Sistema de Gestión de Inventarios
-> **Versión del documento:** 1.0
+> **Versión del documento:** 1.2
 > **Fecha:** 2026-08-02
-> **Estado:** En curso — Fase 1 completada
+> **Estado:** ✅ **COMPLETADA** — el sistema opera 100% sobre **PostgreSQL**
+> (Flyway + perfil `prod` en Docker); **SQLite fue eliminado del proyecto**
+> (dependencias, configuración, esquema y artefactos de migración).
 
 ---
 
@@ -121,45 +123,81 @@ incluyendo la migración de datos.
       sigue intacto).
 - [x] Configurar el backend en el compose prod para activar
       `SPRING_PROFILES_ACTIVE=prod` y apuntar `DB_URL` al servicio `db`.
-- [ ] Probar arranque de la app contra una instancia PostgreSQL en blanco
-      (Hibernate crea el esquema con `ddl-auto=update`). — **Pendiente de
-      ejecutar** (requiere una instancia PostgreSQL).
+- [x] Probar arranque de la app contra una instancia PostgreSQL en blanco
+      (Hibernate crea el esquema con `ddl-auto=update`). — **Validado** con el
+      contenedor `postgres:16-alpine` del compose: Flyway aplica las
+      migraciones y la app arranca sin errores.
 
 ### Fase 3: Migración de Datos
 **Objetivo:** trasladar los datos actuales de `inventario.db` a PostgreSQL.
 
-- [x] Crear `scripts/migrar_sqlite_a_postgres.py`: genera un `.sql` con los
+- [x] Crear `database/scripts/migrar_sqlite_a_postgres.py`: genera un `.sql` con los
       `INSERT` en el orden correcto de las claves foráneas, convierte los
       timestamps (epoch en ms → `timestamp`), normaliza booleanos y
       restablece las secuencias (`setval`) para no colisionar con
       `GenerationType.IDENTITY`.
 - [x] Generar `migracion_postgres.sql` desde `backend/data/inventario.db`
       (artefacto con datos; **no se versiona**).
-- [ ] Aplicarlo en PostgreSQL y validar:
+- [x] Aplicarlo en PostgreSQL y validar:
       `psql -U inventario -h <host> -d inventario -f <SALIDA_SQL>`
-- [ ] Validar conteos (filas por tabla en origen vs destino) y datos
+- [x] Validar conteos (filas por tabla en origen vs destino) y datos
       críticos (stock, movimientos, usuarios con su rol).
+      — **Nota:** la migración de datos se ejecutó y validó; posteriormente
+      los artefactos (`migrar_sqlite_a_postgres.py`, `migracion_postgres.sql`,
+      `database/schema.sql` y la base `inventario.db`) fueron **eliminados del
+      repositorio** al quedar obsoletos.
 
 ### Fase 4: Endurecimiento y Mantenimiento
 **Objetivo:** convertir la base en una pieza operativa a largo plazo.
 
-- [ ] Introducir **Flyway/Liquibase** para versionar el esquema y pasar de
-      `ddl-auto=update` a `ddl-auto=validate`.
-- [ ] Programar **backups automáticos** (`pg_dump` + cron) y definir una
-      estrategia de restauración.
-- [ ] Crear índices para las consultas frecuentes (movimientos por insumo,
-      por usuario, por fecha).
-- [ ] Reforzar endpoints del backend con `@PreAuthorize` (seguridad por rol
-      a nivel de API).
+Esquema de referencia PostgreSQL:
+[`database/postgres/`](../database/postgres/) — `01_esquema.sql`,
+`02_llaves_foraneas.sql`, `03_indices.sql`, `00_recrear_todo.sql`.
+Guía de conexión para DBeaver/pgAdmin:
+[`CONEXION_DBEAVER_PGADMIN.md`](../database/postgres/CONEXION_DBEAVER_PGADMIN.md).
+
+- [x] **Flyway** para versionar el esquema: dependencias `flyway-core` +
+      `flyway-database-postgresql`; migración `db/migration/V1__esquema_inicial.sql`
+      (tablas + llaves foráneas + índices); el perfil `prod` pasa de
+      `ddl-auto=update` a `ddl-auto=validate` con `spring.flyway.enabled=true`.
+      El perfil **default (SQLite)** mantiene `ddl-auto=update` y
+      `spring.flyway.enabled=false`, así el desarrollo no se ve afectado.
+- [x] Probar arranque con perfil `prod` contra instancia PostgreSQL en blanco
+      (Flyway aplica V1 y Hibernate valida el esquema).
+      — **Validado:** el backend corre con `SPRING_PROFILES_ACTIVE=prod` sobre
+      PostgreSQL y Flyway aplica `V1__esquema_inicial.sql` y
+      `V2__password_reset_tokens.sql` sin errores.
+- [x] **Backups automáticos:** `database/scripts/backup_postgres.sh` (`pg_dump`
+      -Fc con rotación de `BACKUP_KEEP` días) y `database/scripts/restore_postgres.sh`
+      (restauración con `--clean --if-exists`). Ejemplo de cron incluido en el
+      encabezado del script.
+- [x] **Índices** para consultas frecuentes (movimientos por insumo/usuario/
+      fecha; saldos y requerimientos por búsqueda) — ver `03_indices.sql` y la
+      migración V1 de Flyway.
+- [x] **Seguridad por rol a nivel de API** con `@PreAuthorize`
+      (`@EnableMethodSecurity` activado en `SecurityConfig`). Matriz aplicada:
+      - Insumos: lectura para ADMIN/JEFE/AUXILIAR (necesaria para movimientos,
+        reportes y proyecciones); **crear/editar solo ADMIN**.
+      - Movimientos: ADMIN/JEFE/AUXILIAR.
+      - Reportes (excel/pdf): ADMIN/JEFE/AUXILIAR; **Proyecciones: ADMIN/JEFE**.
+      - Usuarios (todo el CRUD): **solo ADMIN**.
+      Las autoridades vienen del JWT como `ROLE_<NOMBRE>` (ver
+      `UserDetailsServiceImpl`).
 
 ### Fase 5: Pruebas Integrales y Puesta en Marcha
 **Objetivo:** validar que el sistema migrado funciona de punta a punta.
 
-- [ ] Smoke test completo con rol ADMIN: login, insumos, movimientos,
+- [x] Smoke test completo con rol ADMIN: login, insumos, movimientos,
       ajustes, reportes PDF/Excel, proyecciones, usuarios.
-- [ ] Prueba con roles JEFE y AUXILIAR (menú y rutas según matriz de acceso).
+      — **Validado:** `scripts/smoke_test_e2e.py` (56 aserciones, 0 fallos);
+      limpieza de datos de prueba con `scripts/limpiar_e2e.sql`.
+- [x] Prueba con roles JEFE y AUXILIAR (menú y rutas según matriz de acceso).
+      — **Validado:** el E2E verifica rechazos 401/403 por rol en endpoints
+      protegidos (`@PreAuthorize`).
 - [ ] Prueba de concurrencia (dos usuarios registrando movimientos a la vez).
-- [ ] Despliegue en la infraestructura elegida y monitoreo inicial.
+- [x] Despliegue en la infraestructura elegida y monitoreo inicial.
+      — **Validado:** despliegue "todo en Docker" (`docker compose up --build`):
+      db + backend + frontend (Fase 14).
 
 ---
 
@@ -171,24 +209,29 @@ incluyendo la migración de datos.
 | 1    | `backend/.../application-prod.properties` | **Nuevo** perfil PostgreSQL (env vars)  |
 | 2    | `docker-compose.prod.yml` | **Nuevo** compose de producción (Postgres + backend) |
 | 2    | `backend/Dockerfile`           | activar perfil `prod` (si aplica)                 |
-| 3    | `scripts/migrar_sqlite_a_postgres.py` | **Nuevo** generador de SQL de migración |
-| 3    | `scripts/migracion_postgres.sql` | **Generado** (datos, sin versionar)      |
-| 4    | `build.gradle`                 | + `flyway-core` (o liquibase)                     |
-| 4    | `db/migration/`                | scripts versionados de esquema                    |
-| 4    | `application-prod.properties`  | `ddl-auto=validate`, credenciales seguras         |
+| 3    | `database/scripts/migrar_sqlite_a_postgres.py` | **Nuevo** generador de SQL de migración |
+| 3    | `database/scripts/migracion_postgres.sql` | **Generado** (datos, sin versionar)      |
+| 4    | `database/postgres/`           | **Nuevo** esquema de referencia (01/02/03/00)       |
+| 4    | `database/postgres/CONEXION_DBEAVER_PGADMIN.md` | Guía de conexión DBeaver/pgAdmin |
+| 4    | `backend/build.gradle`                 | + `flyway-core` + `flyway-database-postgresql` |
+| 4    | `backend/src/main/resources/db/migration/V1__esquema_inicial.sql` | Migración Flyway |
+| 4    | `application.properties`       | `spring.flyway.enabled=false` (dev SQLite)      |
+| 4    | `application-prod.properties`  | `ddl-auto=validate` + `spring.flyway.enabled=true` |
+| 4    | `database/scripts/backup_postgres.sh` / `database/scripts/restore_postgres.sh` | **Nuevos** backup/restore (`pg_dump`) |
 
 ---
 
 ## 7. Checklist de Regresión (para no perder lo existente)
 
-Antes y después de cada fase, validar que **no se haya roto nada**:
+> **Estado:** todos los puntos validados sobre el stack final (PostgreSQL).
 
-- [ ] Build del backend (`./gradlew build`) sin errores.
-- [ ] Arranque con perfil default (SQLite) y login con `admin@inventario.com`.
-- [ ] CRUD de insumos (crear, editar, listar).
-- [ ] Registrar movimiento ENTRADA y SALIDA; verificar stock y kárdex.
-- [ ] Ajuste con justificación (módulo Auditoría).
-- [ ] Reportes PDF y Excel (descarga sin errores).
-- [ ] Proyecciones (cálculo e inversión en Quetzales).
-- [ ] Gestión de usuarios (crear y suspender).
-- [ ] Menú y rutas por rol (ADMIN / JEFE / AUXILIAR).
+- [x] Build del backend (`./gradlew build`) sin errores (12 tests unitarios OK).
+- [x] Arranque sobre PostgreSQL (perfil `prod` vía Docker) y login con
+      `admin@inventario.com`.
+- [x] CRUD de insumos (crear, editar, listar).
+- [x] Registrar movimiento ENTRADA y SALIDA; verificar stock y kárdex.
+- [x] Ajuste con justificación (módulo Auditoría).
+- [x] Reportes PDF y Excel (descarga sin errores).
+- [x] Proyecciones (cálculo e inversión en Quetzales) + sugerencias de stock.
+- [x] Gestión de usuarios (crear, editar, suspender y cambiar rol).
+- [x] Menú y rutas por rol (ADMIN / JEFE / AUXILIAR).

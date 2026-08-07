@@ -1,16 +1,15 @@
-# Etapa 1: Compilación (Usamos una imagen oficial de Gradle con Java 17)
-FROM gradle:8.7-jdk17 AS builder
+# Etapa 1: Compilación (imagen oficial de Gradle con Java 21)
+# gradle 8.7 no soporta Spring Boot 4; usamos Gradle 9.5.1 (igual que el wrapper).
+FROM gradle:9.5.1-jdk21 AS builder
 WORKDIR /app
 # Copiamos el código fuente y archivos de gradle al contenedor
 COPY . .
 # Ejecutamos la compilación ignorando los tests por ahora
 RUN ./gradlew build -x test
 
-# Etapa 2: Ejecución (Usamos una imagen ligera de Java 17 solo para correr la app)
-FROM eclipse-temurin:17-jre
+# Etapa 2: Ejecución (Java 21 para coincidir con el objetivo de compilación)
+FROM eclipse-temurin:21-jre
 WORKDIR /app
-# Crear directorio para la base de datos SQLite
-RUN mkdir -p /app/data
 # Copiamos el archivo .jar generado en la Etapa 1
 COPY --from=builder /app/build/libs/*.jar app.jar
 

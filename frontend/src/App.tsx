@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
+import RecuperarPassword from "./pages/RecuperarPassword";
 import Dashboard from "./pages/Dashboard";
 import Insumos from "./pages/Insumos";
 import Movimientos from "./pages/Movimientos";
@@ -23,6 +24,10 @@ function App() {
         <Route
           path="/login"
           element={isAuthenticated ? <Navigate to="/" /> : <Login />}
+        />
+        <Route
+          path="/recuperar"
+          element={isAuthenticated ? <Navigate to="/" /> : <RecuperarPassword />}
         />
 
         {/* Rutas Protegidas */}

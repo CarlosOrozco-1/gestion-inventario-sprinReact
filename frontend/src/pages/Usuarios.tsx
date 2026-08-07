@@ -6,6 +6,7 @@ export default function Usuarios() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any | null>(null);
 
   useEffect(() => {
     fetchUsuarios();
@@ -40,7 +41,7 @@ export default function Usuarios() {
           <p className="text-slate-500 mt-1">Administra accesos y privilegios del personal (Solo Administradores).</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
           className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-brand-500/50"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -85,7 +86,13 @@ export default function Usuarios() {
                         {user.activo ? 'ACTIVO' : 'SUSPENDIDO'}
                       </span>
                     </td>
-                    <td className="p-4 text-right">
+                    <td className="p-4 text-right whitespace-nowrap">
+                      <button 
+                        onClick={() => { setEditingUser(user); setIsModalOpen(true); }}
+                        className="text-xs font-bold px-3 py-1.5 rounded-lg text-brand-600 hover:bg-brand-50 transition-colors mr-2"
+                      >
+                        Editar
+                      </button>
                       <button 
                         onClick={() => toggleStatus(user.id, user.activo)}
                         className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
@@ -107,6 +114,7 @@ export default function Usuarios() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={fetchUsuarios}
+        usuario={editingUser}
       />
     </div>
   );

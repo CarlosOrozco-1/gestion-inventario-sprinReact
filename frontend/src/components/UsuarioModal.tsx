@@ -1,22 +1,37 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../api/axios';
 
 interface UsuarioModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  usuario?: any | null;
 }
 
-export default function UsuarioModal({ isOpen, onClose, onSuccess }: UsuarioModalProps) {
+export default function UsuarioModal({ isOpen, onClose, onSuccess, usuario }: UsuarioModalProps) {
+  const isEditing = Boolean(usuario);
+
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
     password: '',
     rol: 'AUXILIAR'
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        nombre: usuario?.nombre || '',
+        email: usuario?.email || '',
+        password: '',
+        rol: usuario?.rol?.nombre?.toUpperCase() || 'AUXILIAR'
+      });
+      setError('');
+    }
+  }, [isOpen, usuario]);
 
   if (!isOpen) return null;
 
@@ -26,14 +41,22 @@ export default function UsuarioModal({ isOpen, onClose, onSuccess }: UsuarioModa
     setLoading(true);
 
     try {
-      await api.post('/usuarios/admin', formData);
+      if (isEditing) {
+        await api.put(`/usuarios/admin/${usuario.id}`, {
+          nombre: formData.nombre,
+          email: formData.email,
+          password: formData.password || null
+        });
+        await api.put(`/usuarios/admin/${usuario.id}/rol`, { rol: formData.rol });
+      } else {
+        await api.post('/usuarios/admin', formData);
+      }
       onSuccess();
       onClose();
-      // Reset form
       setFormData({ nombre: '', email: '', password: '', rol: 'AUXILIAR' });
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.message || 'Error al crear el usuario. Verifica que el correo no esté en uso.');
+      setError(err.response?.data?.message || (isEditing ? 'Error al actualizar el usuario.' : 'Error al crear el usuario. Verifica que el correo no esté en uso.'));
     } finally {
       setLoading(false);
     }
@@ -44,8 +67,10 @@ export default function UsuarioModal({ isOpen, onClose, onSuccess }: UsuarioModa
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div>
-            <h2 className="text-xl font-bold text-slate-800">Nuevo Usuario</h2>
-            <p className="text-sm text-slate-500 mt-1">Crear credenciales de acceso al sistema</p>
+            <h2 className="text-xl font-bold text-slate-800">{isEditing ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              {isEditing ? 'Actualiza los datos o cambia el rol del usuario' : 'Crear credenciales de acceso al sistema'}
+            </p>
           </div>
           <button 
             onClick={onClose}
@@ -92,13 +117,15 @@ export default function UsuarioModal({ isOpen, onClose, onSuccess }: UsuarioModa
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Contraseña Inicial</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">
+              {isEditing ? 'Nueva Contraseña (opcional)' : 'Contraseña Inicial'}
+            </label>
             <input 
               type="password" 
-              required
-              minLength={6}
+              required={!isEditing}
+              minLength={isEditing ? undefined : 6}
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all outline-none"
-              placeholder="Mínimo 6 caracteres"
+              placeholder={isEditing ? 'Dejar en blanco para no cambiar' : 'Mínimo 6 caracteres'}
               value={formData.password}
               onChange={(e) => setFormData({...formData, password: e.target.value})}
             />
@@ -130,7 +157,7 @@ export default function UsuarioModal({ isOpen, onClose, onSuccess }: UsuarioModa
               disabled={loading}
               className="flex-1 px-4 py-2.5 text-white bg-brand-600 hover:bg-brand-700 rounded-xl font-semibold transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
             >
-              {loading ? 'Creando...' : 'Crear Usuario'}
+              {loading ? 'Guardando...' : isEditing ? 'Guardar Cambios' : 'Crear Usuario'}
             </button>
           </div>
         </form>

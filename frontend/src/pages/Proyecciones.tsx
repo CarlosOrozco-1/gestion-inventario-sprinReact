@@ -1,23 +1,71 @@
 import { useState, useEffect, useMemo } from "react";
 import api from "../api/axios";
+import { useAuthStore } from "../store/useAuthStore";
+import { getRol } from "../access";
 
 export default function Proyecciones() {
+  const { user } = useAuthStore();
+  const esAdmin = getRol(user) === "ADMIN";
+
   const [insumos, setInsumos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [sugerencias, setSugerencias] = useState<any[]>([]);
+  const [sugerenciasLoading, setSugerenciasLoading] = useState(true);
+  const [aplicandoId, setAplicandoId] = useState<number | null>(null);
+  const [toast, setToast] = useState("");
+
+  const fetchInsumos = async () => {
+    try {
+      const response = await api.get("/insumos");
+      setInsumos(response.data);
+    } catch (err) {
+      console.error("Error cargando insumos para proyecciones", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSugerencias = async () => {
+    try {
+      const response = await api.get("/insumos/sugerencias-stock");
+      setSugerencias(response.data);
+    } catch (err) {
+      console.error("Error cargando sugerencias de stock", err);
+    } finally {
+      setSugerenciasLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchInsumos = async () => {
-      try {
-        const response = await api.get("/insumos");
-        setInsumos(response.data);
-      } catch (err) {
-        console.error("Error cargando insumos para proyecciones", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchInsumos();
+    fetchSugerencias();
   }, []);
+
+  const aplicarSugerencia = async (sugerencia: any) => {
+    setAplicandoId(sugerencia.id);
+    try {
+      await api.put(`/insumos/${sugerencia.id}`, {
+        numero: sugerencia.numero,
+        insumo: sugerencia.insumo,
+        presentacion: sugerencia.presentacion,
+        tamanoPresentacion: sugerencia.tamanoPresentacion,
+        stockMinimo: sugerencia.stockMinimoSugerido,
+        stockMaximo: sugerencia.stockMaximoSugerido,
+        costoEstimado: sugerencia.costoEstimado ?? 0,
+      });
+      setToast(
+        `Stock de "${sugerencia.insumo}" actualizado (${sugerencia.stockMinimoSugerido} – ${sugerencia.stockMaximoSugerido}).`,
+      );
+      setTimeout(() => setToast(""), 4000);
+      await Promise.all([fetchInsumos(), fetchSugerencias()]);
+    } catch (err) {
+      console.error("Error aplicando sugerencia", err);
+      alert("No se pudo aplicar la sugerencia de stock.");
+    } finally {
+      setAplicandoId(null);
+    }
+  };
 
   // Cálculos Inteligentes
   const proyeccionesData = useMemo(() => {
@@ -276,7 +324,7 @@ export default function Proyecciones() {
                     </td>
                     <td className="p-4 text-right font-black text-brand-700">
                       Q
-                      {inversionTotal.toLocaleString("en-US", {
+                      {item.inversionNecesaria.toLocaleString("en-US", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
@@ -299,6 +347,133 @@ export default function Proyecciones() {
           </table>
         </div>
       </div>
+
+      {/* Criterios Avanzados: Sugerencias de stock según consumo */}
+      <div className="mt-10 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800">
+              Sugerencias de Stock (Smart Restock)
+            </h2>
+            <p className="text-slate-500 mt-1 text-sm">
+              Mínimo/Máximo recomendados según el consumo de los últimos 90
+              días (salidas + ajustes). Mínimo = consumo diario × 7 días de
+              reposición · Máximo = consumo diario × 37 días de cobertura.
+            </p>
+          </div>
+          {!esAdmin && (
+            <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-500">
+              Solo ADMIN puede aplicar cambios
+            </span>
+          )}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
+                <th className="p-4 font-semibold">Insumo</th>
+                <th className="p-4 font-semibold text-center">Consumo/día</th>
+                <th className="p-4 font-semibold text-center">Stock</th>
+                <th className="p-4 font-semibold text-center">Mínimo (actual → sugerido)</th>
+                <th className="p-4 font-semibold text-center">Máximo (actual → sugerido)</th>
+                <th className="p-4 font-semibold text-center">Acción</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-sm">
+              {sugerenciasLoading ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-slate-400">
+                    Calculando consumo y niveles óptimos...
+                  </td>
+                </tr>
+              ) : sugerencias.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-12 text-center text-slate-500">
+                    No hay insumos registrados.
+                  </td>
+                </tr>
+              ) : (
+                sugerencias.map((sug) => {
+                  const cambios = sug.stockMinimoSugerido && sug.stockMaximoSugerido;
+                  return (
+                    <tr key={sug.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="p-4">
+                        <p className="font-semibold text-slate-900">{sug.insumo}</p>
+                        <p className="text-xs text-slate-400">
+                          {sug.presentacion} {sug.tamanoPresentacion}
+                        </p>
+                      </td>
+                      <td className="p-4 text-center">
+                        {sug.sinConsumo ? (
+                          <span className="text-slate-400">— sin consumo</span>
+                        ) : (
+                          <span className="font-bold text-slate-700">
+                            {Number(sug.consumoDiario).toFixed(2)}
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4 text-center font-bold text-slate-700">
+                        {sug.stock}
+                      </td>
+                      <td className="p-4 text-center">
+                        {cambios ? (
+                          <span className={sug.difiere ? "text-amber-600 font-bold" : "text-emerald-600 font-bold"}>
+                            {sug.stockMinimoActual}
+                            <span className="text-slate-400 mx-1">→</span>
+                            {sug.stockMinimoSugerido}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">{sug.stockMinimoActual}</span>
+                        )}
+                      </td>
+                      <td className="p-4 text-center">
+                        {cambios ? (
+                          <span className={sug.difiere ? "text-amber-600 font-bold" : "text-emerald-600 font-bold"}>
+                            {sug.stockMaximoActual}
+                            <span className="text-slate-400 mx-1">→</span>
+                            {sug.stockMaximoSugerido}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">{sug.stockMaximoActual}</span>
+                        )}
+                      </td>
+                      <td className="p-4 text-center">
+                        {esAdmin && cambios && sug.difiere ? (
+                          <button
+                            onClick={() => aplicarSugerencia(sug)}
+                            disabled={aplicandoId === sug.id}
+                            className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            {aplicandoId === sug.id ? "Aplicando..." : "Aplicar"}
+                          </button>
+                        ) : (
+                          <span className="text-xs text-slate-400">
+                            {esAdmin && cambios && !sug.difiere
+                              ? "Niveles óptimos"
+                              : "—"}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Toast de confirmación */}
+      {toast && (
+        <div className="fixed bottom-8 right-8 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className="bg-slate-800 text-white px-6 py-3 rounded-xl shadow-xl shadow-slate-900/10 flex items-center gap-3">
+            <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="font-medium">{toast}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

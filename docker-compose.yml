@@ -1,3 +1,8 @@
+# ============================================================
+# Docker Compose por defecto: alias de docker-compose.prod.yml
+# Cualquier `docker compose up` usa el entorno de PRODUCCIÓN
+# (PostgreSQL + perfil prod + credenciales desde .env).
+# ============================================================
 services:
   backend:
     build:
@@ -5,6 +10,42 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
-    volumes:
-      - ./backend/data:/app/data
+    env_file:
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db:5432/inventario
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: inventario
+      POSTGRES_USER: ${DB_USERNAME:-inventario}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-inventario}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-inventario} -d inventario"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:

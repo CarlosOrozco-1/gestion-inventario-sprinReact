@@ -6,6 +6,7 @@ import com.gestion.inventario.service.MovimientoService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,6 +17,7 @@ public class MovimientoController {
     private MovimientoService movimientoService;
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','JEFE','AUXILIAR')")
     public ResponseEntity<Movimiento> registrarMovimiento(@Valid @RequestBody MovimientoDTO request) {
         Movimiento mov = movimientoService.registrarMovimiento(
                 request.getInsumoId(),
@@ -28,6 +30,7 @@ public class MovimientoController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','JEFE','AUXILIAR')")
     public ResponseEntity<java.util.List<com.gestion.inventario.dto.MovimientoResponseDTO>> listarMovimientos() {
         return ResponseEntity.ok(movimientoService.listarMovimientos());
     }

@@ -2,7 +2,7 @@
 
 /*
   Aquí vivirá nuestro diseño Premium
-  Utilizamos variables CSS para crear un tema que deslumbre
+  Utilizamos variables CSS para crear un tema
 */
 @theme {
     --color-brand-50: #eff6ff;
@@ -33,4 +33,19 @@ body {
 
 @utility glass-panel-dark {
     @apply bg-surface-card/80 backdrop-blur-md border border-white/10 shadow-2xl;
+}
+
+/*
+  Tailwind v4 (preflight) deja los botones con cursor: default (nativo).
+  Restauramos la mano en todo elemento interactivo no deshabilitado.
+*/
+button:not(:disabled),
+[role="button"]:not(:disabled),
+[role="tab"]:not(:disabled),
+a[href],
+input[type="radio"],
+input[type="checkbox"],
+select:not(:disabled),
+label[for] {
+    cursor: pointer;
 }

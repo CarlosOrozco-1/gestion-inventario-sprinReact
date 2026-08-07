@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useAuthStore } from "../store/useAuthStore";
+import { useToastStore } from "../store/useToastStore";
 
 export default function Login() {
   const [email, setEmail] = useState("admin@inventario.com");
@@ -10,6 +11,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
 
   const login = useAuthStore((state) => state.login);
+  const showToast = useToastStore((state) => state.showToast);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -19,7 +21,8 @@ export default function Login() {
     try {
       const response = await api.post("/auth/login", { email, password });
       login(response.data.user, response.data.token);
-      alert("¡Login Exitoso! Token guardado.");
+      showToast("Sesión iniciada correctamente", "success");
+      navigate("/");
     } catch {
       setError("Credenciales incorrectas o problema de conexión.");
     }

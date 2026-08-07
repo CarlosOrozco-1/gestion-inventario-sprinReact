@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { hasAccess } from '../access';
+import Toast from './Toast';
 
 export default function Layout() {
   const user = useAuthStore((state: any) => state.user);
@@ -193,6 +194,8 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
+
+      <Toast />
     </div>
   );
 }

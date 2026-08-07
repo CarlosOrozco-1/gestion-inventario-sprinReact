@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import api from "../api/axios";
 import { useAuthStore } from "../store/useAuthStore";
+import { useToastStore } from "../store/useToastStore";
 import { getRol } from "../access";
 
 export default function Proyecciones() {
@@ -13,7 +14,8 @@ export default function Proyecciones() {
   const [sugerencias, setSugerencias] = useState<any[]>([]);
   const [sugerenciasLoading, setSugerenciasLoading] = useState(true);
   const [aplicandoId, setAplicandoId] = useState<number | null>(null);
-  const [toast, setToast] = useState("");
+
+  const showToast = useToastStore((s: any) => s.showToast);
 
   const fetchInsumos = async () => {
     try {
@@ -54,10 +56,9 @@ export default function Proyecciones() {
         stockMaximo: sugerencia.stockMaximoSugerido,
         costoEstimado: sugerencia.costoEstimado ?? 0,
       });
-      setToast(
+      showToast(
         `Stock de "${sugerencia.insumo}" actualizado (${sugerencia.stockMinimoSugerido} – ${sugerencia.stockMaximoSugerido}).`,
       );
-      setTimeout(() => setToast(""), 4000);
       await Promise.all([fetchInsumos(), fetchSugerencias()]);
     } catch (err) {
       console.error("Error aplicando sugerencia", err);
@@ -462,18 +463,6 @@ export default function Proyecciones() {
           </table>
         </div>
       </div>
-
-      {/* Toast de confirmación */}
-      {toast && (
-        <div className="fixed bottom-8 right-8 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
-          <div className="bg-slate-800 text-white px-6 py-3 rounded-xl shadow-xl shadow-slate-900/10 flex items-center gap-3">
-            <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span className="font-medium">{toast}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

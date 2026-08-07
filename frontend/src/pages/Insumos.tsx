@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import InsumoModal from '../components/InsumoModal';
+import { useToastStore } from '../store/useToastStore';
 
 export default function Insumos() {
   const [insumos, setInsumos] = useState([]);
@@ -11,8 +12,7 @@ export default function Insumos() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [insumoEdit, setInsumoEdit] = useState(null);
 
-  // Estado para el mensaje de éxito (Toast)
-  const [toastMessage, setToastMessage] = useState('');
+  const showToast = useToastStore((s: any) => s.showToast);
 
   const fetchInsumos = async (message = null) => {
     try {
@@ -20,10 +20,9 @@ export default function Insumos() {
       setInsumos(response.data);
       setError(null);
       
-      // Si recibimos un mensaje (desde el Modal), lo mostramos por 3 segundos
+      // Si recibimos un mensaje (desde el Modal), lo mostramos como toast
       if (message) {
-        setToastMessage(message);
-        setTimeout(() => setToastMessage(''), 3000);
+        showToast(message);
       }
     } catch (err) {
       setError('Error al cargar los insumos.');
@@ -169,23 +168,6 @@ export default function Insumos() {
           </div>
         )}
       </div>
-
-      {/* 
-        ==============================================================
-        COMPONENTE TOAST (Notificación flotante)
-        Muestra mensajes de éxito temporalmente en la esquina inferior.
-        ============================================================== 
-      */}
-      {toastMessage && (
-        <div className="fixed bottom-8 right-8 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
-          <div className="bg-slate-800 text-white px-6 py-3 rounded-xl shadow-xl shadow-slate-900/10 flex items-center gap-3">
-            <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span className="font-medium">{toastMessage}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

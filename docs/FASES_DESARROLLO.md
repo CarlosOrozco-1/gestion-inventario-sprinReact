@@ -138,9 +138,9 @@ graph TD
 ### Fase 15: Toast de login exitoso
 - **Objetivo:** reemplazar el mensaje nativo `alert("¡Login Exitoso! Token guardado.")` (`frontend/src/pages/Login.tsx`) por un **toast** de confirmación.
 - **Est. de esfuerzo: ~2-3 horas** (baja complejidad, independiente).
-- [ ] Crear un toast global reutilizable: `frontend/src/store/useToastStore.ts` (zustand) + `frontend/src/components/Toast.tsx` (flotante, auto-dismiss), renderizado una sola vez en `Layout.tsx`.
-- [ ] En `Login.tsx`: al autenticar exitosamente, `showToast("Sesión iniciada correctamente", "success")` y luego navegar. El toast sobrevive a la navegación porque vive en el Layout.
-- [ ] (Opcional, recomendado) Migrar los toasts ad-hoc de `Insumos.tsx` y `Proyecciones.tsx` al mismo store para centralizar.
+- [x] Crear un toast global reutilizable: `frontend/src/store/useToastStore.ts` (zustand) + `frontend/src/components/Toast.tsx` (flotante, auto-dismiss), renderizado una sola vez en `Layout.tsx`.
+- [x] En `Login.tsx`: al autenticar exitosamente, `showToast("Sesión iniciada correctamente", "success")` y luego navegar. El toast sobrevive a la navegación porque vive en el Layout.
+- [x] (Opcional, recomendado) Migrar los toasts ad-hoc de `Insumos.tsx` y `Proyecciones.tsx` al mismo store para centralizar.
 
 ### Fase 16: Presentaciones múltiples por insumo (Catálogo + Variantes)
 - **Pregunta resuelta:** *"¿registrar nuevamente la pasta térmica o crear una tabla de presentaciones?"* → **Opción B: tabla nueva `presentaciones`** (modelo normalizado). Registrar de nuevo (Opción A, el modelo actual) funciona hoy, pero no hay concepto de "el mismo material": se duplica el nombre por variante y es imposible agrupar/enforcar por material.
@@ -207,7 +207,7 @@ De ellos, la refactorización de normalización a inglés (17+18) suma **~2-2.5 
 | 12   | Recuperación de Contraseña         | **Completada** |
 | 13   | Gestión de Usuarios: actualizar + rol | **Completada** |
 | 14   | Imagen Docker del Frontend         | **Completada** |
-| 15   | Toast de login exitoso             | Pendiente  |
+| 15   | Toast de login exitoso             | **Completada** |
 | 16   | Presentaciones múltiples por insumo| Pendiente  |
 | 17   | Normalización a inglés (Backend/BD)| Pendiente  |
 | 18   | Normalización a inglés (Frontend)  | Pendiente  |

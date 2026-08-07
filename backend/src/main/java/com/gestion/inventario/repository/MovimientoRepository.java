@@ -15,6 +15,6 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
     List<Movimiento> findAllByOrderByCreatedAtDesc();
 
     // Consumo de una presentación: salidas + ajustes negativos dentro de un período (Fase 10)
-    @Query("SELECT m FROM Movimiento m WHERE m.presentation.id = :presentationId AND m.tipo IN ('SALIDA', 'AJUSTE_NEGATIVO') AND m.createdAt >= :desde")
+    @Query("SELECT m FROM Movimiento m WHERE m.presentation.id = :presentationId AND m.type IN ('SALIDA', 'AJUSTE_NEGATIVO') AND m.createdAt >= :desde")
     List<Movimiento> findConsumosDesde(@Param("presentationId") Long presentationId, @Param("desde") LocalDateTime desde);
 }

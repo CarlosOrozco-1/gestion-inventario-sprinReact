@@ -53,7 +53,7 @@ public class MovimientoServiceTest {
 
         usuarioPrueba = new Usuario();
         usuarioPrueba.setId(1L);
-        usuarioPrueba.setNombre("Test User");
+        usuarioPrueba.setName("Test User");
     }
 
     @Test

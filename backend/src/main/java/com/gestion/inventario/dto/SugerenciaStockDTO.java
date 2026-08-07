@@ -6,17 +6,17 @@ import java.math.BigDecimal;
 @Data
 public class SugerenciaStockDTO {
     private Long id;
-    private Integer numero;
-    private String insumo;
-    private String presentacion;
-    private String tamanoPresentacion;
+    private Integer code;
+    private String item;
+    private String presentation;
+    private String size;
     private Integer stock;
-    private BigDecimal costoEstimado;
-    private BigDecimal consumoDiario;
-    private Integer stockMinimoActual;
-    private Integer stockMaximoActual;
-    private Integer stockMinimoSugerido;
-    private Integer stockMaximoSugerido;
-    private boolean sinConsumo;
-    private boolean difiere;
+    private BigDecimal estimatedCost;
+    private BigDecimal dailyConsumption;
+    private Integer currentMinStock;
+    private Integer currentMaxStock;
+    private Integer suggestedMinStock;
+    private Integer suggestedMaxStock;
+    private boolean noConsumption;
+    private boolean differs;
 }

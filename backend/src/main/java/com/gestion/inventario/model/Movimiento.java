@@ -20,21 +20,21 @@ public class Movimiento {
     private Presentation presentation;
 
     @Column(nullable = false)
-    private String tipo;
+    private String type;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
-    private Integer mes;
+    private Integer month;
 
-    private Integer anio;
+    private Integer year;
 
     @Column(nullable = false)
-    private Integer cantidad;
+    private Integer quantity;
 
     @Column(columnDefinition = "TEXT")
-    private String detalle;
+    private String detail;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

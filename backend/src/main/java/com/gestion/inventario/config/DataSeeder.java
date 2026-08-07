@@ -20,8 +20,8 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         // Normalizamos el rol legado "admin" (minúsculas) a "ADMIN"
-        rolRepository.findByNombre("admin").ifPresent(rolLegacy -> {
-            rolLegacy.setNombre("ADMIN");
+        rolRepository.findByName("admin").ifPresent(rolLegacy -> {
+            rolLegacy.setName("ADMIN");
             rolRepository.save(rolLegacy);
         });
 
@@ -30,11 +30,11 @@ public class DataSeeder implements CommandLineRunner {
         seedRol("AUXILIAR", 50, "Solo consulta de insumos");
 
         if (usuarioRepository.findByEmail("admin@inventario.com").isEmpty()) {
-            Rol adminRol = rolRepository.findByNombre("ADMIN")
+            Rol adminRol = rolRepository.findByName("ADMIN")
                     .orElseThrow(() -> new RuntimeException("Rol ADMIN no encontrado"));
 
             Usuario adminUser = new Usuario();
-            adminUser.setNombre("Administrador");
+            adminUser.setName("Administrador");
             adminUser.setEmail("admin@inventario.com");
             adminUser.setPasswordHash(passwordEncoder.encode("admin123"));
             adminUser.setRol(adminRol);
@@ -45,11 +45,11 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedRol(String nombre, int nivel, String descripcion) {
-        if (rolRepository.findByNombre(nombre).isEmpty()) {
+        if (rolRepository.findByName(nombre).isEmpty()) {
             Rol rol = new Rol();
-            rol.setNombre(nombre);
-            rol.setNivel(nivel);
-            rol.setDescripcion(descripcion);
+            rol.setName(nombre);
+            rol.setLevel(nivel);
+            rol.setDescription(descripcion);
             rolRepository.save(rol);
         }
     }

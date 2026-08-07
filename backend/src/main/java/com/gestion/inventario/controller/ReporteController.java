@@ -58,11 +58,11 @@ public class ReporteController {
             for (Movimiento mov : movimientos) {
                 Row row = sheet.createRow(rowNum++);
                 row.createCell(0).setCellValue(mov.getCreatedAt().format(dtf));
-                row.createCell(1).setCellValue(mov.getUsuario().getNombre());
-                row.createCell(2).setCellValue(mov.getTipo());
+                row.createCell(1).setCellValue(mov.getUsuario().getName());
+                row.createCell(2).setCellValue(mov.getType());
                 row.createCell(3).setCellValue(mov.getPresentation().getItem().getName());
-                row.createCell(4).setCellValue(mov.getCantidad());
-                row.createCell(5).setCellValue(mov.getDetalle() != null ? mov.getDetalle() : "");
+                row.createCell(4).setCellValue(mov.getQuantity());
+                row.createCell(5).setCellValue(mov.getDetail() != null ? mov.getDetail() : "");
             }
 
             // Autoajustar columnas
@@ -126,11 +126,11 @@ public class ReporteController {
             
             for (Movimiento mov : movimientos) {
                 table.addCell(new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(mov.getCreatedAt().format(dtf), cellFont)));
-                table.addCell(new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(mov.getUsuario().getNombre(), cellFont)));
-                table.addCell(new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(mov.getTipo(), cellFont)));
+                table.addCell(new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(mov.getUsuario().getName(), cellFont)));
+                table.addCell(new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(mov.getType(), cellFont)));
                 table.addCell(new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(mov.getPresentation().getItem().getName(), cellFont)));
-                table.addCell(new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(mov.getCantidad().toString(), cellFont)));
-                table.addCell(new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(mov.getDetalle() != null ? mov.getDetalle() : "", cellFont)));
+                table.addCell(new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(mov.getQuantity().toString(), cellFont)));
+                table.addCell(new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(mov.getDetail() != null ? mov.getDetail() : "", cellFont)));
             }
             
             document.add(table);
@@ -173,13 +173,13 @@ public class ReporteController {
             int rowNum = 1;
             for (com.gestion.inventario.dto.ProyeccionDTO proy : proyecciones) {
                 Row row = sheet.createRow(rowNum++);
-                row.createCell(0).setCellValue(proy.getInsumo() != null ? proy.getInsumo() : "N/A");
+                row.createCell(0).setCellValue(proy.getItem() != null ? proy.getItem() : "N/A");
                 row.createCell(1).setCellValue(proy.getStock() != null ? proy.getStock() : 0);
-                row.createCell(2).setCellValue(proy.getStockMaximo() != null ? proy.getStockMaximo() : 50);
+                row.createCell(2).setCellValue(proy.getMaxStock() != null ? proy.getMaxStock() : 50);
                 row.createCell(3).setCellValue(proy.getDeficit() != null ? proy.getDeficit() : 0);
-                row.createCell(4).setCellValue(proy.getCostoEstimado() != null ? proy.getCostoEstimado().doubleValue() : 0.0);
-                row.createCell(5).setCellValue(proy.getInversionNecesaria() != null ? proy.getInversionNecesaria().doubleValue() : 0.0);
-                row.createCell(6).setCellValue(proy.getUrgencia() != null ? proy.getUrgencia() : "");
+                row.createCell(4).setCellValue(proy.getEstimatedCost() != null ? proy.getEstimatedCost().doubleValue() : 0.0);
+                row.createCell(5).setCellValue(proy.getRequiredInvestment() != null ? proy.getRequiredInvestment().doubleValue() : 0.0);
+                row.createCell(6).setCellValue(proy.getUrgency() != null ? proy.getUrgency() : "");
             }
 
             for (int i = 0; i < headers.length; i++) sheet.autoSizeColumn(i);
@@ -244,13 +244,13 @@ public class ReporteController {
                 java.awt.Color bgColor = rowColor ? new java.awt.Color(248, 250, 252) : java.awt.Color.WHITE; // striped rows
                 rowColor = !rowColor;
                 
-                String insumo = proy.getInsumo() != null ? proy.getInsumo() : "N/A";
+                String insumo = proy.getItem() != null ? proy.getItem() : "N/A";
                 String stock = proy.getStock() != null ? proy.getStock().toString() : "0";
-                String meta = proy.getStockMaximo() != null ? proy.getStockMaximo().toString() : "50";
+                String meta = proy.getMaxStock() != null ? proy.getMaxStock().toString() : "50";
                 String deficit = proy.getDeficit() != null ? proy.getDeficit().toString() : "0";
-                String costo = proy.getCostoEstimado() != null ? String.format("Q%.2f", proy.getCostoEstimado().doubleValue()) : "Q0.00";
-                String inversion = proy.getInversionNecesaria() != null ? String.format("Q%.2f", proy.getInversionNecesaria().doubleValue()) : "Q0.00";
-                String urgencia = proy.getUrgencia() != null ? proy.getUrgencia() : "";
+                String costo = proy.getEstimatedCost() != null ? String.format("Q%.2f", proy.getEstimatedCost().doubleValue()) : "Q0.00";
+                String inversion = proy.getRequiredInvestment() != null ? String.format("Q%.2f", proy.getRequiredInvestment().doubleValue()) : "Q0.00";
+                String urgencia = proy.getUrgency() != null ? proy.getUrgency() : "";
                 
                 com.lowagie.text.Font currentUrgenciaFont = "Alta".equals(urgencia) ? boldCell : cellFont;
 

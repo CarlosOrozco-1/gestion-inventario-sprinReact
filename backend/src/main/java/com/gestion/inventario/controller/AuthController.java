@@ -46,10 +46,10 @@ public class AuthController {
         // 4. Armamos la respuesta con el token y los datos de la sesión
         LoginResponse.UsuarioInfo info = new LoginResponse.UsuarioInfo(
                 usuario.getId(),
-                usuario.getNombre(),
+                usuario.getName(),
                 usuario.getEmail(),
-                usuario.getRol().getNombre(),
-                usuario.getRol().getNivel()
+                usuario.getRol().getName(),
+                usuario.getRol().getLevel()
         );
 
         return ResponseEntity.ok(new LoginResponse(jwtToken, info));

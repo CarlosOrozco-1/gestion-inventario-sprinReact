@@ -54,9 +54,9 @@ public class PasswordResetService {
 
             PasswordResetToken token = new PasswordResetToken();
             token.setUsuarioId(usuario.getId());
-            token.setCodigoHash(passwordEncoder.encode(codigo));
-            token.setExpiracion(LocalDateTime.now().plusMinutes(EXPIRACION_MINUTOS));
-            token.setUsado(false);
+            token.setCodeHash(passwordEncoder.encode(codigo));
+            token.setExpiresAt(LocalDateTime.now().plusMinutes(EXPIRACION_MINUTOS));
+            token.setUsed(false);
             tokenRepository.save(token);
 
             enviarCorreoConCodigo(usuario, codigo);
@@ -85,7 +85,7 @@ public class PasswordResetService {
         usuario.setPasswordHash(passwordEncoder.encode(nuevaPassword));
         usuarioRepository.save(usuario);
 
-        token.setUsado(true);
+        token.setUsed(true);
         tokenRepository.save(token);
     }
 
@@ -96,17 +96,17 @@ public class PasswordResetService {
         PasswordResetToken token = tokenRepository.findFirstByUsuarioIdOrderByIdDesc(usuario.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Correo no registrado o código inválido"));
 
-        if (token.getUsado()) {
+        if (token.getUsed()) {
             throw new IllegalArgumentException("El código ya fue utilizado");
         }
-        if (token.getExpiracion().isBefore(LocalDateTime.now())) {
+        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("El código ha expirado. Solicita uno nuevo.");
         }
-        if (token.getIntentosFallidos() >= MAX_INTENTOS_FALLIDOS) {
+        if (token.getFailedAttempts() >= MAX_INTENTOS_FALLIDOS) {
             throw new IllegalArgumentException("Demasiados intentos fallidos. Solicita un código nuevo.");
         }
-        if (!passwordEncoder.matches(codigo, token.getCodigoHash())) {
-            token.setIntentosFallidos(token.getIntentosFallidos() + 1);
+        if (!passwordEncoder.matches(codigo, token.getCodeHash())) {
+            token.setFailedAttempts(token.getFailedAttempts() + 1);
             tokenRepository.save(token);
             throw new IllegalArgumentException("Código incorrecto");
         }
@@ -115,7 +115,7 @@ public class PasswordResetService {
 
     private void invalidarTokensPrevios(Long usuarioId) {
         tokenRepository.findFirstByUsuarioIdOrderByIdDesc(usuarioId).ifPresent(token -> {
-            token.setUsado(true);
+            token.setUsed(true);
             tokenRepository.save(token);
         });
     }
@@ -132,7 +132,7 @@ public class PasswordResetService {
             helper.setTo(usuario.getEmail());
             helper.setSubject("SIGES - Código de recuperación de contraseña");
             helper.setText(
-                    "Hola " + usuario.getNombre() + ",\n\n" +
+                    "Hola " + usuario.getName() + ",\n\n" +
                     "Tu código para restablecer tu contraseña es: " + codigo + "\n\n" +
                     "Este código es válido por " + EXPIRACION_MINUTOS + " minutos.\n" +
                     "Si no solicitaste este cambio, ignora este correo.\n\n" +

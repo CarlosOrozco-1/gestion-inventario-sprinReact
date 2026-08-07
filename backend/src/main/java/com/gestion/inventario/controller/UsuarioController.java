@@ -36,8 +36,8 @@ public class UsuarioController {
         return usuarioRepository.findAll().stream().map(u -> 
             Map.of(
                 "id", (Object) u.getId(),
-                "nombre", (Object) u.getNombre(),
-                "rol", (Object) u.getRol().getNombre()
+                "name", (Object) u.getName(),
+                "rol", (Object) u.getRol().getName()
             )
         ).collect(Collectors.toList());
     }
@@ -53,15 +53,15 @@ public class UsuarioController {
             throw new IllegalArgumentException("El correo ya está en uso");
         }
 
-        Rol rol = rolRepository.findByNombre(dto.getRol().toUpperCase())
+        Rol rol = rolRepository.findByName(dto.getRol().toUpperCase())
                 .orElseThrow(() -> new IllegalArgumentException("Rol no válido"));
 
         Usuario usuario = new Usuario();
-        usuario.setNombre(dto.getNombre());
+        usuario.setName(dto.getName());
         usuario.setEmail(dto.getEmail());
         usuario.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         usuario.setRol(rol);
-        usuario.setActivo(true);
+        usuario.setActive(true);
         
         return usuarioRepository.save(usuario);
     }
@@ -72,7 +72,7 @@ public class UsuarioController {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
 
-        if (dto.getNombre() == null || dto.getNombre().isBlank()) {
+        if (dto.getName() == null || dto.getName().isBlank()) {
             throw new IllegalArgumentException("El nombre es obligatorio");
         }
         if (dto.getEmail() == null || dto.getEmail().isBlank()) {
@@ -87,7 +87,7 @@ public class UsuarioController {
             usuario.setEmail(nuevoEmail);
         }
 
-        usuario.setNombre(dto.getNombre().trim());
+        usuario.setName(dto.getName().trim());
 
         if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
             if (dto.getPassword().length() < 6) {
@@ -110,11 +110,11 @@ public class UsuarioController {
         if (nuevoRol == null || nuevoRol.isBlank()) {
             throw new IllegalArgumentException("El rol es obligatorio");
         }
-        Rol rol = rolRepository.findByNombre(nuevoRol.toUpperCase())
+        Rol rol = rolRepository.findByName(nuevoRol.toUpperCase())
                 .orElseThrow(() -> new IllegalArgumentException("Rol no válido"));
 
         String emailActual = authentication.getName();
-        if (usuario.getEmail().equals(emailActual) && !rol.getNombre().equalsIgnoreCase("ADMIN")) {
+        if (usuario.getEmail().equals(emailActual) && !rol.getName().equalsIgnoreCase("ADMIN")) {
             throw new IllegalArgumentException("No puedes cambiar tu propio rol");
         }
 
@@ -129,11 +129,11 @@ public class UsuarioController {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
 
-        if (Boolean.FALSE.equals(status.get("activo")) && usuario.getEmail().equals(authentication.getName())) {
+        if (Boolean.FALSE.equals(status.get("active")) && usuario.getEmail().equals(authentication.getName())) {
             throw new IllegalArgumentException("No puedes suspender tu propia cuenta");
         }
 
-        usuario.setActivo(status.get("activo"));
+        usuario.setActive(status.get("active"));
         return usuarioRepository.save(usuario);
     }
 }

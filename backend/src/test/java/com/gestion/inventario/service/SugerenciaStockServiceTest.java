@@ -49,9 +49,9 @@ public class SugerenciaStockServiceTest {
         return presentation;
     }
 
-    private Movimiento movimiento(int cantidad) {
+    private Movimiento movimiento(int quantity) {
         Movimiento movimiento = new Movimiento();
-        movimiento.setCantidad(cantidad);
+        movimiento.setQuantity(quantity);
         return movimiento;
     }
 
@@ -63,11 +63,11 @@ public class SugerenciaStockServiceTest {
 
         SugerenciaStockDTO dto = service().sugerirStock().get(0);
 
-        assertEquals(0, new BigDecimal("1.00").compareTo(dto.getConsumoDiario()));
-        assertEquals(7, dto.getStockMinimoSugerido());  // ceil(1.0 * 7)
-        assertEquals(37, dto.getStockMaximoSugerido()); // ceil(1.0 * (7 + 30))
-        assertTrue(dto.isDifiere());
-        assertFalse(dto.isSinConsumo());
+        assertEquals(0, new BigDecimal("1.00").compareTo(dto.getDailyConsumption()));
+        assertEquals(7, dto.getSuggestedMinStock());  // ceil(1.0 * 7)
+        assertEquals(37, dto.getSuggestedMaxStock()); // ceil(1.0 * (7 + 30))
+        assertTrue(dto.isDiffers());
+        assertFalse(dto.isNoConsumption());
     }
 
     @Test
@@ -77,8 +77,8 @@ public class SugerenciaStockServiceTest {
 
         SugerenciaStockDTO dto = service().sugerirStock().get(0);
 
-        assertEquals(2, dto.getStockMinimoSugerido()); // ceil(0.17 * 7)  = ceil(1.19) = 2
-        assertEquals(7, dto.getStockMaximoSugerido()); // ceil(0.17 * 37) = ceil(6.29) = 7
+        assertEquals(2, dto.getSuggestedMinStock()); // ceil(0.17 * 7)  = ceil(1.19) = 2
+        assertEquals(7, dto.getSuggestedMaxStock()); // ceil(0.17 * 37) = ceil(6.29) = 7
     }
 
     @Test
@@ -88,10 +88,10 @@ public class SugerenciaStockServiceTest {
 
         SugerenciaStockDTO dto = service().sugerirStock().get(0);
 
-        assertTrue(dto.isSinConsumo());
-        assertNull(dto.getStockMinimoSugerido());
-        assertNull(dto.getStockMaximoSugerido());
-        assertFalse(dto.isDifiere());
+        assertTrue(dto.isNoConsumption());
+        assertNull(dto.getSuggestedMinStock());
+        assertNull(dto.getSuggestedMaxStock());
+        assertFalse(dto.isDiffers());
     }
 
     @Test
@@ -102,9 +102,9 @@ public class SugerenciaStockServiceTest {
 
         SugerenciaStockDTO dto = service().sugerirStock().get(0);
 
-        assertEquals(7, dto.getStockMinimoSugerido());
-        assertEquals(37, dto.getStockMaximoSugerido());
-        assertFalse(dto.isDifiere());
+        assertEquals(7, dto.getSuggestedMinStock());
+        assertEquals(37, dto.getSuggestedMaxStock());
+        assertFalse(dto.isDiffers());
     }
 
     @Test
@@ -114,6 +114,6 @@ public class SugerenciaStockServiceTest {
 
         SugerenciaStockDTO dto = service().sugerirStock().get(0);
 
-        assertTrue(dto.getStockMaximoSugerido() > dto.getStockMinimoSugerido());
+        assertTrue(dto.getSuggestedMaxStock() > dto.getSuggestedMinStock());
     }
 }

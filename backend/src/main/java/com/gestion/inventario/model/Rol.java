@@ -16,12 +16,12 @@ public class Rol {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String nombre;
+    private String name;
 
     @Column(nullable = false)
-    private Integer nivel;
+    private Integer level;
 
-    private String descripcion;
+    private String description;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -60,24 +60,24 @@ public class SugerenciaStockService {
         for (Presentation presentation : presentationRepository.findAll()) {
             Item item = presentation.getItem();
             long totalConsumido = movimientoRepository.findConsumosDesde(presentation.getId(), desde).stream()
-                    .mapToLong(Movimiento::getCantidad)
+                    .mapToLong(Movimiento::getQuantity)
                     .sum();
 
             SugerenciaStockDTO dto = new SugerenciaStockDTO();
             dto.setId(presentation.getId());
-            dto.setNumero(item.getCode());
-            dto.setInsumo(item.getName());
-            dto.setPresentacion(presentation.getName());
-            dto.setTamanoPresentacion(presentation.getSize());
+            dto.setCode(item.getCode());
+            dto.setItem(item.getName());
+            dto.setPresentation(presentation.getName());
+            dto.setSize(presentation.getSize());
             dto.setStock(presentation.getStock());
-            dto.setCostoEstimado(presentation.getEstimatedCost());
-            dto.setStockMinimoActual(presentation.getMinStock());
-            dto.setStockMaximoActual(presentation.getMaxStock());
+            dto.setEstimatedCost(presentation.getEstimatedCost());
+            dto.setCurrentMinStock(presentation.getMinStock());
+            dto.setCurrentMaxStock(presentation.getMaxStock());
 
             if (totalConsumido <= 0) {
-                dto.setConsumoDiario(BigDecimal.ZERO);
-                dto.setSinConsumo(true);
-                dto.setDifiere(false);
+                dto.setDailyConsumption(BigDecimal.ZERO);
+                dto.setNoConsumption(true);
+                dto.setDiffers(false);
                 sugerencias.add(dto);
                 continue;
             }
@@ -95,11 +95,11 @@ public class SugerenciaStockService {
                 maximoSugerido = minimoSugerido + 1;
             }
 
-            dto.setConsumoDiario(consumoDiario);
-            dto.setStockMinimoSugerido(minimoSugerido);
-            dto.setStockMaximoSugerido(maximoSugerido);
-            dto.setSinConsumo(false);
-            dto.setDifiere(!Objects.equals(presentation.getMinStock(), minimoSugerido)
+            dto.setDailyConsumption(consumoDiario);
+            dto.setSuggestedMinStock(minimoSugerido);
+            dto.setSuggestedMaxStock(maximoSugerido);
+            dto.setNoConsumption(false);
+            dto.setDiffers(!Objects.equals(presentation.getMinStock(), minimoSugerido)
                     || !Objects.equals(presentation.getMaxStock(), maximoSugerido));
             sugerencias.add(dto);
         }

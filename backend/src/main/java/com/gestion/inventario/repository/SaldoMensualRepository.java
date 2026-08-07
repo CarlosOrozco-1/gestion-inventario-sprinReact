@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface SaldoMensualRepository extends JpaRepository<SaldoMensual, Long> {
-    List<SaldoMensual> findByInsumoIdAndAnio(Long insumoId, Integer anio);
+    List<SaldoMensual> findByInsumoIdAndYear(Long insumoId, Integer year);
 }

@@ -16,11 +16,13 @@
 DROP TABLE IF EXISTS inventario_movimientos          CASCADE;
 DROP TABLE IF EXISTS inventario_saldos_mensuales     CASCADE;
 DROP TABLE IF EXISTS inventario_requerimientos_anuales CASCADE;
+DROP TABLE IF EXISTS presentations                   CASCADE;
+DROP TABLE IF EXISTS items                           CASCADE;
 DROP TABLE IF EXISTS inventario_insumos              CASCADE;
 DROP TABLE IF EXISTS usuarios                        CASCADE;
 DROP TABLE IF EXISTS roles                           CASCADE;
 
 -- 2) Recrear esquema, llaves foráneas e índices
 \ir 01_esquema.sql
-\ir 02_llaves_foraneas.sql
+\ir 02_llaves_foranesas.sql
 \ir 03_indices.sql

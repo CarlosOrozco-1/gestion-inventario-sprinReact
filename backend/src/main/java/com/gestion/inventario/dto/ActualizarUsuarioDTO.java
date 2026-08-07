@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class ActualizarUsuarioDTO {
-    private String nombre;
+    private String name;
     private String email;
     private String password;
 }

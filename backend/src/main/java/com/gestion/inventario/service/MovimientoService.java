@@ -27,10 +27,10 @@ public class MovimientoService {
     private UsuarioRepository usuarioRepository;
 
     @Transactional
-    public Movimiento registrarMovimiento(Long presentationId, String tipo, Integer cantidad, String detalle, Long usuarioId) {
+    public Movimiento registrarMovimiento(Long presentationId, String type, Integer quantity, String detail, Long usuarioId) {
 
         // 1. Validar que la cantidad sea positiva
-        if (cantidad == null || cantidad <= 0) {
+        if (quantity == null || quantity <= 0) {
             throw new IllegalArgumentException("La cantidad debe ser mayor a cero.");
         }
 
@@ -42,18 +42,18 @@ public class MovimientoService {
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
 
         // 3. Aplicar reglas de negocio según el tipo de movimiento
-        switch (tipo.toUpperCase()) {
+        switch (type.toUpperCase()) {
             case "ENTRADA":
             case "AJUSTE_POSITIVO":
-                presentation.setStock(presentation.getStock() + cantidad);
+                presentation.setStock(presentation.getStock() + quantity);
                 break;
 
             case "SALIDA":
             case "AJUSTE_NEGATIVO":
-                if (cantidad > presentation.getStock()) {
-                    throw new InsufficientStockException("Stock insuficiente. Solicitado: " + cantidad + ", Disponible: " + presentation.getStock());
+                if (quantity > presentation.getStock()) {
+                    throw new InsufficientStockException("Stock insuficiente. Solicitado: " + quantity + ", Disponible: " + presentation.getStock());
                 }
-                presentation.setStock(presentation.getStock() - cantidad);
+                presentation.setStock(presentation.getStock() - quantity);
                 break;
 
             default:
@@ -61,7 +61,7 @@ public class MovimientoService {
         }
 
         // 4. Validar justificación si es un ajuste
-        if (tipo.contains("AJUSTE") && (detalle == null || detalle.length() < 20)) {
+        if (type.contains("AJUSTE") && (detail == null || detail.length() < 20)) {
             throw new IllegalArgumentException("Los ajustes requieren una justificación (detalle) de al menos 20 caracteres.");
         }
 
@@ -70,9 +70,9 @@ public class MovimientoService {
 
         Movimiento movimiento = new Movimiento();
         movimiento.setPresentation(presentation);
-        movimiento.setTipo(tipo.toUpperCase());
-        movimiento.setCantidad(cantidad);
-        movimiento.setDetalle(detalle);
+        movimiento.setType(type.toUpperCase());
+        movimiento.setQuantity(quantity);
+        movimiento.setDetail(detail);
         movimiento.setUsuario(usuario);
         // Opcional: configurar mes y año si se requiere derivarlo del LocalDateTime.now()
 
@@ -84,18 +84,18 @@ public class MovimientoService {
         return movimientoRepository.findAllByOrderByCreatedAtDesc().stream().map(mov -> {
             MovimientoResponseDTO dto = new MovimientoResponseDTO();
             dto.setId(mov.getId());
-            dto.setTipo(mov.getTipo());
-            dto.setCantidad(mov.getCantidad());
-            dto.setDetalle(mov.getDetalle());
+            dto.setType(mov.getType());
+            dto.setQuantity(mov.getQuantity());
+            dto.setDetail(mov.getDetail());
             dto.setCreatedAt(mov.getCreatedAt());
             // Hibernate ejecutará una consulta adicional (o usará caché) por cada acceso
             // pero estamos bajo @Transactional por lo que no habrá error de LazyLoading
             if (mov.getPresentation() != null && mov.getPresentation().getItem() != null) {
-                dto.setInsumoNombre(mov.getPresentation().getItem().getName());
-                dto.setInsumoPresentacion(mov.getPresentation().getName() + " " + mov.getPresentation().getSize());
+                dto.setItemName(mov.getPresentation().getItem().getName());
+                dto.setPresentationName(mov.getPresentation().getName() + " " + mov.getPresentation().getSize());
             }
             if (mov.getUsuario() != null) {
-                dto.setUsuarioNombre(mov.getUsuario().getNombre());
+                dto.setUsuarioName(mov.getUsuario().getName());
             }
             return dto;
         }).toList();

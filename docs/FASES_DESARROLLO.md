@@ -169,12 +169,12 @@ graph TD
   | `password_reset_tokens` | `codigo_hash`→`code_hash`, `expiracion`→`expires_at`, `usado`→`used`, `intentos_fallidos`→`failed_attempts` |
   - **Regla:** si Fase 16 ya creó `items`/`presentations`, las columnas de insumos se normalizan ahí directamente (no se renombran dos veces).
 - **Est. de esfuerzo: ~1-1.5 días** (media; mueve modelos, DTOs, repositorios, servicios, controladores, seguridad y consultas).
-- [ ] Migración Flyway `V4__normalizar_schema_al_ingles.sql` con `ALTER TABLE ... RENAME COLUMN` (preserva datos; **NO** editar V1/V2/V3 para no romper checksums). Actualizar referencias `database/postgres/*.sql`.
-- [ ] Renombrar campos en entidades (7): `Usuario`, `Rol`, `Insumo`, `Movimiento`, `SaldoMensual`, `RequerimientoAnual`, `PasswordResetToken` + `@Column(name=...)`.
-- [ ] Renombrar DTOs (6): `LoginResponse.UsuarioInfo`, `MovimientoResponseDTO`, `MovimientoDTO`, `ActualizarUsuarioDTO`, `NuevoUsuarioDTO`, `ProyeccionDTO`, `SugerenciaStockDTO`.
-- [ ] Renombrar repositorios/servicios/controladores/`UserDetailsServiceImpl` (getters/setters + `@Query` y validaciones).
-- [ ] Actualizar tests unitarios y `scripts/smoke_test_e2e.py` (nuevos nombres de campos).
-- [ ] Verificar: build Gradle + tests verdes + arranque con Flyway aplicando V4 sobre datos existentes.
+- [x] Migración Flyway `V4__normalizar_schema_al_ingles.sql` con `ALTER TABLE ... RENAME COLUMN` (preserva datos; **NO** editar V1/V2/V3 para no romper checksums). Actualizadas referencias `database/postgres/*.sql`.
+- [x] Renombrar campos en entidades (7): `Usuario`, `Rol`, `Insumo`, `Movimiento`, `SaldoMensual`, `RequerimientoAnual`, `PasswordResetToken` + `@Column(name=...)`.
+- [x] Renombrar DTOs: `LoginResponse.UsuarioInfo`, `MovimientoResponseDTO`, `MovimientoDTO`, `ActualizarUsuarioDTO`, `NuevoUsuarioDTO`, `ProyeccionDTO`, `SugerenciaStockDTO`, `InsumoViewDTO`.
+- [x] Renombrar repositorios/servicios/controladores/`UserDetailsServiceImpl` (getters/setters + `@Query` y validaciones).
+- [x] Actualizar tests unitarios y `scripts/smoke_test_e2e.py` (nuevos nombres de campos).
+- [x] Verificar: build Gradle + tests verdes + arranque con Flyway aplicando V4 sobre datos existentes (E2E 58 PASS / 0 FAIL vía proxy `:80`).
 
 ### Fase 18: Normalización del esquema a inglés — Frontend
 - **Objetivo:** actualizar el contrato de la API en React (campos `nombre`, `activo`, `tipo`, `cantidad`, `detalle`, `presentacion`, `stockMinimo`, etc.).
@@ -209,6 +209,6 @@ De ellos, la refactorización de normalización a inglés (17+18) suma **~2-2.5 
 | 14   | Imagen Docker del Frontend         | **Completada** |
 | 15   | Toast de login exitoso             | **Completada** |
 | 16   | Presentaciones múltiples por insumo| **Completada** |
-| 17   | Normalización a inglés (Backend/BD)| Pendiente  |
+| 17   | Normalización a inglés (Backend/BD)| **Completada** |
 | 18   | Normalización a inglés (Frontend)  | Pendiente  |
 | 19   | E2E, documentación y cierre        | Pendiente  |

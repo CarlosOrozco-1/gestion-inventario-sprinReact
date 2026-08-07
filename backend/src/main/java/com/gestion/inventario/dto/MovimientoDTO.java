@@ -10,14 +10,14 @@ public class MovimientoDTO {
     private Long presentationId;
 
     @NotNull(message = "El tipo de movimiento es obligatorio")
-    private String tipo;
+    private String type;
 
     @NotNull(message = "El ID del usuario es obligatorio")
     private Long usuarioId;
 
     @Min(value = 1, message = "La cantidad debe ser mayor a 0")
     @NotNull(message = "La cantidad es obligatoria")
-    private Integer cantidad;
+    private Integer quantity;
 
-    private String detalle;
+    private String detail;
 }

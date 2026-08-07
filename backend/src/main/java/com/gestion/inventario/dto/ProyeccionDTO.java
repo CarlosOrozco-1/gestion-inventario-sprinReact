@@ -5,11 +5,11 @@ import java.math.BigDecimal;
 
 @Data
 public class ProyeccionDTO {
-    private String insumo;
+    private String item;
     private Integer stock;
-    private Integer stockMaximo;
+    private Integer maxStock;
     private Integer deficit;
-    private BigDecimal costoEstimado;
-    private BigDecimal inversionNecesaria;
-    private String urgencia;
+    private BigDecimal estimatedCost;
+    private BigDecimal requiredInvestment;
+    private String urgency;
 }

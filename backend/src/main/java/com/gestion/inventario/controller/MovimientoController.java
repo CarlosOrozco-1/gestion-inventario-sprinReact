@@ -21,9 +21,9 @@ public class MovimientoController {
     public ResponseEntity<Movimiento> registrarMovimiento(@Valid @RequestBody MovimientoDTO request) {
         Movimiento mov = movimientoService.registrarMovimiento(
                 request.getPresentationId(),
-                request.getTipo(),
-                request.getCantidad(),
-                request.getDetalle(),
+                request.getType(),
+                request.getQuantity(),
+                request.getDetail(),
                 request.getUsuarioId()
         );
         return ResponseEntity.ok(mov);

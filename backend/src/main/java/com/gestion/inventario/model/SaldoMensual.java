@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Table(
     name = "inventario_saldos_mensuales",
     uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"inventario_id", "anio", "mes"})
+        @UniqueConstraint(columnNames = {"inventario_id", "year", "month"})
     }
 )
 @Data
@@ -25,13 +25,13 @@ public class SaldoMensual {
     private Insumo insumo;
 
     @Column(nullable = false)
-    private Integer anio;
+    private Integer year;
 
     @Column(nullable = false)
-    private Integer mes;
+    private Integer month;
 
     @Column(nullable = false)
-    private Integer egresos = 0;
+    private Integer outflows = 0;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

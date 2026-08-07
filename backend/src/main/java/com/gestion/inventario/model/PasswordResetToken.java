@@ -18,17 +18,17 @@ public class PasswordResetToken {
     @Column(name = "usuario_id", nullable = false)
     private Long usuarioId;
 
-    @Column(name = "codigo_hash", nullable = false)
-    private String codigoHash;
+    @Column(name = "code_hash", nullable = false)
+    private String codeHash;
 
     @Column(nullable = false)
-    private LocalDateTime expiracion;
+    private LocalDateTime expiresAt;
 
     @Column(nullable = false)
-    private Boolean usado = false;
+    private Boolean used = false;
 
-    @Column(name = "intentos_fallidos", nullable = false)
-    private Integer intentosFallidos = 0;
+    @Column(name = "failed_attempts", nullable = false)
+    private Integer failedAttempts = 0;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

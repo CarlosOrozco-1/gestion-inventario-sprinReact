@@ -16,7 +16,7 @@ public class Usuario {
     private Long id;
 
     @Column(nullable = false)
-    private String nombre;
+    private String name;
 
     @Column(nullable = false, unique = true)
     private String email;
@@ -29,7 +29,7 @@ public class Usuario {
     private Rol rol;
 
     @Column(nullable = false)
-    private Boolean activo = true;
+    private Boolean active = true;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

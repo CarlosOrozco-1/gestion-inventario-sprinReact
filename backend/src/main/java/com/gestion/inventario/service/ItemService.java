@@ -87,14 +87,14 @@ public class ItemService {
             for (Presentation p : item.getPresentations()) {
                 InsumoViewDTO dto = new InsumoViewDTO();
                 dto.setId(p.getId());
-                dto.setNumero(item.getCode());
-                dto.setInsumo(item.getName());
-                dto.setPresentacion(p.getName());
-                dto.setTamanoPresentacion(p.getSize());
+                dto.setCode(item.getCode());
+                dto.setItem(item.getName());
+                dto.setPresentation(p.getName());
+                dto.setSize(p.getSize());
                 dto.setStock(p.getStock());
-                dto.setStockMinimo(p.getMinStock());
-                dto.setStockMaximo(p.getMaxStock());
-                dto.setCostoEstimado(p.getEstimatedCost());
+                dto.setMinStock(p.getMinStock());
+                dto.setMaxStock(p.getMaxStock());
+                dto.setEstimatedCost(p.getEstimatedCost());
                 vista.add(dto);
             }
         }

@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Table(
     name = "inventario_insumos",
     uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"insumo", "presentacion", "tamano_presentacion"})
+        @UniqueConstraint(columnNames = {"name", "presentation", "size"})
     }
 )
 @Data
@@ -21,31 +21,31 @@ public class Insumo {
     private Long id;
 
     @Column(nullable = false)
-    private Integer numero;
+    private Integer code;
 
     @Column(nullable = false)
-    private String insumo;
+    private String name;
 
     @Column(nullable = false)
-    private String presentacion;
+    private String presentation;
 
-    @Column(name = "tamano_presentacion", nullable = false)
-    private String tamanoPresentacion;
+    @Column(name = "size", nullable = false)
+    private String size;
 
     @Column(nullable = false)
     private Integer stock = 0;
 
     @Column(nullable = false)
-    private Integer entrada = 0;
+    private Integer entries = 0;
 
-    @Column(name = "stock_minimo")
-    private Integer stockMinimo = 5;
+    @Column(name = "min_stock")
+    private Integer minStock = 5;
 
-    @Column(name = "stock_maximo")
-    private Integer stockMaximo = 50;
+    @Column(name = "max_stock")
+    private Integer maxStock = 50;
 
-    @Column(name = "costo_estimado", precision = 10, scale = 2) //precion por unidad, se multiplica por el stock para obtener el costo total
-    private java.math.BigDecimal costoEstimado = java.math.BigDecimal.ZERO;
+    @Column(name = "estimated_cost", precision = 10, scale = 2) //precion por unidad, se multiplica por el stock para obtener el costo total
+    private java.math.BigDecimal estimatedCost = java.math.BigDecimal.ZERO;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

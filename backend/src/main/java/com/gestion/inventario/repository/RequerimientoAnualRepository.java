@@ -8,5 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface RequerimientoAnualRepository extends JpaRepository<RequerimientoAnual, Long> {
-    Optional<RequerimientoAnual> findByInsumoIdAndAnio(Long insumoId, Integer anio);
+    Optional<RequerimientoAnual> findByInsumoIdAndYear(Long insumoId, Integer year);
 }

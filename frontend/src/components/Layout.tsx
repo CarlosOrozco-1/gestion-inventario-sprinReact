@@ -168,10 +168,10 @@ export default function Layout() {
         <div className="p-6 border-t border-slate-800">
           <div className="flex items-center gap-3 mb-6 px-2">
             <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 font-bold border border-slate-700">
-              {user?.nombre?.charAt(0).toUpperCase() || 'U'}
+              {user?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
             <div className="overflow-hidden">
-              <p className="text-sm font-semibold text-slate-200 truncate">{user?.nombre}</p>
+              <p className="text-sm font-semibold text-slate-200 truncate">{user?.name}</p>
               <p className="text-xs text-slate-500 truncate">{user?.email}</p>
             </div>
           </div>

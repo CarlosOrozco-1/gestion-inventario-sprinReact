@@ -43,13 +43,13 @@ export default function Reportes() {
       let coincideFecha = true;
 
       if (filtroUsuario) {
-        coincideUsuario = mov.usuarioNombre === usuarios.find(u => u.id.toString() === filtroUsuario)?.nombre;
+        coincideUsuario = mov.usuarioName === usuarios.find(u => u.id.toString() === filtroUsuario)?.name;
       }
       if (filtroInsumo) {
-        coincideInsumo = mov.insumoNombre === insumos.find(i => i.id.toString() === filtroInsumo)?.insumo;
+        coincideInsumo = mov.itemName === insumos.find(i => i.id.toString() === filtroInsumo)?.item;
       }
       if (filtroTipo) {
-        coincideTipo = mov.tipo === filtroTipo;
+        coincideTipo = mov.type === filtroTipo;
       }
       if (fechaInicio || fechaFin) {
         const movDate = new Date(mov.createdAt).getTime();
@@ -178,7 +178,7 @@ export default function Reportes() {
             >
               <option value="">Todos los Usuarios</option>
               {usuarios.map(u => (
-                <option key={u.id} value={u.id}>{u.nombre} ({u.rol})</option>
+                <option key={u.id} value={u.id}>{u.name} ({u.rol})</option>
               ))}
             </select>
           </div>
@@ -191,7 +191,7 @@ export default function Reportes() {
             >
               <option value="">Cualquier Insumo</option>
               {insumos.map(i => (
-                <option key={i.id} value={i.id}>{i.insumo}</option>
+                <option key={i.id} value={i.id}>{i.item}</option>
               ))}
             </select>
           </div>
@@ -264,16 +264,16 @@ export default function Reportes() {
                 movimientosFiltrados.map((mov) => (
                   <tr key={mov.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="p-4 text-slate-500 whitespace-nowrap">{formatDate(mov.createdAt)}</td>
-                    <td className="p-4 font-medium text-slate-700">{mov.usuarioNombre}</td>
+                    <td className="p-4 font-medium text-slate-700">{mov.usuarioName}</td>
                     <td className="p-4">
                       <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold ${
-                        mov.tipo.includes('ENTRADA') || mov.tipo === 'AJUSTE_POSITIVO' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                        mov.type.includes('ENTRADA') || mov.type === 'AJUSTE_POSITIVO' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
                       }`}>
-                        {mov.tipo}
+                        {mov.type}
                       </span>
                     </td>
-                    <td className="p-4 font-medium text-slate-900">{mov.insumoNombre}</td>
-                    <td className="p-4 text-right font-bold text-slate-700">{mov.cantidad}</td>
+                    <td className="p-4 font-medium text-slate-900">{mov.itemName}</td>
+                    <td className="p-4 text-right font-bold text-slate-700">{mov.quantity}</td>
                   </tr>
                 ))
               )}

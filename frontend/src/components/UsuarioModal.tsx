@@ -12,7 +12,7 @@ export default function UsuarioModal({ isOpen, onClose, onSuccess, usuario }: Us
   const isEditing = Boolean(usuario);
 
   const [formData, setFormData] = useState({
-    nombre: '',
+    name: '',
     email: '',
     password: '',
     rol: 'AUXILIAR'
@@ -24,10 +24,10 @@ export default function UsuarioModal({ isOpen, onClose, onSuccess, usuario }: Us
   useEffect(() => {
     if (isOpen) {
       setFormData({
-        nombre: usuario?.nombre || '',
+        name: usuario?.name || '',
         email: usuario?.email || '',
         password: '',
-        rol: usuario?.rol?.nombre?.toUpperCase() || 'AUXILIAR'
+        rol: usuario?.rol?.name?.toUpperCase() || 'AUXILIAR'
       });
       setError('');
     }
@@ -43,7 +43,7 @@ export default function UsuarioModal({ isOpen, onClose, onSuccess, usuario }: Us
     try {
       if (isEditing) {
         await api.put(`/usuarios/admin/${usuario.id}`, {
-          nombre: formData.nombre,
+          name: formData.name,
           email: formData.email,
           password: formData.password || null
         });
@@ -53,7 +53,7 @@ export default function UsuarioModal({ isOpen, onClose, onSuccess, usuario }: Us
       }
       onSuccess();
       onClose();
-      setFormData({ nombre: '', email: '', password: '', rol: 'AUXILIAR' });
+      setFormData({ name: '', email: '', password: '', rol: 'AUXILIAR' });
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.message || (isEditing ? 'Error al actualizar el usuario.' : 'Error al crear el usuario. Verifica que el correo no esté en uso.'));
@@ -99,8 +99,8 @@ export default function UsuarioModal({ isOpen, onClose, onSuccess, usuario }: Us
               required
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all outline-none"
               placeholder="Ej. Juan Pérez"
-              value={formData.nombre}
-              onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
             />
           </div>
 

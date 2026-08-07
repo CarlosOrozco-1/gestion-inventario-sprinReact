@@ -4,9 +4,9 @@ import api from '../api/axios';
 export default function MovimientoModal({ isOpen, onClose, onSave, insumos }) {
   const [formData, setFormData] = useState({
     presentationId: '',
-    tipo: 'ENTRADA',
-    cantidad: '',
-    detalle: ''
+    type: 'ENTRADA',
+    quantity: '',
+    detail: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -16,9 +16,9 @@ export default function MovimientoModal({ isOpen, onClose, onSave, insumos }) {
     if (isOpen) {
       setFormData({
         presentationId: '',
-        tipo: 'ENTRADA',
-        cantidad: '',
-        detalle: ''
+        type: 'ENTRADA',
+        quantity: '',
+        detail: ''
       });
       setError('');
     }
@@ -39,7 +39,7 @@ export default function MovimientoModal({ isOpen, onClose, onSave, insumos }) {
       // Para este caso, el backend también podría sacarlo del JWT, pero como el DTO pide usuarioId, lo mandamos.
       const payload = {
         ...formData,
-        cantidad: parseInt(formData.cantidad, 10),
+        quantity: parseInt(formData.quantity, 10),
         usuarioId: 1 // TODO: Reemplazar por el ID real del usuario autenticado si es necesario
       };
       
@@ -48,7 +48,7 @@ export default function MovimientoModal({ isOpen, onClose, onSave, insumos }) {
       onClose();
     } catch (err) {
       // Capturamos el error que viene del backend (Ej: "Stock insuficiente")
-      const backendMessage = err.response?.data?.message || err.response?.data?.details?.cantidad || 'Error al registrar el movimiento. Verifica los datos.';
+      const backendMessage = err.response?.data?.message || err.response?.data?.details?.quantity || 'Error al registrar el movimiento. Verifica los datos.';
       setError(backendMessage);
     } finally {
       setLoading(false);
@@ -90,7 +90,7 @@ export default function MovimientoModal({ isOpen, onClose, onSave, insumos }) {
                 <option value="">-- Seleccione una presentación --</option>
                 {insumos.map(insumo => (
                   <option key={insumo.id} value={insumo.id}>
-                    {insumo.numero} - {insumo.insumo} ({insumo.presentacion} {insumo.tamanoPresentacion}) | Stock: {insumo.stock}
+                    {insumo.code} - {insumo.item} ({insumo.presentation} {insumo.size}) | Stock: {insumo.stock}
                   </option>
                 ))}
               </select>
@@ -100,8 +100,8 @@ export default function MovimientoModal({ isOpen, onClose, onSave, insumos }) {
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Tipo de Movimiento</label>
                 <select 
-                  name="tipo"
-                  value={formData.tipo}
+                  name="type"
+                  value={formData.type}
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
@@ -115,9 +115,9 @@ export default function MovimientoModal({ isOpen, onClose, onSave, insumos }) {
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Cantidad</label>
                 <input 
                   type="number" 
-                  name="cantidad"
+                  name="quantity"
                   min="1"
-                  value={formData.cantidad}
+                  value={formData.quantity}
                   onChange={handleChange}
                   onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Por favor, ingresa una cantidad mayor a 0')}
                   onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
@@ -133,8 +133,8 @@ export default function MovimientoModal({ isOpen, onClose, onSave, insumos }) {
                 Detalles Adicionales (Opcional)
               </label>
               <textarea 
-                name="detalle"
-                value={formData.detalle}
+                name="detail"
+                value={formData.detail}
                 onChange={handleChange}
                 rows={2}
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
@@ -155,7 +155,7 @@ export default function MovimientoModal({ isOpen, onClose, onSave, insumos }) {
               type="submit" 
               disabled={loading}
               className={`px-5 py-2 text-white font-medium rounded-lg transition-colors shadow-sm focus:ring-2 focus:ring-offset-1 flex items-center gap-2 ${
-                formData.tipo === 'SALIDA' || formData.tipo === 'AJUSTE_NEGATIVO' 
+                formData.type === 'SALIDA' || formData.type === 'AJUSTE_NEGATIVO' 
                   ? 'bg-rose-600 hover:bg-rose-700 focus:ring-rose-500' 
                   : 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500'
               } disabled:opacity-70 disabled:cursor-not-allowed`}

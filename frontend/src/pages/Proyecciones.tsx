@@ -48,14 +48,14 @@ export default function Proyecciones() {
     setAplicandoId(sugerencia.id);
     try {
       await api.put(`/presentations/${sugerencia.id}`, {
-        name: sugerencia.presentacion,
-        size: sugerencia.tamanoPresentacion,
-        minStock: sugerencia.stockMinimoSugerido,
-        maxStock: sugerencia.stockMaximoSugerido,
-        estimatedCost: sugerencia.costoEstimado ?? 0,
+        name: sugerencia.presentation,
+        size: sugerencia.size,
+        minStock: sugerencia.suggestedMinStock,
+        maxStock: sugerencia.suggestedMaxStock,
+        estimatedCost: sugerencia.estimatedCost ?? 0,
       });
       showToast(
-        `Stock de "${sugerencia.insumo}" actualizado (${sugerencia.stockMinimoSugerido} – ${sugerencia.stockMaximoSugerido}).`,
+        `Stock de "${sugerencia.item}" actualizado (${sugerencia.suggestedMinStock} – ${sugerencia.suggestedMaxStock}).`,
       );
       await Promise.all([fetchInsumos(), fetchSugerencias()]);
     } catch (err) {
@@ -69,36 +69,36 @@ export default function Proyecciones() {
   // Cálculos Inteligentes
   const proyeccionesData = useMemo(() => {
     const result = insumos.map((insumo) => {
-      const stockMin = insumo.stockMinimo || 5;
-      const stockMax = insumo.stockMaximo || 50;
-      const costo = insumo.costoEstimado || 0;
+      const stockMin = insumo.minStock || 5;
+      const stockMax = insumo.maxStock || 50;
+      const costo = insumo.estimatedCost || 0;
       const stock = insumo.stock;
 
       const deficit = stock < stockMax ? stockMax - stock : 0;
-      const inversionNecesaria = deficit * costo;
-      const urgencia =
+      const requiredInvestment = deficit * costo;
+      const urgency =
         stock <= stockMin ? "Alta" : stock < stockMax ? "Media" : "Ninguna";
 
       return {
         ...insumo,
         deficit,
-        inversionNecesaria,
-        urgencia,
+        requiredInvestment,
+        urgency,
       };
     });
 
     // Solo mostramos los que tienen déficit para no saturar la tabla
     return result
       .filter((item) => item.deficit > 0)
-      .sort((a, b) => b.inversionNecesaria - a.inversionNecesaria);
+      .sort((a, b) => b.requiredInvestment - a.requiredInvestment);
   }, [insumos]);
 
   const inversionTotal = proyeccionesData.reduce(
-    (acc, curr) => acc + curr.inversionNecesaria,
+    (acc, curr) => acc + curr.requiredInvestment,
     0,
   );
   const totalInsumosUrgentes = proyeccionesData.filter(
-    (i) => i.urgencia === "Alta",
+    (i) => i.urgency === "Alta",
   ).length;
 
   const handleExport = async (format: "pdf" | "excel") => {
@@ -305,31 +305,31 @@ export default function Proyecciones() {
                     className="hover:bg-slate-50/50 transition-colors"
                   >
                     <td className="p-4 font-medium text-slate-900">
-                      {item.insumo}
+                      {item.item}
                     </td>
                     <td
-                      className={`p-4 text-center font-bold ${item.urgencia === "Alta" ? "text-rose-600" : "text-slate-700"}`}
+                      className={`p-4 text-center font-bold ${item.urgency === "Alta" ? "text-rose-600" : "text-slate-700"}`}
                     >
                       {item.stock}
                     </td>
                     <td className="p-4 text-center text-slate-500">
-                      {item.stockMaximo || 50}
+                      {item.maxStock || 50}
                     </td>
                     <td className="p-4 text-center font-bold text-amber-600">
                       {item.deficit}
                     </td>
                     <td className="p-4 text-right text-slate-500">
-                      Q{(item.costoEstimado || 0).toFixed(2)}
+                      Q{(item.estimatedCost || 0).toFixed(2)}
                     </td>
                     <td className="p-4 text-right font-black text-brand-700">
                       Q
-                      {item.inversionNecesaria.toLocaleString("en-US", {
+                      {item.requiredInvestment.toLocaleString("en-US", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
                     </td>
                     <td className="p-4 text-center">
-                      {item.urgencia === "Alta" ? (
+                      {item.urgency === "Alta" ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-bold bg-rose-100 text-rose-700">
                           URGENTE
                         </span>
@@ -393,21 +393,21 @@ export default function Proyecciones() {
                 </tr>
               ) : (
                 sugerencias.map((sug) => {
-                  const cambios = sug.stockMinimoSugerido && sug.stockMaximoSugerido;
+                  const cambios = sug.suggestedMinStock && sug.suggestedMaxStock;
                   return (
                     <tr key={sug.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="p-4">
-                        <p className="font-semibold text-slate-900">{sug.insumo}</p>
+                        <p className="font-semibold text-slate-900">{sug.item}</p>
                         <p className="text-xs text-slate-400">
-                          {sug.presentacion} {sug.tamanoPresentacion}
+                          {sug.presentation} {sug.size}
                         </p>
                       </td>
                       <td className="p-4 text-center">
-                        {sug.sinConsumo ? (
+                        {sug.noConsumption ? (
                           <span className="text-slate-400">— sin consumo</span>
                         ) : (
                           <span className="font-bold text-slate-700">
-                            {Number(sug.consumoDiario).toFixed(2)}
+                            {Number(sug.dailyConsumption).toFixed(2)}
                           </span>
                         )}
                       </td>
@@ -416,28 +416,28 @@ export default function Proyecciones() {
                       </td>
                       <td className="p-4 text-center">
                         {cambios ? (
-                          <span className={sug.difiere ? "text-amber-600 font-bold" : "text-emerald-600 font-bold"}>
-                            {sug.stockMinimoActual}
+                          <span className={sug.differs ? "text-amber-600 font-bold" : "text-emerald-600 font-bold"}>
+                            {sug.currentMinStock}
                             <span className="text-slate-400 mx-1">→</span>
-                            {sug.stockMinimoSugerido}
+                            {sug.suggestedMinStock}
                           </span>
                         ) : (
-                          <span className="text-slate-400">{sug.stockMinimoActual}</span>
+                          <span className="text-slate-400">{sug.currentMinStock}</span>
                         )}
                       </td>
                       <td className="p-4 text-center">
                         {cambios ? (
-                          <span className={sug.difiere ? "text-amber-600 font-bold" : "text-emerald-600 font-bold"}>
-                            {sug.stockMaximoActual}
+                          <span className={sug.differs ? "text-amber-600 font-bold" : "text-emerald-600 font-bold"}>
+                            {sug.currentMaxStock}
                             <span className="text-slate-400 mx-1">→</span>
-                            {sug.stockMaximoSugerido}
+                            {sug.suggestedMaxStock}
                           </span>
                         ) : (
-                          <span className="text-slate-400">{sug.stockMaximoActual}</span>
+                          <span className="text-slate-400">{sug.currentMaxStock}</span>
                         )}
                       </td>
                       <td className="p-4 text-center">
-                        {esAdmin && cambios && sug.difiere ? (
+                        {esAdmin && cambios && sug.differs ? (
                           <button
                             onClick={() => aplicarSugerencia(sug)}
                             disabled={aplicandoId === sug.id}
@@ -447,7 +447,7 @@ export default function Proyecciones() {
                           </button>
                         ) : (
                           <span className="text-xs text-slate-400">
-                            {esAdmin && cambios && !sug.difiere
+                            {esAdmin && cambios && !sug.differs
                               ? "Niveles óptimos"
                               : "—"}
                           </span>

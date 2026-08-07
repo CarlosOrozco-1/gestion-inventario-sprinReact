@@ -111,18 +111,18 @@ export default function Movimientos() {
                   <tr key={mov.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="p-4 text-slate-500 whitespace-nowrap">{formatDate(mov.createdAt)}</td>
                     <td className="p-4 font-medium text-slate-900">
-                      {mov.insumoNombre}
-                      <span className="block text-xs text-slate-400 font-normal">{mov.insumoPresentacion}</span>
+                      {mov.itemName}
+                      <span className="block text-xs text-slate-400 font-normal">{mov.presentationName}</span>
                     </td>
                     <td className="p-4 text-center">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold border ${getTypeStyle(mov.tipo)}`}>
-                        {mov.tipo}
+                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold border ${getTypeStyle(mov.type)}`}>
+                        {mov.type}
                       </span>
                     </td>
-                    <td className="p-4 text-right font-bold text-slate-700">{mov.cantidad}</td>
-                    <td className="p-4 text-slate-600 text-xs">{mov.usuarioNombre}</td>
-                    <td className="p-4 text-slate-500 italic max-w-xs truncate" title={mov.detalle}>
-                      {mov.detalle || '-'}
+                    <td className="p-4 text-right font-bold text-slate-700">{mov.quantity}</td>
+                    <td className="p-4 text-slate-600 text-xs">{mov.usuarioName}</td>
+                    <td className="p-4 text-slate-500 italic max-w-xs truncate" title={mov.detail}>
+                      {mov.detail || '-'}
                     </td>
                   </tr>
                 ))

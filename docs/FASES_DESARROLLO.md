@@ -180,9 +180,16 @@ graph TD
 - **Objetivo:** actualizar el contrato de la API en React (campos `nombre`, `activo`, `tipo`, `cantidad`, `detalle`, `presentacion`, `stockMinimo`, etc.).
 - **Alcance estimado:** ~74 referencias en ~12 archivos (`access.ts`, `Layout.tsx`, `Login.tsx`, `Usuarios.tsx`, `UsuarioModal.tsx`, `Insumos.tsx`, `InsumoModal.tsx`, `Movimientos.tsx`, `MovimientoModal.tsx`, `Ajustes.tsx`, `AjusteModal.tsx`, `Dashboard.tsx`, `Reportes.tsx`, `Proyecciones.tsx`, `store/useAuthStore.ts`).
 - **Est. de esfuerzo: ~1 día** (media; mecánico pero extenso).
-- [ ] Renombrar todas las referencias de campos de la API a los nuevos nombres en inglés.
-- [ ] Ajustar formularios (names de inputs), tablas, tarjetas del Dashboard, sugerencias de stock y reportes.
-- [ ] Lint + build + E2E completo a través del proxy `:80`.
+- [x] Renombrar todas las referencias de campos de la API a los nuevos nombres en inglés:
+  - `access.ts`: `user.rol?.nombre` → `user.rol?.name`.
+  - `Layout.tsx`: `user?.nombre` → `user?.name`.
+  - `Usuarios.tsx`/`UsuarioModal.tsx`: `nombre`→`name`, `activo`→`active`, `rol?.nombre`→`rol?.name`; payloads `{name, email, password, rol}` y `{active}`.
+  - `MovimientoModal.tsx`/`AjusteModal.tsx`: payload y names de inputs `{presentationId, type, quantity, detail, usuarioId}`; opciones del select usan `code/item/presentation/size/stock`.
+  - `Dashboard.tsx`: `stockMinimo`→`minStock`, `tipo/cantidad`→`type/quantity`, `insumo`→`item`.
+  - `Movimientos.tsx`/`Reportes.tsx`/`Ajustes.tsx`: `insumoNombre/insumoPresentacion/tipo/cantidad/usuarioNombre/detalle` → `itemName/presentationName/type/quantity/usuarioName/detail`.
+  - `Proyecciones.tsx`: sugerencias `presentacion/tamanoPresentacion/stockMinimoSugerido/stockMaximoSugerido/costoEstimado/insumo/consumoDiario/difiere/sinConsumo/stockMinimoActual/stockMaximoActual` → `presentation/size/suggestedMinStock/suggestedMaxStock/estimatedCost/item/dailyConsumption/differs/noConsumption/currentMinStock/currentMaxStock`; proyecciones `stockMinimo/stockMaximo/costoEstimado/inversionNecesaria/urgencia` → `minStock/maxStock/estimatedCost/requiredInvestment/urgency`.
+  - `Login.tsx` y `store/useAuthStore.ts` almacenan el objeto del login tal cual (ya en inglés); sin cambios.
+- [x] Lint + build + E2E completo a través del proxy `:80` (58 PASS / 0 FAIL).
 
 ### Fase 19: Verificación E2E, documentación y cierre
 - **Est. de esfuerzo: ~0.5 día.**
@@ -210,5 +217,5 @@ De ellos, la refactorización de normalización a inglés (17+18) suma **~2-2.5 
 | 15   | Toast de login exitoso             | **Completada** |
 | 16   | Presentaciones múltiples por insumo| **Completada** |
 | 17   | Normalización a inglés (Backend/BD)| **Completada** |
-| 18   | Normalización a inglés (Frontend)  | Pendiente  |
+| 18   | Normalización a inglés (Frontend)  | **Completada** |
 | 19   | E2E, documentación y cierre        | Pendiente  |

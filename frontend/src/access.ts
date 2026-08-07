@@ -23,6 +23,6 @@ export const hasAccess = (path: string, user: any): boolean => {
 
 export const getRol = (user: any): string => {
   if (!user) return "";
-  const rol = typeof user.rol === "string" ? user.rol : user.rol?.nombre;
+  const rol = typeof user.rol === "string" ? user.rol : user.rol?.name;
   return (rol || "").toUpperCase();
 };

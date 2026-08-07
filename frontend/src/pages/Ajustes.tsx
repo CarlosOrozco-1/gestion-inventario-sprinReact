@@ -18,7 +18,7 @@ export default function Ajustes() {
       ]);
       
       // Filtramos SOLO los ajustes para esta vista
-      const soloAjustes = movRes.data.filter((m: any) => m.tipo.includes('AJUSTE'));
+      const soloAjustes = movRes.data.filter((m: any) => m.type.includes('AJUSTE'));
       setMovimientos(soloAjustes);
       setInsumosList(insumosRes.data);
       
@@ -98,18 +98,18 @@ export default function Ajustes() {
                 movimientos.map((mov) => (
                   <tr key={mov.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="p-4 text-slate-500 whitespace-nowrap">{formatDate(mov.createdAt)}</td>
-                    <td className="p-4 font-medium text-slate-900">{mov.insumoNombre}</td>
+                    <td className="p-4 font-medium text-slate-900">{mov.itemName}</td>
                     <td className="p-4 text-center">
                       <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold ${
-                        mov.tipo === 'AJUSTE_POSITIVO' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                        mov.type === 'AJUSTE_POSITIVO' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
                       }`}>
-                        {mov.tipo === 'AJUSTE_POSITIVO' ? '+ SOBRANTE' : '- MERMA'}
+                        {mov.type === 'AJUSTE_POSITIVO' ? '+ SOBRANTE' : '- MERMA'}
                       </span>
                     </td>
-                    <td className="p-4 text-right font-bold text-slate-700">{mov.cantidad}</td>
-                    <td className="p-4 text-slate-600 font-medium">{mov.usuarioNombre}</td>
-                    <td className="p-4 text-slate-700 italic max-w-sm truncate" title={mov.detalle}>
-                      "{mov.detalle}"
+                    <td className="p-4 text-right font-bold text-slate-700">{mov.quantity}</td>
+                    <td className="p-4 text-slate-600 font-medium">{mov.usuarioName}</td>
+                    <td className="p-4 text-slate-700 italic max-w-sm truncate" title={mov.detail}>
+                      "{mov.detail}"
                     </td>
                   </tr>
                 ))

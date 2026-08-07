@@ -4,9 +4,9 @@ import api from '../api/axios';
 export default function AjusteModal({ isOpen, onClose, onSave, insumos }) {
   const [formData, setFormData] = useState({
     presentationId: '',
-    tipo: 'AJUSTE_POSITIVO',
-    cantidad: '',
-    detalle: ''
+    type: 'AJUSTE_POSITIVO',
+    quantity: '',
+    detail: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -15,9 +15,9 @@ export default function AjusteModal({ isOpen, onClose, onSave, insumos }) {
     if (isOpen) {
       setFormData({
         presentationId: '',
-        tipo: 'AJUSTE_POSITIVO',
-        cantidad: '',
-        detalle: ''
+        type: 'AJUSTE_POSITIVO',
+        quantity: '',
+        detail: ''
       });
       setError('');
     }
@@ -34,7 +34,7 @@ export default function AjusteModal({ isOpen, onClose, onSave, insumos }) {
     setError('');
 
     // Validación extra en frontend para la longitud del detalle
-    if (formData.detalle.length < 20) {
+    if (formData.detail.length < 20) {
       setError('La justificación debe tener al menos 20 caracteres.');
       setLoading(false);
       return;
@@ -43,7 +43,7 @@ export default function AjusteModal({ isOpen, onClose, onSave, insumos }) {
     try {
       const payload = {
         ...formData,
-        cantidad: parseInt(formData.cantidad, 10),
+        quantity: parseInt(formData.quantity, 10),
         usuarioId: 1 // TODO: Reemplazar por AuthStore cuando se conecte el ID real
       };
       
@@ -104,7 +104,7 @@ export default function AjusteModal({ isOpen, onClose, onSave, insumos }) {
                 <option value="">-- Seleccione una presentación --</option>
                 {insumos.map((insumo: any) => (
                   <option key={insumo.id} value={insumo.id}>
-                    {insumo.numero} - {insumo.insumo} ({insumo.presentacion} {insumo.tamanoPresentacion}) | Stock Actual: {insumo.stock}
+                    {insumo.code} - {insumo.item} ({insumo.presentation} {insumo.size}) | Stock Actual: {insumo.stock}
                   </option>
                 ))}
               </select>
@@ -114,8 +114,8 @@ export default function AjusteModal({ isOpen, onClose, onSave, insumos }) {
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Tipo de Ajuste</label>
                 <select 
-                  name="tipo"
-                  value={formData.tipo}
+                  name="type"
+                  value={formData.type}
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
@@ -129,9 +129,9 @@ export default function AjusteModal({ isOpen, onClose, onSave, insumos }) {
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Diferencia (Cant.)</label>
                 <input 
                   type="number" 
-                  name="cantidad"
+                  name="quantity"
                   min="1"
-                  value={formData.cantidad}
+                  value={formData.quantity}
                   onChange={handleChange}
                   onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Por favor, ingresa una cantidad mayor a 0')}
                   onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
@@ -147,15 +147,15 @@ export default function AjusteModal({ isOpen, onClose, onSave, insumos }) {
                 Justificación (Obligatoria)
               </label>
               <textarea 
-                name="detalle"
-                value={formData.detalle}
+                name="detail"
+                value={formData.detail}
                 onChange={handleChange}
                 rows={3}
                 required
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
                 placeholder="Mínimo 20 caracteres explicando detalladamente la razón del ajuste..."
               ></textarea>
-              <p className="text-xs text-slate-500 mt-1">Caracteres: {formData.detalle.length}/20</p>
+              <p className="text-xs text-slate-500 mt-1">Caracteres: {formData.detail.length}/20</p>
             </div>
           </div>
 
@@ -169,7 +169,7 @@ export default function AjusteModal({ isOpen, onClose, onSave, insumos }) {
             </button>
             <button 
               type="submit" 
-              disabled={loading || formData.detalle.length < 20}
+              disabled={loading || formData.detail.length < 20}
               className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg transition-colors shadow-sm focus:ring-2 focus:ring-amber-500/50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading && (

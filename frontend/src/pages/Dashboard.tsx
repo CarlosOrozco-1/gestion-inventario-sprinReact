@@ -38,16 +38,16 @@ export default function Dashboard() {
 
   // --- CÁLCULO DE KPIs ---
   const totalInsumos = insumos.length;
-  const stockCritico = insumos.filter(i => i.stock <= (i.stockMinimo || 5));
+  const stockCritico = insumos.filter(i => i.stock <= (i.minStock || 5));
   
   // Total Entradas y Salidas
   let totalEntradas = 0;
   let totalSalidas = 0;
   movimientos.forEach(m => {
-    if (m.tipo.includes('ENTRADA') || m.tipo === 'AJUSTE_POSITIVO') {
-      totalEntradas += m.cantidad;
-    } else if (m.tipo.includes('SALIDA') || m.tipo === 'AJUSTE_NEGATIVO') {
-      totalSalidas += m.cantidad;
+    if (m.type.includes('ENTRADA') || m.type === 'AJUSTE_POSITIVO') {
+      totalEntradas += m.quantity;
+    } else if (m.type.includes('SALIDA') || m.type === 'AJUSTE_NEGATIVO') {
+      totalSalidas += m.quantity;
     }
   });
 
@@ -57,13 +57,13 @@ export default function Dashboard() {
     .sort((a, b) => b.stock - a.stock)
     .slice(0, 5)
     .map(i => ({
-      name: i.insumo.length > 15 ? i.insumo.substring(0, 15) + '...' : i.insumo,
+      name: i.item.length > 15 ? i.item.substring(0, 15) + '...' : i.item,
       stock: i.stock
     }));
 
   // 2. Distribución de Movimientos (Gráfico de Pastel)
   const movsAgrupados = movimientos.reduce((acc, curr) => {
-    acc[curr.tipo] = (acc[curr.tipo] || 0) + curr.cantidad;
+    acc[curr.type] = (acc[curr.type] || 0) + curr.quantity;
     return acc;
   }, {});
 
@@ -179,8 +179,8 @@ export default function Dashboard() {
                   <li key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-amber-50/50 border border-amber-100">
                     <div className="flex items-center gap-3 overflow-hidden">
                       <div className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
-                      <p className="text-sm font-semibold text-slate-700 truncate" title={item.insumo}>
-                        {item.insumo}
+                      <p className="text-sm font-semibold text-slate-700 truncate" title={item.item}>
+                        {item.item}
                       </p>
                     </div>
                     <span className="text-sm font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded-md">

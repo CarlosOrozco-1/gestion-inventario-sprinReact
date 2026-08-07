@@ -26,7 +26,7 @@ export default function Usuarios() {
 
   const toggleStatus = async (id: number, currentStatus: boolean) => {
     try {
-      await api.put(`/usuarios/admin/${id}/status`, { activo: !currentStatus });
+      await api.put(`/usuarios/admin/${id}/status`, { active: !currentStatus });
       fetchUsuarios();
     } catch (error) {
       alert('Error cambiando estado del usuario');
@@ -69,21 +69,21 @@ export default function Usuarios() {
               ) : (
                 usuarios.map((user) => (
                   <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="p-4 font-medium text-slate-900">{user.nombre}</td>
+                    <td className="p-4 font-medium text-slate-900">{user.name}</td>
                     <td className="p-4 text-slate-500">{user.email}</td>
                     <td className="p-4">
                       <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold ${
-                        user.rol?.nombre?.toUpperCase() === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 
-                        user.rol?.nombre?.toUpperCase() === 'JEFE' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'
+                        user.rol?.name?.toUpperCase() === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 
+                        user.rol?.name?.toUpperCase() === 'JEFE' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'
                       }`}>
-                        {user.rol?.nombre?.toUpperCase()}
+                        {user.rol?.name?.toUpperCase()}
                       </span>
                     </td>
                     <td className="p-4 text-center">
                       <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold ${
-                        user.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                        user.active ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
                       }`}>
-                        {user.activo ? 'ACTIVO' : 'SUSPENDIDO'}
+                        {user.active ? 'ACTIVO' : 'SUSPENDIDO'}
                       </span>
                     </td>
                     <td className="p-4 text-right whitespace-nowrap">
@@ -94,12 +94,12 @@ export default function Usuarios() {
                         Editar
                       </button>
                       <button 
-                        onClick={() => toggleStatus(user.id, user.activo)}
+                        onClick={() => toggleStatus(user.id, user.active)}
                         className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
-                          user.activo ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
+                          user.active ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
                         }`}
                       >
-                        {user.activo ? 'Suspender' : 'Activar'}
+                        {user.active ? 'Suspender' : 'Activar'}
                       </button>
                     </td>
                   </tr>

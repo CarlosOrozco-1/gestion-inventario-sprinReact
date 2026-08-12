@@ -137,3 +137,37 @@ CREATE INDEX IF NOT EXISTS idx_movimientos_usuario
 
 CREATE INDEX IF NOT EXISTS idx_movimientos_tipo
   ON inventario_movimientos(tipo);
+
+-- -----------------------------------------------------------
+-- Tabla: bitacora
+-- Descripcion: Registro de auditoría de todas las acciones
+--              realizadas en el sistema. Cada acción requiere
+--              una justificación obligatoria del usuario.
+-- -----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS bitacora (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  accion TEXT NOT NULL,
+  modulo TEXT NOT NULL,
+  descripcion TEXT NOT NULL,
+  justificacion TEXT NOT NULL,
+  usuario_id INTEGER NOT NULL,
+  usuario_nombre TEXT NOT NULL,
+  entidad_id INTEGER,
+  entidad_tipo TEXT,
+  datos_anteriores TEXT,
+  datos_nuevos TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bitacora_usuario
+  ON bitacora(usuario_id);
+
+CREATE INDEX IF NOT EXISTS idx_bitacora_modulo
+  ON bitacora(modulo);
+
+CREATE INDEX IF NOT EXISTS idx_bitacora_accion
+  ON bitacora(accion);
+
+CREATE INDEX IF NOT EXISTS idx_bitacora_created_at
+  ON bitacora(created_at);

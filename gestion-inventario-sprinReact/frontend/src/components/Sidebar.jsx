@@ -1,13 +1,20 @@
 import React from 'react';
 
 export default function Sidebar({ isCollapsed, toggleSidebar, activeTab, setActiveTab, user }) {
-  const navItems = [
-    { id: 'resumen', label: 'Resumen General', icon: '📊', description: 'Métricas e indicadores globales' },
-    { id: 'insumos', label: 'Catálogo Insumos', icon: '📦', description: 'Gestión de productos y stock' },
-    { id: 'movimientos', label: 'Movimientos Stock', icon: '🔄', description: 'Entradas, salidas y ajustes' },
-    { id: 'usuarios', label: 'Usuarios y Permisos', icon: '👥', description: 'Roles y matriz de accesos' },
-    { id: 'reportes', label: 'Reportes y Alertas', icon: '📈', description: 'Estadísticas e insumos bajos' },
+  // Normalizar el rol del usuario a mayúsculas sin importar si viene como string u objeto
+  const rawRol = typeof user?.rol === 'object' ? user?.rol?.nombre : user?.rol;
+  const userRol = (rawRol || 'ADMIN').toString().toUpperCase().trim();
+
+  const allNavItems = [
+    { id: 'resumen', label: 'Resumen General', icon: '📊', description: 'Métricas e indicadores globales', roles: ['ADMIN', 'JEFE', 'AUXILIAR'] },
+    { id: 'insumos', label: 'Catálogo Insumos', icon: '📦', description: 'Gestión de productos y stock', roles: ['ADMIN', 'JEFE', 'AUXILIAR'] },
+    { id: 'movimientos', label: 'Movimientos Stock', icon: '🔄', description: 'Entradas, salidas y ajustes', roles: ['ADMIN', 'JEFE', 'AUXILIAR'] },
+    { id: 'usuarios', label: 'Usuarios y Permisos', icon: '👥', description: 'Roles y matriz de accesos', roles: ['ADMIN'] },
+    { id: 'alertas', label: 'Alertas', icon: '🚨', description: 'Insumos críticos y stock bajo', roles: ['ADMIN', 'JEFE'] },
+    { id: 'bitacora', label: 'Bitácora', icon: '📋', description: 'Auditoría y registro de cambios', roles: ['ADMIN', 'JEFE'] },
   ];
+
+  const navItems = allNavItems.filter(item => item.roles.includes(userRol));
 
   return (
     <aside className={`sidebar ${isCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}>
@@ -136,13 +143,13 @@ export default function Sidebar({ isCollapsed, toggleSidebar, activeTab, setActi
                 {user?.nombre || 'Usuario'}
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontWeight: 600 }}>
-                {user?.rol || 'ADMIN'}
+                {userRol}
               </div>
             </div>
           </div>
         ) : (
           <div style={{ textAlign: 'center' }}>
-            <span title={`${user?.nombre} (${user?.rol})`} style={{ fontSize: '1.2rem', cursor: 'pointer' }}>👤</span>
+            <span title={`${user?.nombre} (${userRol})`} style={{ fontSize: '1.2rem', cursor: 'pointer' }}>👤</span>
           </div>
         )}
       </div>

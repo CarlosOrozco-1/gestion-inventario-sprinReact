@@ -7,7 +7,10 @@ export default function InsumosModule({
   setSearch,
   fetchInsumos,
   onOpenNewInsumoModal,
-  onOpenMovimientoModal
+  onEditInsumo,
+  onDeleteInsumo,
+  onOpenMovimientoModal,
+  user
 }) {
   const filteredInsumos = insumos.filter((item) => {
     const term = search.toLowerCase();
@@ -18,25 +21,33 @@ export default function InsumosModule({
     );
   });
 
+  const rawRol = typeof user?.rol === 'object' ? user?.rol?.nombre : user?.rol;
+  const rol = (rawRol || 'ADMIN').toString().toUpperCase().trim();
+  const canCreate = rol === 'ADMIN' || rol === 'JEFE';
+  const canEdit = rol === 'ADMIN' || rol === 'JEFE';
+  const canDelete = rol === 'ADMIN';
+
   return (
     <div className="module-fade-in">
       {/* Header del Módulo */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '1.6rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span>📦</span> Catálogo de Insumos
+            <span>📦</span> Catálogo de Insumos e Inventario
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '2px' }}>
-            Gestión detallada de artículos, presentaciones y disponibilidades
+            Gestión detallada de artículos, disponibilidades, entradas, salidas, regularizaciones y correcciones
           </p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button onClick={fetchInsumos} className="btn btn-secondary sharp-border">
-            🔄 Actualizar Datos
+          <button onClick={fetchInsumos} className="btn btn-secondary sharp-border" disabled={loading}>
+            {loading ? '⌛ Actualizando...' : '🔄 Actualizar Datos'}
           </button>
-          <button onClick={onOpenNewInsumoModal} className="btn btn-primary">
-            ✨ Nuevo Insumo
-          </button>
+          {canCreate && (
+            <button onClick={onOpenNewInsumoModal} className="btn btn-primary">
+              ✨ Nuevo Insumo
+            </button>
+          )}
         </div>
       </div>
 
@@ -53,7 +64,7 @@ export default function InsumosModule({
         />
       </div>
 
-      {/* Tabla de Insumos con bordes definidos */}
+      {/* Tabla de Insumos */}
       <div className="glass-card sharp-border" style={{ padding: '0', overflow: 'hidden' }}>
         <div className="table-container">
           <table className="custom-table">
@@ -101,13 +112,34 @@ export default function InsumosModule({
                         )}
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <button
-                          onClick={() => onOpenMovimientoModal(item)}
-                          className="btn btn-secondary sharp-border"
-                          style={{ padding: '6px 12px', fontSize: '0.8rem' }}
-                        >
-                          🔄 Movimiento
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
+                          {canEdit && (
+                            <button
+                              onClick={() => onEditInsumo(item)}
+                              className="btn btn-secondary sharp-border"
+                              style={{ padding: '6px 10px', fontSize: '0.78rem' }}
+                              title="Editar Insumo"
+                            >
+                              ✏️ Editar
+                            </button>
+                          )}
+
+                          {canDelete && (
+                            <button
+                              onClick={() => onDeleteInsumo(item)}
+                              className="btn btn-secondary sharp-border"
+                              style={{
+                                padding: '6px 10px',
+                                fontSize: '0.78rem',
+                                borderColor: 'rgba(244, 63, 94, 0.4)',
+                                color: '#f87171'
+                              }}
+                              title="Eliminar Insumo"
+                            >
+                              🗑️ Eliminar
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

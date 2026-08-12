@@ -9,7 +9,8 @@ export default function Navbar({ toggleSidebar, isCollapsed, activeTab }) {
     insumos: '📦 Catálogo de Insumos',
     movimientos: '🔄 Movimientos de Stock',
     usuarios: '👥 Usuarios y Permisos',
-    reportes: '📈 Reportes y Alertas'
+    alertas: '🚨 Alertas de Stock',
+    bitacora: '📋 Bitácora de Registro de Cambios'
   };
 
   return (
@@ -26,15 +27,6 @@ export default function Navbar({ toggleSidebar, isCollapsed, activeTab }) {
       zIndex: 100
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <button
-          onClick={toggleSidebar}
-          className="btn btn-secondary sharp-border"
-          style={{ padding: '8px 12px', fontSize: '1.1rem' }}
-          title={isCollapsed ? "Expandir Menú Plegable" : "Plegar Menú"}
-        >
-          ☰
-        </button>
-
         <div>
           <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
             {tabTitles[activeTab] || 'Sistema de Inventario'}

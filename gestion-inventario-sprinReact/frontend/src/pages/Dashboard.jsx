@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import InsumoModal from '../components/InsumoModal';
+import DeleteInsumoModal from '../components/DeleteInsumoModal';
 import MovimientoModal from '../components/MovimientoModal';
 import InsumosModule from '../components/InsumosModule';
 import MovimientosModule from '../components/MovimientosModule';
 import UsuariosModule from '../components/UsuariosModule';
-import ReportesModule from '../components/ReportesModule';
+import AlertasModule from '../components/AlertasModule';
+import BitacoraModule from '../components/BitacoraModule';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -18,8 +20,9 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('resumen');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isInsumoModalOpen, setIsInsumoModalOpen] = useState(false);
+  const [insumoToEdit, setInsumoToEdit] = useState(null);
+  const [insumoToDelete, setInsumoToDelete] = useState(null);
   const [selectedInsumoForMov, setSelectedInsumoForMov] = useState(null);
-  const [error, setError] = useState('');
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
@@ -27,13 +30,12 @@ export default function Dashboard() {
 
   const fetchInsumos = async () => {
     setLoading(true);
-    setError('');
     try {
       const response = await API.get('/insumos');
       setInsumos(response.data || []);
     } catch (err) {
-      console.error(err);
-      setError('No se pudieron cargar los insumos desde el servidor.');
+      console.error("Error al obtener insumos de la base de datos:", err);
+      setInsumos([]);
     } finally {
       setLoading(false);
     }
@@ -46,6 +48,22 @@ export default function Dashboard() {
   const totalInsumos = insumos.length;
   const enStockCount = insumos.filter((i) => (i.stock ?? 0) > 0).length;
   const sinStockCount = insumos.filter((i) => (i.stock ?? 0) === 0).length;
+
+  const rawRol = typeof user?.rol === 'object' ? user?.rol?.nombre : user?.rol;
+  const userRol = (rawRol || 'ADMIN').toString().toUpperCase().trim();
+  const isAdmin = userRol === 'ADMIN';
+  const isJefe = userRol === 'JEFE';
+  const isAuxiliar = userRol === 'AUXILIAR';
+
+  const handleOpenNewInsumoModal = () => {
+    setInsumoToEdit(null);
+    setIsInsumoModalOpen(true);
+  };
+
+  const handleOpenEditInsumoModal = (insumo) => {
+    setInsumoToEdit(insumo);
+    setIsInsumoModalOpen(true);
+  };
 
   return (
     <div className="app-layout">
@@ -67,25 +85,6 @@ export default function Dashboard() {
         />
 
         <main style={{ flex: 1, padding: '32px 28px', maxWidth: '1400px', width: '100%', margin: '0 auto' }}>
-          {error && (
-            <div style={{
-              background: 'rgba(244, 63, 94, 0.15)',
-              border: '1px solid rgba(244, 63, 94, 0.3)',
-              color: '#f87171',
-              padding: '14px 18px',
-              borderRadius: '8px',
-              marginBottom: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <div>⚠️ {error}</div>
-              <button onClick={fetchInsumos} className="btn btn-secondary sharp-border" style={{ padding: '4px 10px', fontSize: '0.8rem' }}>
-                Reintentar
-              </button>
-            </div>
-          )}
-
           {/* Renderizado de Módulos */}
           {activeTab === 'resumen' && (
             <div className="module-fade-in">
@@ -97,11 +96,8 @@ export default function Dashboard() {
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <button onClick={fetchInsumos} className="btn btn-secondary sharp-border">
-                    🔄 Actualizar
-                  </button>
-                  <button onClick={() => setIsInsumoModalOpen(true)} className="btn btn-primary">
-                    ✨ Nuevo Insumo
+                  <button onClick={fetchInsumos} className="btn btn-secondary sharp-border" disabled={loading}>
+                    {loading ? '⌛ Actualizando...' : '🔄 Actualizar Datos'}
                   </button>
                 </div>
               </div>
@@ -122,14 +118,14 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Acceso Rápido a Módulos */}
+              {/* Acceso Rápido a Módulos según Rol */}
               <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px' }}>Accesos Directos a Módulos</h2>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
                 <div onClick={() => setActiveTab('insumos')} className="glass-card sharp-border" style={{ padding: '22px', cursor: 'pointer' }}>
                   <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>📦</div>
                   <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>Catálogo de Insumos</h3>
                   <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                    Explorá la lista completa de artículos, buscá por código y gestioná el inventario.
+                    Explorá la lista completa de artículos, buscá por código y revisá disponibilidades.
                   </p>
                 </div>
 
@@ -137,25 +133,39 @@ export default function Dashboard() {
                   <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>🔄</div>
                   <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>Movimientos de Stock</h3>
                   <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                    Registrá entradas, salidas, ajustes físicos y correcciones de inventario.
+                    Registrá entradas, salidas y movimientos en almacén.
                   </p>
                 </div>
 
-                <div onClick={() => setActiveTab('usuarios')} className="glass-card sharp-border" style={{ padding: '22px', cursor: 'pointer' }}>
-                  <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>👥</div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>Usuarios y Permisos</h3>
-                  <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                    Revisá la información del perfil actual y la matriz de permisos del sistema.
-                  </p>
-                </div>
+                {isAdmin && (
+                  <div onClick={() => setActiveTab('usuarios')} className="glass-card sharp-border" style={{ padding: '22px', cursor: 'pointer' }}>
+                    <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>👥</div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>Usuarios y Permisos</h3>
+                    <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                      Gestión de cuentas registradas en la base de datos y matriz de accesos.
+                    </p>
+                  </div>
+                )}
 
-                <div onClick={() => setActiveTab('reportes')} className="glass-card sharp-border" style={{ padding: '22px', cursor: 'pointer' }}>
-                  <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>📈</div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>Reportes y Alertas</h3>
-                  <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                    Consultá artículos en nivel crítico y estadísticas del almacén.
-                  </p>
-                </div>
+                {(isAdmin || isJefe) && (
+                  <div onClick={() => setActiveTab('alertas')} className="glass-card sharp-border" style={{ padding: '22px', cursor: 'pointer' }}>
+                    <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>🚨</div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>Alertas de Stock</h3>
+                    <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                      Consultá artículos en nivel crítico y desabastecimiento.
+                    </p>
+                  </div>
+                )}
+
+                {(isAdmin || isJefe) && (
+                  <div onClick={() => setActiveTab('bitacora')} className="glass-card sharp-border" style={{ padding: '22px', cursor: 'pointer' }}>
+                    <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>📋</div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>Bitácora de Cambios</h3>
+                    <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                      Registro obligatorio de todas las acciones y justificaciones.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -167,8 +177,11 @@ export default function Dashboard() {
               search={search}
               setSearch={setSearch}
               fetchInsumos={fetchInsumos}
-              onOpenNewInsumoModal={() => setIsInsumoModalOpen(true)}
+              onOpenNewInsumoModal={handleOpenNewInsumoModal}
+              onEditInsumo={handleOpenEditInsumoModal}
+              onDeleteInsumo={(item) => setInsumoToDelete(item)}
               onOpenMovimientoModal={(item) => setSelectedInsumoForMov(item)}
+              user={user}
             />
           )}
 
@@ -179,12 +192,16 @@ export default function Dashboard() {
             />
           )}
 
-          {activeTab === 'usuarios' && (
+          {activeTab === 'usuarios' && isAdmin && (
             <UsuariosModule user={user} />
           )}
 
-          {activeTab === 'reportes' && (
-            <ReportesModule insumos={insumos} />
+          {activeTab === 'alertas' && (isAdmin || isJefe) && (
+            <AlertasModule insumos={insumos} />
+          )}
+
+          {activeTab === 'bitacora' && (isAdmin || isJefe) && (
+            <BitacoraModule user={user} />
           )}
         </main>
       </div>
@@ -192,7 +209,19 @@ export default function Dashboard() {
       {/* Modales */}
       <InsumoModal
         isOpen={isInsumoModalOpen}
-        onClose={() => setIsInsumoModalOpen(false)}
+        insumoToEdit={insumoToEdit}
+        insumos={insumos}
+        onClose={() => {
+          setIsInsumoModalOpen(false);
+          setInsumoToEdit(null);
+        }}
+        onSuccess={fetchInsumos}
+      />
+
+      <DeleteInsumoModal
+        isOpen={!!insumoToDelete}
+        insumo={insumoToDelete}
+        onClose={() => setInsumoToDelete(null)}
         onSuccess={fetchInsumos}
       />
 

@@ -1,15 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import API from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { registrarBitacora } from '../services/bitacoraService';
 
-export default function InsumoModal({ isOpen, onClose, onSuccess }) {
+export default function InsumoModal({ isOpen, onClose, onSuccess, insumoToEdit, insumos = [] }) {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
-    numero: '',
     insumo: '',
     presentacion: '',
-    tamanoPresentacion: ''
+    tamanoPresentacion: '',
+    justificacion: ''
   });
+  const [autoNumero, setAutoNumero] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (insumoToEdit) {
+      setFormData({
+        insumo: insumoToEdit.insumo ?? '',
+        presentacion: insumoToEdit.presentacion ?? '',
+        tamanoPresentacion: insumoToEdit.tamanoPresentacion ?? '',
+        justificacion: ''
+      });
+      setAutoNumero(insumoToEdit.numero ?? 0);
+    } else {
+      setFormData({
+        insumo: '',
+        presentacion: '',
+        tamanoPresentacion: '',
+        justificacion: ''
+      });
+      const numeros = insumos.map((i) => i.numero ?? 0);
+      const maxNumero = numeros.length > 0 ? Math.max(...numeros) : 0;
+      setAutoNumero(maxNumero + 1);
+    }
+    setError('');
+  }, [insumoToEdit, isOpen, insumos]);
 
   if (!isOpen) return null;
 
@@ -22,17 +49,52 @@ export default function InsumoModal({ isOpen, onClose, onSuccess }) {
     setLoading(true);
     setError('');
 
+    if (!formData.justificacion || formData.justificacion.trim().length < 10) {
+      setError('La justificación es obligatoria y debe tener al menos 10 caracteres.');
+      setLoading(false);
+      return;
+    }
+
+    const accion = insumoToEdit ? 'EDITAR_INSUMO' : 'CREAR_INSUMO';
+    const payload = {
+      numero: autoNumero,
+      insumo: formData.insumo,
+      presentacion: formData.presentacion,
+      tamanoPresentacion: formData.tamanoPresentacion,
+      stock: insumoToEdit ? (insumoToEdit.stock ?? 0) : 0
+    };
+
     try {
-      await API.post('/insumos', {
-        numero: parseInt(formData.numero, 10),
-        insumo: formData.insumo,
-        presentacion: formData.presentacion,
-        tamanoPresentacion: formData.tamanoPresentacion
+      let savedItem = null;
+      if (insumoToEdit) {
+        const response = await API.put(`/insumos/${insumoToEdit.id}`, payload);
+        savedItem = response.data;
+      } else {
+        const response = await API.post('/insumos', payload);
+        savedItem = response.data;
+      }
+
+      // Registrar en la Bitácora de Auditoría en BD
+      await registrarBitacora({
+        accion,
+        modulo: 'INVENTARIO',
+        descripcion: insumoToEdit
+          ? `Actualizado insumo "${formData.insumo}" (Código #${autoNumero})`
+          : `Creado nuevo insumo "${formData.insumo}" (Código #${autoNumero}) con presentación ${formData.presentacion}`,
+        justificacion: formData.justificacion,
+        usuarioId: user?.id || 1,
+        usuarioNombre: user?.nombre || 'Usuario',
+        entidadId: savedItem?.id || insumoToEdit?.id,
+        entidadTipo: 'INSUMO',
+        datosAnteriores: insumoToEdit ? { insumo: insumoToEdit.insumo, presentacion: insumoToEdit.presentacion } : null,
+        datosNuevos: { insumo: formData.insumo, presentacion: formData.presentacion, tamanoPresentacion: formData.tamanoPresentacion }
       });
+
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al guardar el insumo');
+      const msg = err.response?.data?.message || 'Error al guardar el insumo en la base de datos. Verifique la conexión con el servidor.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -42,8 +104,42 @@ export default function InsumoModal({ isOpen, onClose, onSuccess }) {
     <div className="modal-overlay">
       <div className="modal-content glass-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>✨ Nuevo Insumo</h3>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>
+            {insumoToEdit ? '✏️ Editar Insumo' : '✨ Nuevo Insumo'}
+          </h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }}>✖</button>
+        </div>
+
+        {/* Código auto-generado (solo lectura) */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '12px 16px',
+          background: 'rgba(59, 130, 246, 0.1)',
+          border: '1px solid rgba(59, 130, 246, 0.25)',
+          borderRadius: '8px',
+          marginBottom: '20px'
+        }}>
+          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Código Asignado:
+          </span>
+          <span style={{
+            fontSize: '1.1rem',
+            fontWeight: 700,
+            color: 'var(--accent-cyan)',
+            background: 'rgba(6, 182, 212, 0.1)',
+            padding: '4px 14px',
+            borderRadius: '6px',
+            border: '1px solid rgba(6, 182, 212, 0.2)'
+          }}>
+            #{autoNumero}
+          </span>
+          {!insumoToEdit && (
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-dark)', marginLeft: 'auto' }}>
+              Generado automáticamente
+            </span>
+          )}
         </div>
 
         {error && (
@@ -53,19 +149,6 @@ export default function InsumoModal({ isOpen, onClose, onSuccess }) {
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label className="input-label">Número de Insumo (Código)</label>
-            <input 
-              type="number" 
-              name="numero" 
-              className="input-field" 
-              placeholder="Ej. 101" 
-              value={formData.numero}
-              onChange={handleChange}
-              required 
-            />
-          </div>
-
           <div className="input-group">
             <label className="input-label">Nombre del Insumo</label>
             <input 
@@ -105,10 +188,28 @@ export default function InsumoModal({ isOpen, onClose, onSuccess }) {
             />
           </div>
 
+          <div className="input-group">
+            <label className="input-label">
+              Justificación / Comentario Obligatorio <span style={{ color: '#f43f5e' }}>*(Mínimo 10 caracteres)</span>
+            </label>
+            <textarea 
+              name="justificacion"
+              className="textarea-field" 
+              rows="3"
+              placeholder={insumoToEdit ? "Razón por la cual se editan los datos de este insumo..." : "Razón por la cual se agrega este nuevo insumo..."}
+              value={formData.justificacion}
+              onChange={handleChange}
+              required
+            />
+            <span style={{ fontSize: '0.75rem', color: formData.justificacion.trim().length >= 10 ? '#10b981' : '#f43f5e' }}>
+              {formData.justificacion.trim().length} / 10 caracteres mínimos obligatorios
+            </span>
+          </div>
+
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
             <button type="button" onClick={onClose} className="btn btn-secondary">Cancelar</button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Guardando...' : 'Crear Insumo'}
+              {loading ? 'Guardando...' : (insumoToEdit ? 'Guardar Cambios' : 'Crear Insumo')}
             </button>
           </div>
         </form>

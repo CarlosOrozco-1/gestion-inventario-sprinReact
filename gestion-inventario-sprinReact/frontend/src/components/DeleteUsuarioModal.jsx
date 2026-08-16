@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { registrarBitacora } from '../services/bitacoraService';
+import ResponseModal from './ResponseModal';
 
 export default function DeleteUsuarioModal({ isOpen, userToDelete, onClose, onSuccess }) {
   const { user: currentUser } = useAuth();
   const [justificacion, setJustificacion] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [response, setResponse] = useState(null);
 
   if (!isOpen || !userToDelete) return null;
 
@@ -36,7 +38,11 @@ export default function DeleteUsuarioModal({ isOpen, userToDelete, onClose, onSu
       });
 
       onSuccess(userToDelete.id);
-      onClose();
+      setResponse({
+        type: 'success',
+        title: 'Usuario Eliminado',
+        message: `El usuario "${userToDelete.nombre}" (${userToDelete.email}) fue eliminado y ya no tiene acceso al sistema.`
+      });
       setJustificacion('');
     } catch (err) {
       const msg = err.response?.data?.message || 'Error al eliminar el usuario de la base de datos.';
@@ -44,6 +50,13 @@ export default function DeleteUsuarioModal({ isOpen, userToDelete, onClose, onSu
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResponseClose = () => {
+    if (response?.type === 'success') {
+      onClose();
+    }
+    setResponse(null);
   };
 
   return (
@@ -94,6 +107,15 @@ export default function DeleteUsuarioModal({ isOpen, userToDelete, onClose, onSu
             {loading ? 'Eliminando...' : 'Sí, Eliminar'}
           </button>
         </div>
+
+        <ResponseModal
+          isOpen={!!response}
+          type={response?.type || 'success'}
+          title={response?.title || ''}
+          message={response?.message || ''}
+          details={response?.details || []}
+          onClose={handleResponseClose}
+        />
       </div>
     </div>
   );

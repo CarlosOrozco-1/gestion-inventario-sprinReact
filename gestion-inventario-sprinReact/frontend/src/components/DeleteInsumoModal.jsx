@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { registrarBitacora } from '../services/bitacoraService';
+import ResponseModal from './ResponseModal';
 
 export default function DeleteInsumoModal({ isOpen, insumo, onClose, onSuccess }) {
   const { user } = useAuth();
   const [justificacion, setJustificacion] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [response, setResponse] = useState(null);
 
   if (!isOpen || !insumo) return null;
 
@@ -36,7 +38,11 @@ export default function DeleteInsumoModal({ isOpen, insumo, onClose, onSuccess }
       });
 
       onSuccess();
-      onClose();
+      setResponse({
+        type: 'success',
+        title: 'Insumo Eliminado',
+        message: `El insumo "${insumo.insumo}" (Código #${insumo.numero}) fue eliminado del catálogo.`
+      });
       setJustificacion('');
     } catch (err) {
       const msg = err.response?.data?.message || 'Error al eliminar el insumo de la base de datos.';
@@ -44,6 +50,13 @@ export default function DeleteInsumoModal({ isOpen, insumo, onClose, onSuccess }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResponseClose = () => {
+    if (response?.type === 'success') {
+      onClose();
+    }
+    setResponse(null);
   };
 
   return (
@@ -94,6 +107,15 @@ export default function DeleteInsumoModal({ isOpen, insumo, onClose, onSuccess }
             {loading ? 'Eliminando...' : 'Sí, Eliminar'}
           </button>
         </div>
+
+        <ResponseModal
+          isOpen={!!response}
+          type={response?.type || 'success'}
+          title={response?.title || ''}
+          message={response?.message || ''}
+          details={response?.details || []}
+          onClose={handleResponseClose}
+        />
       </div>
     </div>
   );

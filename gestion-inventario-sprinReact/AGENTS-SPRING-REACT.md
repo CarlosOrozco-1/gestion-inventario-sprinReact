@@ -41,6 +41,10 @@
    - Replicar vistas (Login, Dashboard, Insumos) con diseño responsivo.
 6. **Fase 6: Pruebas y Auditoría**
    - Pruebas unitarias de las fórmulas matemáticas.
+7. **Fase 7: Mejoras (UX y Retroalimentación)**
+   - Modales de confirmación antes de acciones críticas (ej. registrar movimientos de inventario).
+   - Modales de respuesta (éxito/error) tras las acciones realizadas en el sistema.
+   - Componentes reutilizables (`ConfirmActionModal`, `ResponseModal`) para mantener consistencia en la UI.
 
 ---
 

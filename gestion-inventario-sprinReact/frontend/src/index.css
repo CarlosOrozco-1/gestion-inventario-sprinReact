@@ -37,6 +37,29 @@ body {
   background-attachment: fixed;
 }
 
+/* Split login layout */
+.login-layout {
+  min-height: 100vh;
+  display: flex;
+}
+
+@media (max-width: 900px) {
+  .login-layout {
+    flex-direction: column;
+  }
+
+  .login-panel-left {
+    flex: none !important;
+    order: 2;
+  }
+
+  .login-panel-right {
+    flex: none !important;
+    order: 1;
+    padding: 32px 20px !important;
+  }
+}
+
 /* Glassmorphism Card */
 .glass-card {
   background: var(--bg-glass);

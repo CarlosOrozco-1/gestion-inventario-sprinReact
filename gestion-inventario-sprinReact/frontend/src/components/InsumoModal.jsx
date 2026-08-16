@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { registrarBitacora } from '../services/bitacoraService';
+import ResponseModal from './ResponseModal';
 
 export default function InsumoModal({ isOpen, onClose, onSuccess, insumoToEdit, insumos = [] }) {
   const { user } = useAuth();
@@ -14,6 +15,7 @@ export default function InsumoModal({ isOpen, onClose, onSuccess, insumoToEdit, 
   const [autoNumero, setAutoNumero] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [response, setResponse] = useState(null);
 
   useEffect(() => {
     if (insumoToEdit) {
@@ -90,14 +92,32 @@ export default function InsumoModal({ isOpen, onClose, onSuccess, insumoToEdit, 
         datosNuevos: { insumo: formData.insumo, presentacion: formData.presentacion, tamanoPresentacion: formData.tamanoPresentacion }
       });
 
-      onSuccess();
-      onClose();
+      setResponse({
+        type: 'success',
+        title: insumoToEdit ? 'Insumo Actualizado' : 'Insumo Creado',
+        message: insumoToEdit
+          ? `Los datos del insumo "${formData.insumo}" se actualizaron correctamente.`
+          : `El insumo "${formData.insumo}" se registró correctamente en el catálogo.`,
+        details: [
+          { label: 'Código', value: `#${autoNumero}` },
+          { label: 'Insumo', value: formData.insumo },
+          { label: 'Presentación', value: `${formData.presentacion} (${formData.tamanoPresentacion})` }
+        ]
+      });
     } catch (err) {
       const msg = err.response?.data?.message || 'Error al guardar el insumo en la base de datos. Verifique la conexión con el servidor.';
       setError(msg);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResponseClose = () => {
+    if (response?.type === 'success') {
+      onSuccess();
+      onClose();
+    }
+    setResponse(null);
   };
 
   return (
@@ -213,6 +233,15 @@ export default function InsumoModal({ isOpen, onClose, onSuccess, insumoToEdit, 
             </button>
           </div>
         </form>
+
+        <ResponseModal
+          isOpen={!!response}
+          type={response?.type || 'success'}
+          title={response?.title || ''}
+          message={response?.message || ''}
+          details={response?.details || []}
+          onClose={handleResponseClose}
+        />
       </div>
     </div>
   );

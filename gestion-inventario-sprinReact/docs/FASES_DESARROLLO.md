@@ -59,3 +59,10 @@ graph TD
 ### Fase 6: Pruebas Finales y Empaquetado
 - [ ] Pruebas unitarias en backend.
 - [ ] Compilación y Despliegue.
+
+### Fase 7: Mejoras (UX y Retroalimentación del Sistema)
+- [x] Modales de confirmación para acciones críticas (¿Está seguro de realizar este movimiento?).
+- [x] Modales de respuesta (éxito/error) tras cada acción realizada en el sistema.
+- [x] Componentes reutilizables (`ConfirmActionModal`, `ResponseModal`) para mantener consistencia visual.
+- [ ] Notificaciones de retroalimentación en operaciones de bitácora y reportes.
+- [ ] Optimización de rendimiento y validaciones de UX avanzadas.

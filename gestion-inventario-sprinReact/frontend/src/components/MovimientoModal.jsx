@@ -2,14 +2,19 @@ import React, { useState } from 'react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { registrarBitacora } from '../services/bitacoraService';
+import ConfirmActionModal from './ConfirmActionModal';
+import ResponseModal from './ResponseModal';
 
 export default function MovimientoModal({ isOpen, onClose, insumo, onSuccess }) {
   const { user } = useAuth();
   const [tipo, setTipo] = useState('ENTRADA');
   const [cantidad, setCantidad] = useState(1);
   const [detalle, setDetalle] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [response, setResponse] = useState(null);
+  const [pendingOp, setPendingOp] = useState(null);
 
   if (!isOpen || !insumo) return null;
 
@@ -82,12 +87,10 @@ export default function MovimientoModal({ isOpen, onClose, insumo, onSuccess }) 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
 
     if (!detalle || detalle.trim().length < currentOp.minChars) {
       setError(`La justificación es obligatoria para ${tipo} y requiere al menos ${currentOp.minChars} caracteres.`);
-      setLoading(false);
       return;
     }
 
@@ -102,29 +105,59 @@ export default function MovimientoModal({ isOpen, onClose, insumo, onSuccess }) 
     } else {
       if (cantNum > stockAnterior) {
         setError(`Stock insuficiente en la base de datos. Solicitado: ${cantNum}, Disponible: ${stockAnterior}`);
-        setLoading(false);
         return;
       }
       nuevoStock = stockAnterior - cantNum;
     }
+
+    setPendingOp({ cantNum, stockAnterior, nuevoStock });
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmOperation = async () => {
+    if (!pendingOp) return;
+    setConfirming(true);
 
     try {
       await API.post('/movimientos', {
         insumoId: insumo.id,
         tipo: tipo,
         usuarioId: parseInt(user?.id, 10) || 1,
-        cantidad: cantNum,
+        cantidad: pendingOp.cantNum,
         detalle: detalle
       });
 
+      setConfirmOpen(false);
+      setResponse({
+        type: 'success',
+        title: 'Movimiento Registrado',
+        message: `La operación ${currentOp.label.split(' (')[0]} se guardó exitosamente en el sistema.`,
+        details: [
+          { label: 'Insumo', value: `${insumo.numero} - ${insumo.insumo}` },
+          { label: 'Operación', value: currentOp.label.split(' (')[0] },
+          { label: 'Cantidad', value: `${pendingOp.cantNum} unidades` },
+          { label: 'Stock Anterior', value: pendingOp.stockAnterior },
+          { label: 'Stock Nuevo', value: pendingOp.nuevoStock }
+        ]
+      });
+    } catch (err) {
+      setConfirmOpen(false);
+      setResponse({
+        type: 'error',
+        title: 'Error al Registrar el Movimiento',
+        message: err.response?.data?.message || 'No se pudo procesar el movimiento en la base de datos.'
+      });
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const handleResponseClose = () => {
+    if (response?.type === 'success') {
       onSuccess();
       onClose();
-    } catch (err) {
-      const msg = err.response?.data?.message || 'Error al procesar el movimiento en la base de datos.';
-      setError(msg);
-    } finally {
-      setLoading(false);
     }
+    setResponse(null);
   };
 
   return (
@@ -223,12 +256,40 @@ export default function MovimientoModal({ isOpen, onClose, insumo, onSuccess }) 
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
             <button type="button" onClick={onClose} className="btn btn-secondary">Cancelar</button>
-            <button type="submit" className="btn btn-emerald" disabled={loading}>
-              {loading ? 'Procesando...' : 'Confirmar Operación'}
+            <button type="submit" className="btn btn-emerald">
+              Confirmar Operación
             </button>
           </div>
         </form>
       </div>
+
+      <ConfirmActionModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirmOperation}
+        loading={confirming}
+        title="Confirmar Movimiento de Inventario"
+        icon="🔍"
+        message="¿Está seguro de que desea realizar este movimiento? Revise el detalle antes de confirmar."
+        details={pendingOp ? [
+          { label: 'Insumo', value: `${insumo.numero} - ${insumo.insumo}` },
+          { label: 'Presentación', value: insumo.presentacion },
+          { label: 'Operación', value: currentOp.label },
+          { label: 'Cantidad', value: `${pendingOp.cantNum} unidades` },
+          { label: 'Stock Actual', value: pendingOp.stockAnterior },
+          { label: 'Stock Resultante', value: pendingOp.nuevoStock }
+        ] : []}
+        confirmLabel="Sí, Confirmar Movimiento"
+      />
+
+      <ResponseModal
+        isOpen={!!response}
+        type={response?.type || 'success'}
+        title={response?.title || ''}
+        message={response?.message || ''}
+        details={response?.details || []}
+        onClose={handleResponseClose}
+      />
     </div>
   );
 }

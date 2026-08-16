@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -14,4 +15,12 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     @EntityGraph(attributePaths = {"rol"})
     @Query("select u from Usuario u where lower(trim(u.email)) = lower(trim(:email))")
     Optional<Usuario> findByEmail(@Param("email") String email);
+
+    @EntityGraph(attributePaths = {"rol"})
+    @Query("select u from Usuario u where u.id = :id")
+    Optional<Usuario> findDetailedById(@Param("id") Long id);
+
+    List<Usuario> findAllByOrderByCreatedAtDesc();
+
+    boolean existsByEmail(String email);
 }

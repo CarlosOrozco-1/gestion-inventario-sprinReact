@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { registrarBitacora } from '../services/bitacoraService';
+import ResponseModal from './ResponseModal';
 
 export default function UsuarioModal({ isOpen, onClose, onSuccess, userToEdit }) {
   const { user: currentUser } = useAuth();
@@ -14,6 +15,7 @@ export default function UsuarioModal({ isOpen, onClose, onSuccess, userToEdit })
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [response, setResponse] = useState(null);
 
   useEffect(() => {
     if (userToEdit) {
@@ -84,14 +86,33 @@ export default function UsuarioModal({ isOpen, onClose, onSuccess, userToEdit })
         datosNuevos: { nombre: formData.nombre, email: formData.email, rol: formData.rol }
       });
 
-      onSuccess(payload);
-      onClose();
+      setResponse({
+        type: 'success',
+        title: userToEdit ? 'Usuario Actualizado' : 'Usuario Creado',
+        message: userToEdit
+          ? `Los datos y el rol del usuario "${formData.nombre}" se actualizaron correctamente.`
+          : `El usuario "${formData.nombre}" se registró correctamente en el sistema.`,
+        details: [
+          { label: 'Nombre', value: formData.nombre },
+          { label: 'Correo', value: formData.email },
+          { label: 'Rol', value: formData.rol }
+        ],
+        savedPayload: payload
+      });
     } catch (err) {
       const msg = err.response?.data?.message || 'Error al guardar el usuario en la base de datos.';
       setError(msg);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResponseClose = () => {
+    if (response?.type === 'success') {
+      onSuccess(response.savedPayload);
+      onClose();
+    }
+    setResponse(null);
   };
 
   return (
@@ -192,6 +213,15 @@ export default function UsuarioModal({ isOpen, onClose, onSuccess, userToEdit })
             </button>
           </div>
         </form>
+
+        <ResponseModal
+          isOpen={!!response}
+          type={response?.type || 'success'}
+          title={response?.title || ''}
+          message={response?.message || ''}
+          details={response?.details || []}
+          onClose={handleResponseClose}
+        />
       </div>
     </div>
   );

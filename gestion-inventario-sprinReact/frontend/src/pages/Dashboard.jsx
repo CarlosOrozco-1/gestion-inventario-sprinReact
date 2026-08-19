@@ -77,6 +77,14 @@ export default function Dashboard() {
     setIsInsumoModalOpen(true);
   };
 
+  const accessShortcuts = [
+    { tab: 'insumos', icon: '📦', title: 'Catálogo de Insumos', tooltip: 'Explorá la lista completa de artículos, consultá e imprimí códigos QR únicos.', show: true },
+    { tab: 'movimientos', icon: '🔄', title: 'Movimientos de Stock', tooltip: 'Registrá entradas y salidas usando el lector de QR o selección directa.', show: true },
+    { tab: 'usuarios', icon: '👥', title: 'Usuarios y Permisos', tooltip: 'Gestión de cuentas registradas en la base de datos y matriz de accesos.', show: isAdmin },
+    { tab: 'alertas', icon: '🚨', title: 'Alertas de Stock', tooltip: 'Consultá artículos en nivel crítico y desabastecimiento.', show: isAdmin || isJefe },
+    { tab: 'bitacora', icon: '📋', title: 'Bitácora de Cambios', tooltip: 'Registro obligatorio de todas las acciones y justificaciones.', show: isAdmin || isJefe }
+  ];
+
   return (
     <div className="app-layout">
       {/* Sidebar Plegable del Lado Izquierdo con soporte móvil */}
@@ -135,52 +143,26 @@ export default function Dashboard() {
 
               {/* Acceso Rápido a Módulos según Rol */}
               <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px' }}>Accesos Directos a Módulos</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
-                <div onClick={() => setActiveTab('insumos')} className="glass-card sharp-border" style={{ padding: '22px', cursor: 'pointer' }}>
-                  <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>📦</div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>Catálogo de Insumos</h3>
-                  <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                    Explorá la lista completa de artículos, consultá e imprimí códigos QR únicos.
-                  </p>
-                </div>
-
-                <div onClick={() => setActiveTab('movimientos')} className="glass-card sharp-border" style={{ padding: '22px', cursor: 'pointer' }}>
-                  <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>🔄</div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>Movimientos de Stock</h3>
-                  <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                    Registrá entradas y salidas usando el lector de QR o selección directa.
-                  </p>
-                </div>
-
-                {isAdmin && (
-                  <div onClick={() => setActiveTab('usuarios')} className="glass-card sharp-border" style={{ padding: '22px', cursor: 'pointer' }}>
-                    <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>👥</div>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>Usuarios y Permisos</h3>
-                    <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                      Gestión de cuentas registradas en la base de datos y matriz de accesos.
-                    </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '16px' }}>
+                {accessShortcuts.filter((s) => s.show).map((s) => (
+                  <div
+                    key={s.tab}
+                    onClick={() => setActiveTab(s.tab)}
+                    className="glass-card sharp-border module-shortcut"
+                    data-tooltip={s.tooltip}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setActiveTab(s.tab);
+                      }
+                    }}
+                  >
+                    <div className="module-shortcut-icon">{s.icon}</div>
+                    <h3 className="module-shortcut-title">{s.title}</h3>
                   </div>
-                )}
-
-                {(isAdmin || isJefe) && (
-                  <div onClick={() => setActiveTab('alertas')} className="glass-card sharp-border" style={{ padding: '22px', cursor: 'pointer' }}>
-                    <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>🚨</div>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>Alertas de Stock</h3>
-                    <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                      Consultá artículos en nivel crítico y desabastecimiento.
-                    </p>
-                  </div>
-                )}
-
-                {(isAdmin || isJefe) && (
-                  <div onClick={() => setActiveTab('bitacora')} className="glass-card sharp-border" style={{ padding: '22px', cursor: 'pointer' }}>
-                    <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>📋</div>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>Bitácora de Cambios</h3>
-                    <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                      Registro obligatorio de todas las acciones y justificaciones.
-                    </p>
-                  </div>
-                )}
+                ))}
               </div>
             </div>
           )}

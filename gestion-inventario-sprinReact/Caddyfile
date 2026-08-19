@@ -1,0 +1,12 @@
+{
+	# Correo para avisos de Let's Encrypt (opcional, descomentar y completar)
+	# email admin@example.com
+}
+
+# Dominio configurado vía variable de entorno DOMAIN (ej. mi-app.duckdns.org)
+{$DOMAIN} {
+	encode gzip
+
+	# Todo el tráfico HTTPS se reenvía a Nginx, que sirve la app y proxea /api y /ws al backend
+	reverse_proxy frontend:80
+}

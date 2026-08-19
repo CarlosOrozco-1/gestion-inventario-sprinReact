@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { WS_URL } from '../services/api';
+import { getWsUrl } from '../services/api';
 
 export default function useRealtime(onEvent) {
   const callbackRef = useRef(onEvent);
@@ -12,7 +12,7 @@ export default function useRealtime(onEvent) {
 
     const connect = () => {
       try {
-        ws = new WebSocket(WS_URL);
+        ws = new WebSocket(getWsUrl());
 
         ws.onopen = () => {};
 

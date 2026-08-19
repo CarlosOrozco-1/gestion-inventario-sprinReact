@@ -1,0 +1,14 @@
+# Caddy central — enruta por subdominio hacia cada aplicación.
+# Cada app expone su frontend en un puerto distinto del host
+# (ver docker-compose de cada proyecto).
+
+gestioninventario.duckdns.org {
+	encode gzip
+	reverse_proxy host.docker.internal:8081
+}
+
+# ── Segunda aplicación (agregar subdominio en DuckDNS y descomentar) ──
+# otraapp.duckdns.org {
+# 	encode gzip
+# 	reverse_proxy host.docker.internal:8082
+# }

@@ -3,13 +3,13 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx384m
     ports:
       - "8080:8080"
     volumes:
       - ./backend/data:/app/data
     restart: unless-stopped
-    networks:
-      - app
 
   frontend:
     build:
@@ -17,31 +17,6 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - backend
-    restart: unless-stopped
-    networks:
-      - app
-
-  caddy:
-    image: caddy:2-alpine
     ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      - DOMAIN=${DOMAIN:-localhost}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - frontend
+      - "8081:80"
     restart: unless-stopped
-    networks:
-      - app
-
-networks:
-  app:
-    driver: bridge
-
-volumes:
-  caddy_data:
-  caddy_config:

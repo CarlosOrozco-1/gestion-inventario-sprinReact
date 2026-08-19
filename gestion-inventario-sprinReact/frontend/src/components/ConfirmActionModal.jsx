@@ -16,8 +16,8 @@ export default function ConfirmActionModal({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content glass-card" style={{ maxWidth: '480px' }}>
+    <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="modal-content glass-card" style={{ maxWidth: '480px', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <h3 style={{
             fontSize: '1.2rem',

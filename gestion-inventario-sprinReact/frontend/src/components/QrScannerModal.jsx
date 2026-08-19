@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import * as ZXing from 'html5-qrcode/third_party/zxing-js.umd';
 import API from '../services/api';
 
 // Generador de sonido 'beep' con Web Audio API nativo
@@ -55,6 +56,45 @@ const playSuccessChime = () => {
       osc.stop(audioCtx.currentTime + i * 0.12 + 0.4);
     });
   } catch (e) {}
+};
+
+// Decodifica archivos con ZXing en modo exhaustivo. html5-qrcode usa este mismo
+// motor internamente, pero para scanFile desactiva TRY_HARDER por defecto.
+const decodeQrImageFile = async (file) => {
+  const imageUrl = URL.createObjectURL(file);
+
+  try {
+    const image = await new Promise((resolve, reject) => {
+      const loadedImage = new Image();
+      loadedImage.onload = () => resolve(loadedImage);
+      loadedImage.onerror = () => reject(new Error('No se pudo abrir la imagen seleccionada.'));
+      loadedImage.src = imageUrl;
+    });
+
+    // Amplía imágenes pequeñas sin suavizar los módulos cuadrados del QR.
+    const scale = Math.min(4, Math.max(1, Math.ceil(1400 / Math.min(image.naturalWidth, image.naturalHeight))));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(image.naturalWidth * scale);
+    canvas.height = Math.round(image.naturalHeight * scale);
+
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) throw new Error('No se pudo preparar la imagen para el análisis.');
+    context.imageSmoothingEnabled = false;
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    const hints = new Map();
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+
+    const reader = new ZXing.MultiFormatReader(false, hints);
+    const source = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
+    const result = reader.decode(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(source)));
+    return result.text;
+  } finally {
+    URL.revokeObjectURL(imageUrl);
+  }
 };
 
 export default function QrScannerModal({ isOpen, onClose, onSelectInsumo, insumos = [], mode = 'movimiento' }) {
@@ -288,11 +328,18 @@ export default function QrScannerModal({ isOpen, onClose, onSelectInsumo, insumo
     setIsScanningImage(true);
 
     try {
-      const html5QrCode = new Html5Qrcode('qr-file-dummy-container', { verbose: false });
-      const decodePromise = html5QrCode.scanFile(file, true);
-      const delayPromise = new Promise((resolve) => setTimeout(resolve, 1400));
+      let decodedText;
+      try {
+        decodedText = await decodeQrImageFile(file);
+      } catch (zxingError) {
+        // Conserva el comportamiento anterior como respaldo si el lector exhaustivo falla.
+        console.warn('La lectura exhaustiva no detectó el QR; se usará el lector alternativo.', zxingError);
+        const html5QrCode = new Html5Qrcode('qr-file-dummy-container', { verbose: false });
+        decodedText = await html5QrCode.scanFile(file, true);
+      }
 
-      const [decodedText] = await Promise.all([decodePromise, delayPromise]);
+      const delayPromise = new Promise((resolve) => setTimeout(resolve, 1400));
+      await delayPromise;
       setIsScanningImage(false);
       handleScanSuccess(decodedText);
     } catch (err) {

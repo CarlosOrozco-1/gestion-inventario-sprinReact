@@ -1,4 +1,43 @@
-export default function MovimientosModule({ insumos: _insumos, onOpenMovimientoModal: _onOpenMovimientoModal, onOpenScanner }) {
+export default function MovimientosModule({ user, onOpenOperacion, onOpenScanner }) {
+  const rawRol = typeof user?.rol === 'object' ? user?.rol?.nombre : user?.rol;
+  const rol = (rawRol || 'ADMIN').toString().toUpperCase().trim();
+  const canAjustes = rol === 'ADMIN' || rol === 'JEFE';
+
+  const operaciones = [
+    {
+      tipo: 'ENTRADA',
+      icon: '📥',
+      label: 'ENTRADA',
+      color: 'var(--accent-emerald)',
+      tooltip: 'Incrementa el stock disponible. Registro de compras a proveedores, entregas o donaciones recibidas.',
+      enabled: true
+    },
+    {
+      tipo: 'SALIDA',
+      icon: '📤',
+      label: 'SALIDA',
+      color: 'var(--accent-rose)',
+      tooltip: 'Reduce el stock. Despacho a departamentos, consumo diario o áreas hospitalarias. Requiere stock disponible.',
+      enabled: true
+    },
+    {
+      tipo: 'REGULARIZACION_POSITIVA',
+      icon: '⚙️',
+      label: 'REGULARIZACIÓN (+ / -)',
+      color: 'var(--accent-amber)',
+      tooltip: 'Ajuste derivado de un conteo físico o auditoría de almacén por mermas, productos vencidos o sobrantes no contabilizados. Requiere informe justificativo (min 20 caracteres).',
+      enabled: canAjustes
+    },
+    {
+      tipo: 'CORRECCION_POSITIVA',
+      icon: '🛠️',
+      label: 'CORRECCIÓN (+ / -)',
+      color: 'var(--accent-cyan)',
+      tooltip: 'Rectificación administrativa por error de digitación en una transacción previa (ej. digitó 100 en lugar de 10). Requiere justificación previa (min 15 caracteres).',
+      enabled: canAjustes
+    }
+  ];
+
   return (
     <div className="module-fade-in">
       {/* Header del Módulo */}
@@ -6,24 +45,19 @@ export default function MovimientosModule({ insumos: _insumos, onOpenMovimientoM
         <h1 style={{ fontSize: '1.6rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span>🔄</span> Módulo de Movimientos y Ajustes de Stock
         </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '2px' }}>
-          Registro de Entradas, Salidas, Regularización por Conteo Físico y Corrección de Digitación
-        </p>
       </div>
 
-      {/* Tarjeta para registrar movimiento directo mediante QR */}
-      <div className="glass-card sharp-border-accent" style={{ padding: '28px', marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+      {/* Tarjeta para registrar movimiento directo mediante QR (opción rápida) */}
+      <div className="glass-card sharp-border-accent" style={{ padding: '28px', marginBottom: '32px', textAlign: 'center' }}>
+        <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '20px' }}>
           ⚡ Registrar Movimiento Rápido
         </h2>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-          Escaneá el código QR del insumo con la cámara, foto o lector USB para abrir instantáneamente su formulario de operaciones.
-        </p>
-        
+
         <div>
           <button
             onClick={onOpenScanner}
             className="btn btn-primary"
+            data-tooltip="Escaneá el código QR del insumo con la cámara, foto o lector USB para abrir instantáneamente su formulario de operaciones."
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -41,41 +75,40 @@ export default function MovimientosModule({ insumos: _insumos, onOpenMovimientoM
         </div>
       </div>
 
-      {/* Guía Informativa de Tipos de Movimientos */}
-      <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px' }}>Definición de Operaciones de Inventario</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
-        <div className="glass-card sharp-border" style={{ padding: '20px' }}>
-          <div style={{ fontSize: '1.4rem', marginBottom: '8px' }}>📥</div>
-          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--accent-emerald)', marginBottom: '6px' }}>ENTRADA</h3>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-            Incrementa el stock disponible. Registro de compras a proveedores, entregas o donaciones recibidas.
-          </p>
-        </div>
-
-        <div className="glass-card sharp-border" style={{ padding: '20px' }}>
-          <div style={{ fontSize: '1.4rem', marginBottom: '8px' }}>📤</div>
-          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--accent-rose)', marginBottom: '6px' }}>SALIDA</h3>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-            Reduce el stock. Despacho a departamentos, consumo diario o áreas hospitalarias. Requiere stock disponible.
-          </p>
-        </div>
-
-        <div className="glass-card sharp-border" style={{ padding: '20px' }}>
-          <div style={{ fontSize: '1.4rem', marginBottom: '8px' }}>⚙️</div>
-          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--accent-amber)', marginBottom: '6px' }}>REGULARIZACIÓN (+ / -)</h3>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-            Ajuste derivado de un conteo físico o auditoría de almacén por mermas, productos vencidos o sobrantes no contabilizados. Requiere informe justificativo (min 20 caracteres).
-          </p>
-        </div>
-
-        <div className="glass-card sharp-border" style={{ padding: '20px' }}>
-          <div style={{ fontSize: '1.4rem', marginBottom: '8px' }}>🛠️</div>
-          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--accent-cyan)', marginBottom: '6px' }}>CORRECCIÓN (+ / -)</h3>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-            Rectificación administrativa por error de digitación en una transacción previa (ej. digitó 100 en lugar de 10). Requiere justificación previa (min 15 caracteres).
-          </p>
-        </div>
+      {/* Selección del Tipo de Operación */}
+      <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px' }}>Elegir Tipo de Operación</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '16px' }}>
+        {operaciones.map((op) => (
+          <div
+            key={op.tipo}
+            className="glass-card sharp-border module-shortcut"
+            data-tooltip={op.tooltip}
+            role={op.enabled ? 'button' : undefined}
+            tabIndex={op.enabled ? 0 : undefined}
+            onClick={op.enabled ? () => onOpenOperacion(op.tipo) : undefined}
+            onKeyDown={
+              op.enabled
+                ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onOpenOperacion(op.tipo);
+                    }
+                  }
+                : undefined
+            }
+            style={op.enabled ? { cursor: 'pointer' } : { cursor: 'default', opacity: 0.55 }}
+          >
+            <div className="module-shortcut-icon">{op.icon}</div>
+            <h3 className="module-shortcut-title" style={{ color: op.color }}>{op.label}</h3>
+          </div>
+        ))}
       </div>
+
+      {!canAjustes && (
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '14px' }}>
+          🔒 Las operaciones de Regularización y Corrección requieren rol de Administrador o Jefe.
+        </p>
+      )}
     </div>
   );
 }

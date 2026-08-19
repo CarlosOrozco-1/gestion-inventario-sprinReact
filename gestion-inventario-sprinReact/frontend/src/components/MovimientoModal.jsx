@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import ConfirmActionModal from './ConfirmActionModal';
 import ResponseModal from './ResponseModal';
 
-export default function MovimientoModal({ isOpen, onClose, insumo, onSuccess }) {
+export default function MovimientoModal({ isOpen, onClose, insumo, onSuccess, tipoInicial }) {
   const { user } = useAuth();
   const [tipo, setTipo] = useState('ENTRADA');
   const [cantidad, setCantidad] = useState(1);
@@ -14,6 +14,18 @@ export default function MovimientoModal({ isOpen, onClose, insumo, onSuccess }) 
   const [confirming, setConfirming] = useState(false);
   const [response, setResponse] = useState(null);
   const [pendingOp, setPendingOp] = useState(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTipo(tipoInicial || 'ENTRADA');
+      setCantidad(1);
+      setDetalle('');
+      setError('');
+      setConfirmOpen(false);
+      setResponse(null);
+      setPendingOp(null);
+    }
+  }, [isOpen, tipoInicial]);
 
   if (!isOpen || !insumo) return null;
 

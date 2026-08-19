@@ -2,6 +2,7 @@ package com.gestion.inventario.controller;
 
 import com.gestion.inventario.model.Insumo;
 import com.gestion.inventario.repository.InsumoRepository;
+import com.gestion.inventario.websocket.WebSocketNotifier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,9 @@ public class InsumoController {
 
     @Autowired
     private InsumoRepository insumoRepository;
+
+    @Autowired
+    private WebSocketNotifier webSocketNotifier;
 
     @GetMapping
     public List<Insumo> listarInsumos() {
@@ -70,6 +74,7 @@ public class InsumoController {
             insumo.setCodigoQr("INS-QR-" + (insumo.getNumero() != null ? insumo.getNumero() : "0") + "-" + suffix);
         }
         Insumo nuevo = insumoRepository.save(insumo);
+        webSocketNotifier.notificar("insumos");
         return ResponseEntity.ok(nuevo);
     }
 
@@ -86,6 +91,7 @@ public class InsumoController {
                         insumo.setCodigoQr("INS-QR-" + (insumo.getNumero() != null ? insumo.getNumero() : "0") + "-" + suffix);
                     }
                     Insumo guardado = insumoRepository.save(insumo);
+                    webSocketNotifier.notificar("insumos");
                     return ResponseEntity.ok(guardado);
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -97,6 +103,7 @@ public class InsumoController {
             return ResponseEntity.notFound().build();
         }
         insumoRepository.deleteById(id);
+        webSocketNotifier.notificar("insumos");
         return ResponseEntity.noContent().build();
     }
 }

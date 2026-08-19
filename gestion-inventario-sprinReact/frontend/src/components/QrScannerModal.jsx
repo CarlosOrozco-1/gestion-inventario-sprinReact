@@ -97,12 +97,13 @@ const decodeQrImageFile = async (file) => {
   }
 };
 
-export default function QrScannerModal({ isOpen, onClose, onSelectInsumo, insumos = [], mode = 'movimiento' }) {
-  const [activeTab, setActiveTab] = useState('camera'); // 'camera', 'file', 'manual'
+export default function QrScannerModal({ isOpen, onClose, onSelectInsumo, insumos = [], mode = 'movimiento', variant = 'qr' }) {
+  const [activeTab, setActiveTab] = useState('camera'); // 'camera', 'file', 'manual', 'catalogo'
   const [cameras, setCameras] = useState([]);
   const [selectedCameraId, setSelectedCameraId] = useState('');
   const [scanning, setScanning] = useState(false);
   const [manualCode, setManualCode] = useState('');
+  const [catalogoSearch, setCatalogoSearch] = useState('');
   const [scannedInsumo, setScannedInsumo] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [loadingMatch, setLoadingMatch] = useState(false);
@@ -114,6 +115,22 @@ export default function QrScannerModal({ isOpen, onClose, onSelectInsumo, insumo
   const [isScanningImage, setIsScanningImage] = useState(false);
 
   const isEditMode = mode === 'edicion';
+  const isManual = variant === 'manual';
+
+  const safeCatalogo = Array.isArray(insumos) ? insumos : [];
+  const filteredCatalogo = safeCatalogo.filter((item) => {
+    if (!item) return false;
+    const term = catalogoSearch.trim().toLowerCase();
+    if (!term) return true;
+    return (
+      (item.insumo || '').toLowerCase().includes(term) ||
+      (item.presentacion || '').toLowerCase().includes(term) ||
+      (item.tamanoPresentacion || '').toLowerCase().includes(term) ||
+      String(item.numero ?? '').includes(term) ||
+      String(item.id ?? '').includes(term) ||
+      (item.codigoQr || '').toLowerCase().includes(term)
+    );
+  });
 
   const html5QrCodeRef = useRef(null);
   const scannerContainerId = 'qr-reader-container';
@@ -268,9 +285,16 @@ export default function QrScannerModal({ isOpen, onClose, onSelectInsumo, insumo
     }
   };
 
+  // Al abrir, seleccionar la pestaña inicial según la variante
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(isManual ? 'catalogo' : 'camera');
+    }
+  }, [isOpen, isManual]);
+
   // Cargar lista de cámaras disponibles al abrir
   useEffect(() => {
-    if (isOpen && activeTab === 'camera') {
+    if (isOpen && !isManual && activeTab === 'camera') {
       Html5Qrcode.getCameras()
         .then((devices) => {
           if (devices && devices.length > 0) {
@@ -302,6 +326,7 @@ export default function QrScannerModal({ isOpen, onClose, onSelectInsumo, insumo
       setScannedInsumo(null);
       setErrorMsg('');
       setManualCode('');
+      setCatalogoSearch('');
       setShowSuccessAlert(false);
       setSuccessExiting(false);
       setUploadedImagePreview(null);
@@ -439,16 +464,18 @@ export default function QrScannerModal({ isOpen, onClose, onSelectInsumo, insumo
               lineHeight: 1,
               flexShrink: 0
             }}>
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📷</span>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isManual ? '📦' : '📷'}</span>
             </div>
             <div>
               <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.01em' }}>
-                {isEditMode ? 'Escanear QR para Editar Insumo' : 'Lector de Código QR de Insumos'}
+                {isEditMode ? 'Escanear QR para Editar Insumo' : isManual ? 'Seleccionar Insumo del Catálogo' : 'Lector de Código QR de Insumos'}
               </h2>
               <span style={{ fontSize: '0.86rem', color: 'rgba(148, 163, 184, 0.85)', marginTop: '2px', display: 'block' }}>
                 {isEditMode
                   ? 'Escaneá el código QR del insumo para abrir de forma automática su formulario de edición'
-                  : 'Escaneá el QR o ingresá el código para abrir directamente el formulario de operaciones'}
+                  : isManual
+                    ? 'Buscá por nombre o código el insumo para abrir su formulario de operación'
+                    : 'Escaneá el QR o ingresá el código para abrir directamente el formulario de operaciones'}
               </span>
             </div>
           </div>
@@ -664,9 +691,11 @@ export default function QrScannerModal({ isOpen, onClose, onSelectInsumo, insumo
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(148, 163, 184, 0.7)', marginBottom: '2px' }}>
-                Método de Detección
+                {isManual ? 'Método de Búsqueda' : 'Método de Detección'}
               </div>
 
+              {!isManual && (
+                <>
               {/* Botón Modo Cámara */}
               <button
                 onClick={() => {
@@ -750,7 +779,11 @@ export default function QrScannerModal({ isOpen, onClose, onSelectInsumo, insumo
                   <div style={{ fontSize: '0.74rem', color: 'rgba(148, 163, 184, 0.7)', marginTop: '2px' }}>Desde archivo JPG, PNG o WEBP</div>
                 </div>
               </button>
+                </>
+              )}
 
+              {isManual && (
+                <>
               {/* Botón Modo Código */}
               <button
                 onClick={() => {
@@ -792,6 +825,50 @@ export default function QrScannerModal({ isOpen, onClose, onSelectInsumo, insumo
                   <div style={{ fontSize: '0.74rem', color: 'rgba(148, 163, 184, 0.7)', marginTop: '2px' }}>Búsqueda directa por número o ID</div>
                 </div>
               </button>
+
+              {/* Botón Modo Catálogo */}
+              <button
+                onClick={() => {
+                  stopScanner();
+                  setActiveTab('catalogo');
+                }}
+                className={`qr-nav-tab ${activeTab === 'catalogo' ? 'active' : ''}`}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  borderRadius: '16px',
+                  border: activeTab === 'catalogo' ? '1px solid rgba(56, 189, 248, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+                  background: activeTab === 'catalogo' ? 'linear-gradient(135deg, rgba(2, 132, 199, 0.25), rgba(56, 189, 248, 0.15))' : 'rgba(15, 23, 42, 0.7)',
+                  color: activeTab === 'catalogo' ? '#38bdf8' : 'rgba(255, 255, 255, 0.85)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  boxShadow: activeTab === 'catalogo' ? '0 4px 20px rgba(56, 189, 248, 0.2)' : 'none'
+                }}
+              >
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: activeTab === 'catalogo' ? 'linear-gradient(135deg, #0284c7, #38bdf8)' : 'rgba(255, 255, 255, 0.06)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.2rem',
+                  color: '#fff',
+                  flexShrink: 0
+                }}>
+                  📦
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>Buscar en Catálogo</div>
+                  <div style={{ fontSize: '0.74rem', color: 'rgba(148, 163, 184, 0.7)', marginTop: '2px' }}>Seleccioná el insumo sin código QR</div>
+                </div>
+              </button>
+                </>
+              )}
             </div>
 
             {/* Caja de Consejos */}
@@ -810,6 +887,7 @@ export default function QrScannerModal({ isOpen, onClose, onSelectInsumo, insumo
               {activeTab === 'camera' && 'Mantené el QR a 25-30 cm de la cámara con buena luz. El haz láser detectará automáticamente el insumo.'}
               {activeTab === 'file' && 'Seleccioná una imagen nítida tomada con tu celular o escáner para análisis por láser.'}
               {activeTab === 'manual' && 'Ingresá el número de código (ej. 1, #1 o INS-QR-...) para abrir inmediatamente el formulario.'}
+              {activeTab === 'catalogo' && 'Buscá y seleccioná el insumo del catálogo. Ideal cuando el producto no tiene código QR.'}
             </div>
 
             {/* Botón de Cerrar */}
@@ -1181,6 +1259,115 @@ export default function QrScannerModal({ isOpen, onClose, onSelectInsumo, insumo
                   {loadingMatch ? '🔍 Buscando Insumo...' : '🔍 Buscar Insumo y Abrir Operación'}
                 </button>
               </form>
+            )}
+
+            {/* ── MODO 4: Buscar y Seleccionar Insumo del Catálogo ── */}
+            {activeTab === 'catalogo' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {/* Buscador de insumos */}
+                <div className="input-group" style={{ margin: 0 }}>
+                  <label className="input-label" style={{ fontSize: '0.84rem', fontWeight: 700, color: '#fff', marginBottom: '8px', display: 'block' }}>
+                    Buscar Insumo en el Catálogo
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '1.1rem', color: '#38bdf8' }}>🔍</span>
+                    <input
+                      type="text"
+                      className="input-field"
+                      placeholder="Escribí nombre, número o presentación del insumo..."
+                      value={catalogoSearch}
+                      onChange={(e) => setCatalogoSearch(e.target.value)}
+                      autoFocus
+                      style={{
+                        height: '48px',
+                        borderRadius: '12px',
+                        background: 'rgba(15, 23, 42, 0.95)',
+                        border: '1px solid rgba(56, 189, 248, 0.35)',
+                        color: '#fff',
+                        fontSize: '0.95rem',
+                        padding: '12px 16px'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Lista de insumos filtrada */}
+                <div style={{ maxHeight: '360px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '4px' }}>
+                  {filteredCatalogo.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                      No se encontraron insumos que coincidan con la búsqueda.
+                    </div>
+                  ) : (
+                    filteredCatalogo.map((item) => {
+                      const stock = item.stock ?? 0;
+                      return (
+                        <div
+                          key={item.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '12px',
+                            padding: '14px 16px',
+                            borderRadius: '14px',
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                            <span style={{
+                              background: 'linear-gradient(135deg, #2563eb, #38bdf8)',
+                              color: '#fff',
+                              fontWeight: 800,
+                              fontSize: '0.78rem',
+                              padding: '4px 10px',
+                              borderRadius: '8px',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              #{item.numero || item.id}
+                            </span>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.92rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {item.insumo}
+                              </div>
+                              <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {item.presentacion} • {item.tamanoPresentacion}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                            <span style={{ fontSize: '0.78rem', color: stock > 0 ? '#34d399' : '#f87171', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                              Stock: {stock}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onSelectInsumo(item);
+                                onClose();
+                              }}
+                              className="btn"
+                              style={{
+                                padding: '8px 16px',
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                borderRadius: '10px',
+                                background: 'linear-gradient(135deg, #059669, #10b981)',
+                                color: '#fff',
+                                border: 'none',
+                                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Seleccionar
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
             )}
 
           </div>

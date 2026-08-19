@@ -3,6 +3,7 @@ package com.gestion.inventario.controller;
 import com.gestion.inventario.dto.BitacoraDTO;
 import com.gestion.inventario.model.Bitacora;
 import com.gestion.inventario.repository.BitacoraRepository;
+import com.gestion.inventario.websocket.WebSocketNotifier;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,9 @@ public class BitacoraController {
 
     @Autowired
     private BitacoraRepository bitacoraRepository;
+
+    @Autowired
+    private WebSocketNotifier webSocketNotifier;
 
     @GetMapping
     public List<Bitacora> listarBitacora() {
@@ -47,6 +51,7 @@ public class BitacoraController {
         bitacora.setDatosNuevos(request.getDatosNuevos());
 
         Bitacora saved = bitacoraRepository.save(bitacora);
+        webSocketNotifier.notificar("bitacora");
         return ResponseEntity.ok(saved);
     }
 }

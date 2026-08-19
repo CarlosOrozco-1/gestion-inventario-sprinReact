@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import UsuarioModal from './UsuarioModal';
 import DeleteUsuarioModal from './DeleteUsuarioModal';
+import useRealtime from '../hooks/useRealtime';
 
 export default function UsuariosModule({ user }) {
   const [usuarios, setUsuarios] = useState([]);
@@ -14,8 +15,8 @@ export default function UsuariosModule({ user }) {
 
   const isAdmin = user?.rol === 'ADMIN';
 
-  const fetchUsuarios = async () => {
-    setLoading(true);
+  const fetchUsuarios = async (silent = false) => {
+    if (!silent) setLoading(true);
     setError('');
     try {
       const res = await API.get('/usuarios');
@@ -24,13 +25,18 @@ export default function UsuariosModule({ user }) {
       console.error("Error al obtener usuarios de la base de datos:", err);
       setUsuarios([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchUsuarios();
   }, []);
+
+  // Actualización en tiempo real (WebSocket)
+  useRealtime((type) => {
+    if (type === 'usuarios') fetchUsuarios(true);
+  });
 
   const handleCreateOrUpdateSuccess = () => {
     fetchUsuarios();

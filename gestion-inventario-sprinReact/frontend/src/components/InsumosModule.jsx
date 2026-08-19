@@ -4,7 +4,6 @@ import { QRCodeSVG } from 'qrcode.react';
 export default function InsumosModule({
   insumos = [],
   loading = false,
-  fetchInsumos = () => {},
   onOpenNewInsumoModal = () => {},
   onEditInsumo = () => {},
   onDeleteInsumo = () => {},
@@ -26,57 +25,38 @@ export default function InsumosModule({
     <div className="module-fade-in">
       {/* Header del Módulo */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span>📦</span> Catálogo de Insumos e Inventario
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '2px' }}>
-            Registro, edición y consulta de artículos, verificación de existencias y descarga o impresión de códigos QR únicos
-          </p>
-        </div>
+        <h1 style={{ fontSize: '1.6rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span>📦</span> Catálogo de Insumos e Inventario
+        </h1>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <button onClick={fetchInsumos} className="btn btn-secondary sharp-border" disabled={loading}>
-            {loading ? '⌛ Actualizando...' : '🔄 Actualizar Datos'}
-          </button>
           {canCreate && (
             <button onClick={onOpenNewInsumoModal} className="btn btn-primary">
               ✨ Nuevo Insumo
             </button>
           )}
+          {canEdit && (
+            <button
+              onClick={onOpenScannerForEdit}
+              className="btn"
+              style={{
+                padding: '10px 20px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.3), rgba(56, 189, 248, 0.2))',
+                border: '1px solid rgba(56, 189, 248, 0.45)',
+                color: '#38bdf8',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 16px rgba(56, 189, 248, 0.15)',
+                cursor: 'pointer'
+              }}
+            >
+              <span style={{ fontSize: '1.15rem' }}>📷</span> Escanear QR para Editar
+            </button>
+          )}
         </div>
-      </div>
-
-      {/* Escáner QR de Edición */}
-      <div
-        style={{
-          marginBottom: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'flex-end'
-        }}
-      >
-        {canEdit && (
-          <button
-            onClick={onOpenScannerForEdit}
-            className="btn"
-            style={{
-              padding: '10px 20px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.3), rgba(56, 189, 248, 0.2))',
-              border: '1px solid rgba(56, 189, 248, 0.45)',
-              color: '#38bdf8',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 16px rgba(56, 189, 248, 0.15)',
-              cursor: 'pointer'
-            }}
-          >
-            <span style={{ fontSize: '1.15rem' }}>📷</span> Escanear QR para Editar
-          </button>
-        )}
       </div>
 
       {/* Tabla de Insumos */}

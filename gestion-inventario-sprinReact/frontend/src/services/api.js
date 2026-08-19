@@ -7,6 +7,8 @@ const API = axios.create({
   },
 });
 
+export const WS_URL = 'ws://localhost:8080/ws';
+
 // Interceptor para inyectar automáticamente el JWT Token
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem('jwt_token');

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { obtenerBitacora } from '../services/bitacoraService';
+import useRealtime from '../hooks/useRealtime';
 
 export default function BitacoraModule({ user }) {
   const [registros, setRegistros] = useState([]);
@@ -8,21 +9,26 @@ export default function BitacoraModule({ user }) {
   const [moduloFilter, setModuloFilter] = useState('TODOS');
   const [accionFilter, setAccionFilter] = useState('TODAS');
 
-  const cargarBitacora = async () => {
-    setLoading(true);
+  const cargarBitacora = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const data = await obtenerBitacora();
       setRegistros(data);
     } catch (err) {
       console.error("Error al cargar la bitácora:", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     cargarBitacora();
   }, []);
+
+  // Actualización en tiempo real (WebSocket)
+  useRealtime((type) => {
+    if (type === 'bitacora') cargarBitacora(true);
+  });
 
   const getActionBadge = (accion) => {
     switch (accion?.toUpperCase()) {
@@ -113,9 +119,6 @@ export default function BitacoraModule({ user }) {
             Registro obligatorio e inmutable de todas las acciones, cambios y justificaciones del sistema
           </p>
         </div>
-        <button onClick={cargarBitacora} className="btn btn-secondary sharp-border">
-          🔄 Actualizar Registros
-        </button>
       </div>
 
       {/* Tarjetas de Métricas de Auditoría */}

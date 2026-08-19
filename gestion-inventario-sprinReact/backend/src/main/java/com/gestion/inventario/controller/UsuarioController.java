@@ -4,6 +4,7 @@ import com.gestion.inventario.model.Rol;
 import com.gestion.inventario.model.Usuario;
 import com.gestion.inventario.repository.RolRepository;
 import com.gestion.inventario.repository.UsuarioRepository;
+import com.gestion.inventario.websocket.WebSocketNotifier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +27,9 @@ public class UsuarioController {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private WebSocketNotifier webSocketNotifier;
 
     @GetMapping
     public List<Map<String, Object>> listarUsuarios() {
@@ -75,6 +79,7 @@ public class UsuarioController {
         usuario.setActivo(true);
 
         Usuario guardado = usuarioRepository.save(usuario);
+        webSocketNotifier.notificar("usuarios");
         return ResponseEntity.ok(guardado);
     }
 
@@ -99,6 +104,7 @@ public class UsuarioController {
             }
 
             Usuario guardado = usuarioRepository.save(usuario);
+            webSocketNotifier.notificar("usuarios");
             return ResponseEntity.ok(guardado);
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -109,6 +115,7 @@ public class UsuarioController {
             return ResponseEntity.notFound().build();
         }
         usuarioRepository.deleteById(id);
+        webSocketNotifier.notificar("usuarios");
         return ResponseEntity.noContent().build();
     }
 

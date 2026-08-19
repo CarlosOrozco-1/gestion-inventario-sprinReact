@@ -13,6 +13,7 @@ import AlertasModule from '../components/AlertasModule';
 import BitacoraModule from '../components/BitacoraModule';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import useRealtime from '../hooks/useRealtime';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -25,6 +26,7 @@ export default function Dashboard() {
   const [insumoToEdit, setInsumoToEdit] = useState(null);
   const [insumoToDelete, setInsumoToDelete] = useState(null);
   const [selectedInsumoForMov, setSelectedInsumoForMov] = useState(null);
+  const [movimientoTipoInicial, setMovimientoTipoInicial] = useState(null);
   const [selectedInsumoForQr, setSelectedInsumoForQr] = useState(null);
   const [qrScannerConfig, setQrScannerConfig] = useState({ isOpen: false, mode: 'movimiento' });
 
@@ -40,8 +42,8 @@ export default function Dashboard() {
     setIsMobileSidebarOpen(false);
   };
 
-  const fetchInsumos = async () => {
-    setLoading(true);
+  const fetchInsumos = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const response = await API.get('/insumos');
       setInsumos(response.data || []);
@@ -49,13 +51,20 @@ export default function Dashboard() {
       console.error("Error al obtener insumos de la base de datos:", err);
       setInsumos([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchInsumos();
   }, []);
+
+  // Escucha de cambios en tiempo real (WebSocket)
+  useRealtime((type) => {
+    if (type === 'insumos') {
+      fetchInsumos(true);
+    }
+  });
 
   const totalInsumos = insumos.length;
   const enStockCount = insumos.filter((i) => (i.stock ?? 0) > 0).length;
@@ -75,6 +84,16 @@ export default function Dashboard() {
   const handleOpenEditInsumoModal = (insumo) => {
     setInsumoToEdit(insumo);
     setIsInsumoModalOpen(true);
+  };
+
+  const handleOpenOperacion = (tipo) => {
+    setMovimientoTipoInicial(tipo);
+    setQrScannerConfig({ isOpen: true, mode: 'movimiento', variant: 'manual' });
+  };
+
+  const handleOpenScannerMovimiento = () => {
+    setMovimientoTipoInicial(null);
+    setQrScannerConfig({ isOpen: true, mode: 'movimiento', variant: 'qr' });
   };
 
   const accessShortcuts = [
@@ -117,11 +136,6 @@ export default function Dashboard() {
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '2px' }}>
                     Visión global del inventario de insumos y accesos directos
                   </p>
-                </div>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <button onClick={fetchInsumos} className="btn btn-secondary sharp-border" disabled={loading}>
-                    {loading ? '⌛ Actualizando...' : '🔄 Actualizar Datos'}
-                  </button>
                 </div>
               </div>
 
@@ -171,22 +185,21 @@ export default function Dashboard() {
             <InsumosModule
               insumos={insumos}
               loading={loading}
-              fetchInsumos={fetchInsumos}
               onOpenNewInsumoModal={handleOpenNewInsumoModal}
               onEditInsumo={handleOpenEditInsumoModal}
               onDeleteInsumo={(item) => setInsumoToDelete(item)}
               onOpenMovimientoModal={(item) => setSelectedInsumoForMov(item)}
               onViewQr={(item) => setSelectedInsumoForQr(item)}
-              onOpenScannerForEdit={() => setQrScannerConfig({ isOpen: true, mode: 'edicion' })}
+              onOpenScannerForEdit={() => setQrScannerConfig({ isOpen: true, mode: 'edicion', variant: 'qr' })}
               user={user}
             />
           )}
 
           {activeTab === 'movimientos' && (
             <MovimientosModule
-              insumos={insumos}
-              onOpenMovimientoModal={(item) => setSelectedInsumoForMov(item)}
-              onOpenScanner={() => setQrScannerConfig({ isOpen: true, mode: 'movimiento' })}
+              user={user}
+              onOpenOperacion={handleOpenOperacion}
+              onOpenScanner={handleOpenScannerMovimiento}
             />
           )}
 
@@ -226,6 +239,7 @@ export default function Dashboard() {
       <MovimientoModal
         isOpen={!!selectedInsumoForMov}
         insumo={selectedInsumoForMov}
+        tipoInicial={movimientoTipoInicial}
         onClose={() => setSelectedInsumoForMov(null)}
         onSuccess={fetchInsumos}
       />
@@ -235,13 +249,17 @@ export default function Dashboard() {
         isOpen={!!selectedInsumoForQr}
         insumo={selectedInsumoForQr}
         onClose={() => setSelectedInsumoForQr(null)}
-        onOpenMovimiento={(insumo) => setSelectedInsumoForMov(insumo)}
+        onOpenMovimiento={(insumo) => {
+          setMovimientoTipoInicial(null);
+          setSelectedInsumoForMov(insumo);
+        }}
       />
 
       {/* Modal de Lector / Escáner QR Multimodal (Movimientos / Edición de Insumos) */}
       <QrScannerModal
         isOpen={qrScannerConfig.isOpen}
         mode={qrScannerConfig.mode}
+        variant={qrScannerConfig.variant}
         insumos={insumos}
         onClose={() => setQrScannerConfig({ isOpen: false, mode: 'movimiento' })}
         onSelectInsumo={(insumo) => {

@@ -9,6 +9,7 @@ import com.gestion.inventario.repository.BitacoraRepository;
 import com.gestion.inventario.repository.InsumoRepository;
 import com.gestion.inventario.repository.MovimientoRepository;
 import com.gestion.inventario.repository.UsuarioRepository;
+import com.gestion.inventario.websocket.WebSocketNotifier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,9 @@ public class MovimientoService {
 
     @Autowired
     private BitacoraRepository bitacoraRepository;
+
+    @Autowired
+    private WebSocketNotifier webSocketNotifier;
 
     @Transactional
     public Movimiento registrarMovimiento(Long insumoId, String tipo, Integer cantidad, String detalle, Long usuarioId) {
@@ -136,6 +140,11 @@ public class MovimientoService {
         bitacora.setDatosAnteriores("{\"stock\": " + stockAnterior + "}");
         bitacora.setDatosNuevos("{\"stock\": " + insumo.getStock() + "}");
         bitacoraRepository.save(bitacora);
+
+        // Notificar cambios en tiempo real a los clientes conectados
+        webSocketNotifier.notificar("insumos");
+        webSocketNotifier.notificar("movimientos");
+        webSocketNotifier.notificar("bitacora");
 
         return saved;
     }

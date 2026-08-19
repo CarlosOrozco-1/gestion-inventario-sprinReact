@@ -4,6 +4,8 @@ import Sidebar from '../components/Sidebar';
 import InsumoModal from '../components/InsumoModal';
 import DeleteInsumoModal from '../components/DeleteInsumoModal';
 import MovimientoModal from '../components/MovimientoModal';
+import InsumoQrModal from '../components/InsumoQrModal';
+import QrScannerModal from '../components/QrScannerModal';
 import InsumosModule from '../components/InsumosModule';
 import MovimientosModule from '../components/MovimientosModule';
 import UsuariosModule from '../components/UsuariosModule';
@@ -16,16 +18,26 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [insumos, setInsumos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('resumen');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isInsumoModalOpen, setIsInsumoModalOpen] = useState(false);
   const [insumoToEdit, setInsumoToEdit] = useState(null);
   const [insumoToDelete, setInsumoToDelete] = useState(null);
   const [selectedInsumoForMov, setSelectedInsumoForMov] = useState(null);
+  const [selectedInsumoForQr, setSelectedInsumoForQr] = useState(null);
+  const [qrScannerConfig, setQrScannerConfig] = useState({ isOpen: false, mode: 'movimiento' });
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
+  };
+
+  const openMobileSidebar = () => {
+    setIsMobileSidebarOpen(true);
+  };
+
+  const closeMobileSidebar = () => {
+    setIsMobileSidebarOpen(false);
   };
 
   const fetchInsumos = async () => {
@@ -67,19 +79,22 @@ export default function Dashboard() {
 
   return (
     <div className="app-layout">
-      {/* Sidebar Plegable del Lado Izquierdo */}
+      {/* Sidebar Plegable del Lado Izquierdo con soporte móvil */}
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         toggleSidebar={toggleSidebar}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         user={user}
+        isMobileOpen={isMobileSidebarOpen}
+        closeMobileSidebar={closeMobileSidebar}
       />
 
       {/* Contenido Principal */}
       <div className="main-content">
         <Navbar
           toggleSidebar={toggleSidebar}
+          openMobileSidebar={openMobileSidebar}
           isCollapsed={isSidebarCollapsed}
           activeTab={activeTab}
         />
@@ -95,17 +110,17 @@ export default function Dashboard() {
                     Visión global del inventario de insumos y accesos directos
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   <button onClick={fetchInsumos} className="btn btn-secondary sharp-border" disabled={loading}>
                     {loading ? '⌛ Actualizando...' : '🔄 Actualizar Datos'}
                   </button>
                 </div>
               </div>
 
-              {/* Tarjetas de Estadísticas */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+              {/* Tarjetas de Estadísticas Responsive */}
+              <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '32px' }}>
                 <div className="glass-card sharp-border" style={{ padding: '20px' }}>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, uppercase: true }}>Total Insumos</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Total Insumos</div>
                   <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent-blue)', marginTop: '4px' }}>{totalInsumos}</div>
                 </div>
                 <div className="glass-card sharp-border" style={{ padding: '20px' }}>
@@ -125,7 +140,7 @@ export default function Dashboard() {
                   <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>📦</div>
                   <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>Catálogo de Insumos</h3>
                   <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                    Explorá la lista completa de artículos, buscá por código y revisá disponibilidades.
+                    Explorá la lista completa de artículos, consultá e imprimí códigos QR únicos.
                   </p>
                 </div>
 
@@ -133,7 +148,7 @@ export default function Dashboard() {
                   <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>🔄</div>
                   <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>Movimientos de Stock</h3>
                   <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                    Registrá entradas, salidas y movimientos en almacén.
+                    Registrá entradas y salidas usando el lector de QR o selección directa.
                   </p>
                 </div>
 
@@ -174,13 +189,13 @@ export default function Dashboard() {
             <InsumosModule
               insumos={insumos}
               loading={loading}
-              search={search}
-              setSearch={setSearch}
               fetchInsumos={fetchInsumos}
               onOpenNewInsumoModal={handleOpenNewInsumoModal}
               onEditInsumo={handleOpenEditInsumoModal}
               onDeleteInsumo={(item) => setInsumoToDelete(item)}
               onOpenMovimientoModal={(item) => setSelectedInsumoForMov(item)}
+              onViewQr={(item) => setSelectedInsumoForQr(item)}
+              onOpenScannerForEdit={() => setQrScannerConfig({ isOpen: true, mode: 'edicion' })}
               user={user}
             />
           )}
@@ -189,6 +204,7 @@ export default function Dashboard() {
             <MovimientosModule
               insumos={insumos}
               onOpenMovimientoModal={(item) => setSelectedInsumoForMov(item)}
+              onOpenScanner={() => setQrScannerConfig({ isOpen: true, mode: 'movimiento' })}
             />
           )}
 
@@ -230,6 +246,29 @@ export default function Dashboard() {
         insumo={selectedInsumoForMov}
         onClose={() => setSelectedInsumoForMov(null)}
         onSuccess={fetchInsumos}
+      />
+
+      {/* Modal de Vista Ampliada y Descarga de Código QR */}
+      <InsumoQrModal
+        isOpen={!!selectedInsumoForQr}
+        insumo={selectedInsumoForQr}
+        onClose={() => setSelectedInsumoForQr(null)}
+        onOpenMovimiento={(insumo) => setSelectedInsumoForMov(insumo)}
+      />
+
+      {/* Modal de Lector / Escáner QR Multimodal (Movimientos / Edición de Insumos) */}
+      <QrScannerModal
+        isOpen={qrScannerConfig.isOpen}
+        mode={qrScannerConfig.mode}
+        insumos={insumos}
+        onClose={() => setQrScannerConfig({ isOpen: false, mode: 'movimiento' })}
+        onSelectInsumo={(insumo) => {
+          if (qrScannerConfig.mode === 'edicion') {
+            handleOpenEditInsumoModal(insumo);
+          } else {
+            setSelectedInsumoForMov(insumo);
+          }
+        }}
       />
     </div>
   );

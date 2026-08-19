@@ -40,6 +40,9 @@ public class Insumo {
     @Column(nullable = false)
     private Integer entrada = 0;
 
+    @Column(name = "codigo_qr", unique = true)
+    private String codigoQr;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -49,10 +52,18 @@ public class Insumo {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
+        if (this.codigoQr == null || this.codigoQr.trim().isEmpty()) {
+            String suffix = java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+            this.codigoQr = "INS-QR-" + (this.numero != null ? this.numero : "0") + "-" + suffix;
+        }
     }
 
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+        if (this.codigoQr == null || this.codigoQr.trim().isEmpty()) {
+            String suffix = java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+            this.codigoQr = "INS-QR-" + (this.numero != null ? this.numero : "0") + "-" + suffix;
+        }
     }
 }

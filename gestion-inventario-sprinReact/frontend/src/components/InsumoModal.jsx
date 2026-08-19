@@ -121,8 +121,8 @@ export default function InsumoModal({ isOpen, onClose, onSuccess, insumoToEdit, 
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content glass-card">
+    <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="modal-content glass-card" style={{ maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>
             {insumoToEdit ? '✏️ Editar Insumo' : '✨ Nuevo Insumo'}

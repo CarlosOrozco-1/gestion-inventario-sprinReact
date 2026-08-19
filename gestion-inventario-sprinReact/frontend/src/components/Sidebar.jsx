@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Sidebar({ isCollapsed, toggleSidebar, activeTab, setActiveTab, user }) {
+export default function Sidebar({ isCollapsed, toggleSidebar, activeTab, setActiveTab, user, isMobileOpen, closeMobileSidebar }) {
   // Normalizar el rol del usuario a mayúsculas sin importar si viene como string u objeto
   const rawRol = typeof user?.rol === 'object' ? user?.rol?.nombre : user?.rol;
   const userRol = (rawRol || 'ADMIN').toString().toUpperCase().trim();
@@ -16,143 +16,158 @@ export default function Sidebar({ isCollapsed, toggleSidebar, activeTab, setActi
 
   const navItems = allNavItems.filter(item => item.roles.includes(userRol));
 
+  const handleItemClick = (id) => {
+    setActiveTab(id);
+    if (closeMobileSidebar) {
+      closeMobileSidebar();
+    }
+  };
+
   return (
-    <aside className={`sidebar ${isCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}>
-      {/* Header del Sidebar */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: isCollapsed ? 'center' : 'space-between',
-        padding: '18px 16px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        minHeight: '68px'
-      }}>
-        {!isCollapsed && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
-            <div style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-cyan))',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '1.1rem',
-              color: '#fff',
-              flexShrink: 0,
-              boxShadow: '0 0 12px rgba(59, 130, 246, 0.4)'
-            }}>
-              📦
-            </div>
-            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              <h2 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>
-                Gestión Inventario
-              </h2>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Módulos de Sistema</span>
-            </div>
-          </div>
-        )}
+    <>
+      {/* Backdrop overlay para cerrar menú al hacer clic afuera en móviles */}
+      <div
+        className={`sidebar-mobile-backdrop ${isMobileOpen ? 'active' : ''}`}
+        onClick={closeMobileSidebar}
+      />
 
-        <button
-          onClick={toggleSidebar}
-          title={isCollapsed ? "Expandir Menú" : "Plegar Menú"}
-          style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            color: '#fff',
-            borderRadius: '8px',
-            width: '36px',
-            height: '36px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            fontSize: '1.1rem',
-            transition: 'all 0.2s ease',
-            flexShrink: 0
-          }}
-          className="btn-secondary"
-        >
-          {isCollapsed ? '☰' : '◀'}
-        </button>
-      </div>
-
-      {/* Navegación por módulos */}
-      <nav style={{ flex: 1, padding: '16px 0', overflowY: 'auto' }}>
+      <aside className={`sidebar ${isCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'} ${isMobileOpen ? 'mobile-open' : ''}`}>
+        {/* Header del Sidebar */}
         <div style={{
-          padding: isCollapsed ? '0' : '0 16px',
-          marginBottom: '8px',
-          textAlign: isCollapsed ? 'center' : 'left'
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: isCollapsed ? 'center' : 'space-between',
+          padding: '18px 16px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          minHeight: '68px'
         }}>
-          {!isCollapsed && (
-            <span style={{
-              fontSize: '0.7rem',
-              fontWeight: 700,
-              color: 'var(--text-dark)',
-              textTransform: 'uppercase',
-              letterSpacing: '1px'
-            }}>
-              Módulos Principales
-            </span>
-          )}
-        </div>
-
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveTab(item.id)}
-            className={`sidebar-item ${activeTab === item.id ? 'active' : ''}`}
-            title={isCollapsed ? item.label : undefined}
-            style={{ justifyContent: isCollapsed ? 'center' : 'flex-start' }}
-          >
-            <span style={{ fontSize: '1.2rem', flexShrink: 0 }}>{item.icon}</span>
-            {!isCollapsed && (
-              <div style={{ textAlign: 'left', overflow: 'hidden' }}>
-                <div style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>{item.label}</div>
+          {(!isCollapsed || isMobileOpen) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+              <div style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-cyan))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.1rem',
+                color: '#fff',
+                flexShrink: 0,
+                boxShadow: '0 0 12px rgba(59, 130, 246, 0.4)'
+              }}>
+                📦
               </div>
-            )}
-          </button>
-        ))}
-      </nav>
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <h2 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>
+                  Gestión Inventario
+                </h2>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Módulos de Sistema</span>
+              </div>
+            </div>
+          )}
 
-      {/* Footer del Sidebar con Info de Usuario */}
-      <div style={{
-        padding: '16px',
-        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-        background: 'rgba(11, 15, 25, 0.5)'
-      }}>
-        {!isCollapsed ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
+          <button
+            onClick={isMobileOpen ? closeMobileSidebar : toggleSidebar}
+            title={isCollapsed ? "Expandir Menú" : "Plegar Menú"}
+            style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              color: '#fff',
+              borderRadius: '8px',
               width: '36px',
               height: '36px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontWeight: 'bold',
-              color: '#fff',
-              fontSize: '0.9rem',
+              cursor: 'pointer',
+              fontSize: '1.1rem',
+              transition: 'all 0.2s ease',
               flexShrink: 0
-            }}>
-              {user?.nombre?.charAt(0) || 'U'}
-            </div>
-            <div style={{ overflow: 'hidden', flex: 1 }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                {user?.nombre || 'Usuario'}
-              </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontWeight: 600 }}>
-                {userRol}
-              </div>
-            </div>
+            }}
+            className="btn-secondary"
+          >
+            {isMobileOpen ? '✕' : (isCollapsed ? '☰' : '◀')}
+          </button>
+        </div>
+
+        {/* Navegación por módulos */}
+        <nav style={{ flex: 1, padding: '16px 0', overflowY: 'auto' }}>
+          <div style={{
+            padding: isCollapsed && !isMobileOpen ? '0' : '0 16px',
+            marginBottom: '8px',
+            textAlign: isCollapsed && !isMobileOpen ? 'center' : 'left'
+          }}>
+            {(!isCollapsed || isMobileOpen) && (
+              <span style={{
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                color: 'var(--text-dark)',
+                textTransform: 'uppercase',
+                letterSpacing: '1px'
+              }}>
+                Módulos Principales
+              </span>
+            )}
           </div>
-        ) : (
-          <div style={{ textAlign: 'center' }}>
-            <span title={`${user?.nombre} (${userRol})`} style={{ fontSize: '1.2rem', cursor: 'pointer' }}>👤</span>
-          </div>
-        )}
-      </div>
-    </aside>
+
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => handleItemClick(item.id)}
+              className={`sidebar-item ${activeTab === item.id ? 'active' : ''}`}
+              title={isCollapsed && !isMobileOpen ? item.label : undefined}
+              style={{ justifyContent: isCollapsed && !isMobileOpen ? 'center' : 'flex-start' }}
+            >
+              <span style={{ fontSize: '1.2rem', flexShrink: 0 }}>{item.icon}</span>
+              {(!isCollapsed || isMobileOpen) && (
+                <div style={{ textAlign: 'left', overflow: 'hidden' }}>
+                  <div style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>{item.label}</div>
+                </div>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        {/* Footer del Sidebar con Info de Usuario */}
+        <div style={{
+          padding: '16px',
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          background: 'rgba(11, 15, 25, 0.5)'
+        }}>
+          {(!isCollapsed || isMobileOpen) ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold',
+                color: '#fff',
+                fontSize: '0.9rem',
+                flexShrink: 0
+              }}>
+                {user?.nombre?.charAt(0) || 'U'}
+              </div>
+              <div style={{ overflow: 'hidden', flex: 1 }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                  {user?.nombre || 'Usuario'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontWeight: 600 }}>
+                  {userRol}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center' }}>
+              <span title={`${user?.nombre} (${userRol})`} style={{ fontSize: '1.2rem', cursor: 'pointer' }}>👤</span>
+            </div>
+          )}
+        </div>
+      </aside>
+    </>
   );
 }

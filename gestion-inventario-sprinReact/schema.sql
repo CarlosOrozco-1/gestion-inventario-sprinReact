@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS inventario_insumos (
   tamano_presentacion TEXT NOT NULL,
   stock INTEGER NOT NULL DEFAULT 0,
   entrada INTEGER NOT NULL DEFAULT 0,
+  codigo_qr TEXT UNIQUE,
   created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
   updated_at TEXT,
   UNIQUE (insumo, presentacion, tamano_presentacion)
@@ -120,6 +121,9 @@ CREATE TABLE IF NOT EXISTS inventario_movimientos (
 -- -----------------------------------------------------------
 -- Indices para mejorar rendimiento de consultas frecuentes
 -- -----------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_insumos_codigo_qr
+  ON inventario_insumos(codigo_qr);
+
 CREATE INDEX IF NOT EXISTS idx_saldos_mensuales_inventario
   ON inventario_saldos_mensuales(inventario_id);
 

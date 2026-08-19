@@ -25,12 +25,16 @@
   box-sizing: border-box;
 }
 
+html, body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-main);
   min-height: 100vh;
-  overflow-x: hidden;
   background-image: 
     radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.08) 0%, transparent 45%),
     radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.08) 0%, transparent 45%);
@@ -89,6 +93,7 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: inherit;
+  white-space: nowrap;
 }
 
 .btn-primary {
@@ -185,6 +190,7 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .badge-blue {
@@ -215,10 +221,12 @@ body {
 .table-container {
   width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .custom-table {
   width: 100%;
+  min-width: 680px;
   border-collapse: collapse;
   text-align: left;
 }
@@ -251,11 +259,12 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justifyContent: center;
   z-index: 1000;
   padding: 20px;
 }
@@ -282,17 +291,19 @@ body {
 .app-layout {
   display: flex;
   min-height: 100vh;
+  width: 100%;
   background-color: var(--bg-primary);
+  position: relative;
 }
 
 .sidebar {
-  background: rgba(15, 23, 42, 0.95);
+  background: rgba(15, 23, 42, 0.96);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-right: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   flex-direction: column;
-  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: sticky;
   top: 0;
   height: 100vh;
@@ -346,6 +357,7 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  width: 100%;
 }
 
 .sharp-border {
@@ -369,5 +381,135 @@ body {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ==========================================================
+   RESPONSIVE MEDIA QUERIES (TABLETS & MÓVILES 100% RESPONSIVE)
+   ========================================================== */
+
+/* Backdrop para sidebar en móvil */
+.sidebar-mobile-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 110;
+  animation: fadeInBackdrop 0.2s ease-out;
+}
+
+@keyframes fadeInBackdrop {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 📱 TABLETS & MÓVILES (<= 768px) */
+@media (max-width: 768px) {
+  .sidebar-mobile-backdrop.active {
+    display: block;
+  }
+
+  .sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    height: 100vh !important;
+    width: 280px !important;
+    max-width: 85vw !important;
+    z-index: 120 !important;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 6px 0 30px rgba(0, 0, 0, 0.7) !important;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  .sidebar.sidebar-collapsed {
+    width: 280px !important;
+  }
+
+  .main-content {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+
+  .navbar-container {
+    padding: 10px 14px !important;
+  }
+
+  .navbar-user-details {
+    display: none !important;
+  }
+
+  .navbar-subtitle {
+    display: none !important;
+  }
+
+  .main-content main {
+    padding: 16px 12px !important;
+  }
+
+  /* Modales en Móvil */
+  .modal-overlay {
+    padding: 12px !important;
+  }
+
+  .modal-content {
+    padding: 20px 16px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px !important;
+  }
+
+  .mov-horizontal-grid,
+  .qr-horizontal-grid,
+  .qr-modal-twocol {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+
+  /* Botones en móvil */
+  .btn-responsive-group {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .btn-responsive-group .btn {
+    width: 100% !important;
+  }
+
+  /* Stat cards en Dashboard */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+}
+
+/* 📱 MÓVILES PEQUEÑOS (<= 480px) */
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .custom-table th, .custom-table td {
+    padding: 10px 12px !important;
+    font-size: 0.86rem !important;
+  }
+
+  .btn {
+    padding: 8px 14px !important;
+    font-size: 0.88rem !important;
+  }
+
+  h1 {
+    font-size: 1.3rem !important;
+  }
+
+  h2 {
+    font-size: 1.15rem !important;
   }
 }

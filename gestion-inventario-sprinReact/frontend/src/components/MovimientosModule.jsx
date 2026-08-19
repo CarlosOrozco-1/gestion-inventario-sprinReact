@@ -1,10 +1,4 @@
-import React, { useState } from 'react';
-
-export default function MovimientosModule({ insumos, onOpenMovimientoModal }) {
-  const [selectedId, setSelectedId] = useState('');
-
-  const selectedInsumo = insumos.find((i) => i.id.toString() === selectedId.toString());
-
+export default function MovimientosModule({ insumos: _insumos, onOpenMovimientoModal: _onOpenMovimientoModal, onOpenScanner }) {
   return (
     <div className="module-fade-in">
       {/* Header del Módulo */}
@@ -17,39 +11,32 @@ export default function MovimientosModule({ insumos, onOpenMovimientoModal }) {
         </p>
       </div>
 
-      {/* Tarjeta para registrar movimiento directo */}
-      <div className="glass-card sharp-border-accent" style={{ padding: '24px', marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      {/* Tarjeta para registrar movimiento directo mediante QR */}
+      <div className="glass-card sharp-border-accent" style={{ padding: '28px', marginBottom: '32px' }}>
+        <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
           ⚡ Registrar Movimiento Rápido
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', alignItems: 'end' }}>
-          <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="input-label">Seleccionar Insumo del Catálogo</label>
-            <select
-              className="select-field sharp-border"
-              value={selectedId}
-              onChange={(e) => setSelectedId(e.target.value)}
-            >
-              <option value="">-- Seleccionar un artículo --</option>
-              {insumos.map((item) => (
-                <option key={item.id} value={item.id}>
-                  #{item.numero} - {item.insumo} ({item.presentacion}) | Stock: {item.stock}
-                </option>
-              ))}
-            </select>
-          </div>
-
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+          Escaneá el código QR del insumo con la cámara, foto o lector USB para abrir instantáneamente su formulario de operaciones.
+        </p>
+        
+        <div>
           <button
-            onClick={() => {
-              if (selectedInsumo) {
-                onOpenMovimientoModal(selectedInsumo);
-              }
-            }}
-            disabled={!selectedInsumo}
+            onClick={onOpenScanner}
             className="btn btn-primary"
-            style={{ padding: '12px 24px' }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              padding: '14px 32px',
+              fontSize: '1rem',
+              fontWeight: 700,
+              boxShadow: '0 0 20px rgba(59, 130, 246, 0.4)',
+              cursor: 'pointer'
+            }}
           >
-            📝 Abrir Formulario de Operación
+            <span style={{ fontSize: '1.2rem' }}>📷</span> Escanear Código QR
           </button>
         </div>
       </div>

@@ -27,10 +27,11 @@ export default function Login() {
     setError('');
     setGoogleLoading(true);
 
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '828388535241-48mgb2mbu1b57qeuvuuhnnk8j95l55m9.apps.googleusercontent.com';
+
+    // Método 1: Usar google.accounts.id con popup (FedCM / One Tap)
     if (window.google?.accounts?.id) {
       try {
-        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '828388535241-48mgb2mbu1b57qeuvuuhnnk8j95l55m9.apps.googleusercontent.com';
-
         window.google.accounts.id.initialize({
           client_id: clientId,
           callback: async (credentialResponse) => {
@@ -49,19 +50,90 @@ export default function Login() {
               setError('No se pudo verificar la información del usuario con Google.');
               setGoogleLoading(false);
             }
-          }
+          },
+          ux_mode: 'popup',
+          auto_select: false,
         });
 
-        window.google.accounts.id.prompt();
+        // Intentar con prompt(), pero si no funciona, abrir popup OAuth2 como fallback
+        window.google.accounts.id.prompt((notification) => {
+          // Si el prompt fue descartado o no se mostró, usar popup OAuth2
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            console.warn('Google One Tap no disponible, usando popup OAuth2 como fallback...');
+            openGoogleOAuth2Popup(clientId);
+          }
+        });
       } catch (e) {
         console.error('OAuth Exception:', e);
-        setError('Error al abrir la ventana de Google OAuth.');
-        setGoogleLoading(false);
+        // Fallback a popup OAuth2
+        openGoogleOAuth2Popup(clientId);
       }
     } else {
-      setError('La librería de Google aún se está cargando. Espere un momento e intente de nuevo.');
-      setGoogleLoading(false);
+      // Si la librería GSI no cargó, abrir OAuth2 directamente en una ventana nueva
+      console.warn('Librería GSI no cargada, abriendo OAuth2 directamente...');
+      openGoogleOAuth2Popup(clientId);
     }
+  };
+
+  // Fallback: abre el flujo estándar de OAuth2 en un popup del navegador
+  const openGoogleOAuth2Popup = (clientId) => {
+    const redirectUri = window.location.origin + '/login';
+    const scope = 'openid email profile';
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${encodeURIComponent(clientId)}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&response_type=token id_token` +
+      `&scope=${encodeURIComponent(scope)}` +
+      `&nonce=${Math.random().toString(36).substring(2)}` +
+      `&prompt=select_account`;
+
+    const width = 500, height = 600;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+
+    const popup = window.open(
+      authUrl,
+      'GoogleLoginPopup',
+      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,status=yes`
+    );
+
+    if (!popup || popup.closed) {
+      setError('El navegador bloqueó la ventana emergente. Permite ventanas emergentes (popups) para este sitio e intenta de nuevo.');
+      setGoogleLoading(false);
+      return;
+    }
+
+    // Monitorear el popup para capturar el token del redirect
+    const pollTimer = setInterval(async () => {
+      try {
+        if (popup.closed) {
+          clearInterval(pollTimer);
+          setGoogleLoading(false);
+          return;
+        }
+        // Verificar si el popup redirigió de vuelta a nuestro origen
+        if (popup.location.origin === window.location.origin) {
+          clearInterval(pollTimer);
+          const hash = popup.location.hash.substring(1);
+          popup.close();
+
+          const params = new URLSearchParams(hash);
+          const idToken = params.get('id_token');
+
+          if (idToken) {
+            const res = await loginWithGoogle(idToken);
+            if (!res.success) {
+              setError(res.error);
+            }
+          } else {
+            setError('No se recibió un token válido de Google. Verifica la configuración del Client ID.');
+          }
+          setGoogleLoading(false);
+        }
+      } catch (e) {
+        // Cross-origin error esperado mientras el popup está en Google - ignorar
+      }
+    }, 500);
   };
 
   const handleSubmit = async (e) => {

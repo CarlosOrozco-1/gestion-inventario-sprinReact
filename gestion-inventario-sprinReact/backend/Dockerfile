@@ -4,7 +4,7 @@ WORKDIR /app
 # Copiamos el código fuente y archivos de gradle al contenedor
 COPY . .
 # Ejecutamos la compilación ignorando los tests por ahora
-RUN ./gradlew build -x test
+RUN chmod +x gradlew && ./gradlew build -x test
 
 # Etapa 2: Ejecución (Usamos una imagen ligera de Java 17 solo para correr la app)
 FROM eclipse-temurin:17-jre

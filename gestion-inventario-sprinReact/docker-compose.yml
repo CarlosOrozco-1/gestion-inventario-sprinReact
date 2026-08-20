@@ -4,7 +4,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      - JAVA_TOOL_OPTIONS=-Xmx384m
+      - TZ=${TZ:-America/Guatemala}
+      - JAVA_TOOL_OPTIONS=-Xmx384m -Duser.timezone=${TZ:-America/Guatemala}
     expose:
       - "8080"
     volumes:

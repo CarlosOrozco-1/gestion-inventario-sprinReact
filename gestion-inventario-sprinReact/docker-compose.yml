@@ -5,8 +5,8 @@ services:
       dockerfile: Dockerfile
     environment:
       - JAVA_TOOL_OPTIONS=-Xmx384m
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     volumes:
       - ./backend/data:/app/data
     restart: unless-stopped

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -8,6 +8,9 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '828388535241-48mgb2mbu1b57qeuvuuhnnk8j95l55m9.apps.googleusercontent.com';
+  const gsiInitializedRef = useRef(false);
 
   // Restaurar el estado de los botones cuando la ventana principal recupera el foco (ej: al cerrar el popup de Google)
   useEffect(() => {
@@ -27,37 +30,38 @@ export default function Login() {
     setError('');
     setGoogleLoading(true);
 
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '828388535241-48mgb2mbu1b57qeuvuuhnnk8j95l55m9.apps.googleusercontent.com';
-
     // Método 1: Usar google.accounts.id con popup (FedCM / One Tap)
     if (window.google?.accounts?.id) {
       try {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: async (credentialResponse) => {
-            if (!credentialResponse.credential) {
-              setError('Se canceló la autenticación con Google.');
-              setGoogleLoading(false);
-              return;
-            }
-            try {
-              const res = await loginWithGoogle(credentialResponse.credential);
-              if (!res.success) {
-                setError(res.error);
+        if (!gsiInitializedRef.current) {
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: async (credentialResponse) => {
+              if (!credentialResponse.credential) {
+                setError('Se canceló la autenticación con Google.');
+                setGoogleLoading(false);
+                return;
+              }
+              try {
+                const res = await loginWithGoogle(credentialResponse.credential);
+                if (!res.success) {
+                  setError(res.error);
+                  setGoogleLoading(false);
+                }
+              } catch (e) {
+                setError('No se pudo verificar la información del usuario con Google.');
                 setGoogleLoading(false);
               }
-            } catch (e) {
-              setError('No se pudo verificar la información del usuario con Google.');
-              setGoogleLoading(false);
-            }
-          },
-          ux_mode: 'popup',
-          auto_select: false,
-        });
+            },
+            ux_mode: 'popup',
+            auto_select: false,
+            use_fedcm_for_prompt: true,
+          });
+          gsiInitializedRef.current = true;
+        }
 
         // Intentar con prompt(), pero si no funciona, abrir popup OAuth2 como fallback
         window.google.accounts.id.prompt((notification) => {
-          // Si el prompt fue descartado o no se mostró, usar popup OAuth2
           if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
             console.warn('Google One Tap no disponible, usando popup OAuth2 como fallback...');
             openGoogleOAuth2Popup(clientId);

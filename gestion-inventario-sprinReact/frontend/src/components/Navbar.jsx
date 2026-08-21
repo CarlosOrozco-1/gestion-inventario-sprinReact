@@ -37,7 +37,6 @@ export default function Navbar({ toggleSidebar, openMobileSidebar, activeTab }) 
             borderRadius: '10px',
             width: '38px',
             height: '38px',
-            display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',

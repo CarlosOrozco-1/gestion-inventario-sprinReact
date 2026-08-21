@@ -489,6 +489,11 @@ body {
   visibility: visible;
 }
 
+/* Botón hamburguesa del Navbar: oculto en desktop, visible solo en móvil */
+.mobile-menu-btn {
+  display: none;
+}
+
 /* ==========================================================
    RESPONSIVE MEDIA QUERIES (TABLETS & MÓVILES 100% RESPONSIVE)
    ========================================================== */
@@ -552,6 +557,10 @@ body {
 
   .navbar-subtitle {
     display: none !important;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
   }
 
   .main-content main {

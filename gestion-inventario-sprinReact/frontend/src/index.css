@@ -259,12 +259,13 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
-  justifyContent: center;
+  justify-content: center;
   z-index: 1000;
   padding: 20px;
 }
@@ -567,16 +568,22 @@ body {
     padding: 16px 12px !important;
   }
 
-  /* Modales en Móvil */
+  /* Modales en Móvil: el overlay scrollea desde arriba para que
+     los botones del final (Cancelar/Guardar) siempre sean alcanzables */
   .modal-overlay {
     padding: 12px !important;
+    align-items: flex-start !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
   }
 
   .modal-content {
     padding: 20px 16px !important;
     width: 100% !important;
     max-width: 100% !important;
+    max-height: none !important;
     border-radius: 20px !important;
+    margin-bottom: 8px;
   }
 
   .mov-horizontal-grid,

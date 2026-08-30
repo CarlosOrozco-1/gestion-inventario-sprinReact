@@ -107,14 +107,14 @@ export default function Insumos() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="p-8 text-center text-slate-400">
+                  <td colSpan={8} className="p-8 text-center text-slate-400">
                     <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-slate-300 border-t-brand-600 mb-2"></div>
                     <p>Cargando catálogo...</p>
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="p-12 text-center text-slate-500">
+                  <td colSpan={8} className="p-12 text-center text-slate-500">
                     <svg className="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                     </svg>
@@ -161,7 +161,7 @@ export default function Insumos() {
                     {/* Filas de variantes */}
                     {item.presentations.length === 0 ? (
                       <tr>
-                        <td colSpan="8" className="p-4 text-center text-slate-400 text-sm">
+                        <td colSpan={8} className="p-4 text-center text-slate-400 text-sm">
                           Este material aún no tiene presentaciones.
                         </td>
                       </tr>

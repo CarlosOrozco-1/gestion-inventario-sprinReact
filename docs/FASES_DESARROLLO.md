@@ -202,6 +202,50 @@ De ellos, la refactorización de normalización a inglés (17+18) suma **~2-2.5 
 
 ---
 
+## Fases Adicionales: Soporte QR Code en Insumos
+
+### Fase 20: Agregar campo QR Code a Presentaciones (Backend + BD)
+- **Objetivo:** Cada presentación (variante de insumo) tendrá un código QR único para identificación rápida en Kárdex y Auditoría.
+- **Backend:**
+  - [x] Migración Flyway `V5__add_qr_code_to_presentations.sql`: agregar columna `qr_code VARCHAR(255) UNIQUE` a tabla `presentations`, generar QR codes para existentes (`SIGES-ITEM-{code}-PRES-{id}`), crear índice `idx_presentations_qr_code`.
+  - [x] Entidad `Presentation`: agregar campo `qrCode` con `@Column(name="qr_code", unique=true)`.
+  - [x] `ItemService`: método `generarQrCode(Integer itemCode, Long presentationId)` que retorna `SIGES-ITEM-{code}-PRES-{id}`. Llamado en `crearItem` y `agregarPresentacion` para generar QR automáticamente al crear.
+  - [x] `PresentationRepository`: agregar método `Optional<Presentation> findByQrCode(String qrCode)`.
+  - [x] `PresentationController`: nuevo endpoint `GET /api/presentations/qr/{qrCode}` que retorna `InsumoViewDTO` con datos del insumo.
+  - [x] `InsumoViewDTO`: agregar campo `qrCode` para respuesta API.
+- **Est. de esfuerzo: ~0.5 día.**
+- **Validación:** Compilación backend + tests unitarios.
+
+### Fase 21: Mostrar QR Code en Catálogo de Insumos (Frontend)
+- **Objetivo:** Visualizar el código QR de cada presentación en la tabla del catálogo.
+- **Frontend:**
+  - [x] Instalar dependencias: `qrcode.react` (generación) y `html5-qrcode` (escaneo).
+  - [x] `Insumos.tsx`: agregar columna "Código QR" en tabla, renderizar `<QRCodeSVG value={pres.qrCode} size={64} />` para cada presentación.
+  - [x] Corregir `colSpan` en filas de material y loading/empty states (TypeScript: number vs string).
+- **Est. de esfuerzo: ~0.5 día.**
+- **Validación:** `npm run build` sin errores TypeScript.
+
+### Fase 22: Escáner QR en Módulo Kárdex (Movimientos)
+- **Objetivo:** Permitir escanear QR de insumo para abrir modal de movimiento con el insumo pre-seleccionado.
+- **Frontend:**
+  - [x] Componente reutilizable `QrScanner.tsx` usando `Html5Qrcode` (cámara trasera, qrbox 250x250, 10fps).
+  - [x] `Movimientos.tsx`: botón "Escanear QR" → abre `QrScanner` → al escanear llama `GET /api/presentations/qr/{qrCode}` → setea `scannedPresentation` y abre `MovimientoModal` con `preSelectedPresentation`.
+  - [x] `MovimientoModal.tsx`: aceptar prop `preSelectedPresentation` y pre-seleccionar en el select al abrir.
+- **Est. de esfuerzo: ~0.5 día.**
+- **Validación:** Build frontend + prueba manual de escaneo.
+
+### Fase 23: Escáner QR en Módulo Auditoría (Ajustes)
+- **Objetivo:** Permitir escanear QR de insumo para abrir modal de ajuste con el insumo pre-seleccionado.
+- **Frontend:**
+  - [x] `Ajustes.tsx`: botón "Escanear QR" (mismo componente `QrScanner`) → al escanear busca insumo y abre `AjusteModal` con `preSelectedPresentation`.
+  - [x] `AjusteModal.tsx`: aceptar prop `preSelectedPresentation` y pre-seleccionar al abrir.
+- **Est. de esfuerzo: ~0.25 día.**
+- **Validación:** Build frontend + prueba manual.
+
+**Total estimado paquete QR (20-23): ~1.75 días.**
+
+---
+
 ## Estado General
 
 | Fase | Descripción                        | Estado      |
@@ -219,3 +263,7 @@ De ellos, la refactorización de normalización a inglés (17+18) suma **~2-2.5 
 | 17   | Normalización a inglés (Backend/BD)| **Completada** |
 | 18   | Normalización a inglés (Frontend)  | **Completada** |
 | 19   | E2E, documentación y cierre        | Pendiente  |
+| 20   | QR Code en Presentaciones (Backend)| **Completada** |
+| 21   | QR Code en Catálogo (Frontend)     | **Completada** |
+| 22   | Escáner QR en Kárdex               | **Completada** |
+| 23   | Escáner QR en Auditoría            | **Completada** |

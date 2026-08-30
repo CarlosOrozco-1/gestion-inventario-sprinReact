@@ -20,4 +20,5 @@ public class InsumoViewDTO {
     private Integer minStock;
     private Integer maxStock;
     private BigDecimal estimatedCost;
+    private String qrCode;
 }

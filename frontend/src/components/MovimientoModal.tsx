@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 
-export default function MovimientoModal({ isOpen, onClose, onSave, insumos }) {
+export default function MovimientoModal({ isOpen, onClose, onSave, insumos, preSelectedPresentation }) {
   const [formData, setFormData] = useState({
     presentationId: '',
     type: 'ENTRADA',
@@ -15,14 +15,14 @@ export default function MovimientoModal({ isOpen, onClose, onSave, insumos }) {
   useEffect(() => {
     if (isOpen) {
       setFormData({
-        presentationId: '',
+        presentationId: preSelectedPresentation?.id || '',
         type: 'ENTRADA',
         quantity: '',
         detail: ''
       });
       setError('');
     }
-  }, [isOpen]);
+  }, [isOpen, preSelectedPresentation]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

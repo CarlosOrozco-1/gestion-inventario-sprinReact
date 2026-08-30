@@ -51,6 +51,9 @@ public class Presentation {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "qr_code", unique = true)
+    private String qrCode;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

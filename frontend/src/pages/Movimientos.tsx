@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import MovimientoModal from '../components/MovimientoModal';
+import QrScanner from '../components/QrScanner';
 
 export default function Movimientos() {
   const [movimientos, setMovimientos] = useState([]);
@@ -8,6 +9,8 @@ export default function Movimientos() {
   const [loading, setLoading] = useState(true);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [scannedPresentation, setScannedPresentation] = useState<any>(null);
   const [toastMessage, setToastMessage] = useState('');
 
   const fetchData = async (message = null) => {
@@ -29,6 +32,20 @@ export default function Movimientos() {
       console.error('Error al cargar datos', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleQrScan = async (qrCode: string) => {
+    setIsScannerOpen(false);
+    try {
+      const response = await api.get(`/presentations/qr/${qrCode}`);
+      const presentation = response.data;
+      setScannedPresentation(presentation);
+      setIsModalOpen(true);
+      setToastMessage(`Insumo encontrado: ${presentation.item} - ${presentation.presentation}`);
+    } catch (err) {
+      console.error('Error al buscar insumo por QR:', err);
+      setToastMessage('Código QR no encontrado');
     }
   };
 
@@ -55,9 +72,15 @@ export default function Movimientos() {
     <div className="max-w-7xl mx-auto">
       <MovimientoModal 
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => { setIsModalOpen(false); setScannedPresentation(null); }}
         onSave={fetchData}
         insumos={insumosList}
+        preSelectedPresentation={scannedPresentation}
+      />
+      <QrScanner
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScan={handleQrScan}
       />
 
       {/* Header */}
@@ -67,15 +90,27 @@ export default function Movimientos() {
           <p className="text-slate-500 mt-1">Registra e inspecciona el flujo de entradas y salidas.</p>
         </div>
         
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-slate-500/50"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-          </svg>
-          Registrar Movimiento
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsScannerOpen(true)}
+            className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-brand-500/50"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Escanear QR
+          </button>
+
+          <button 
+            onClick={() => { setScannedPresentation(null); setIsModalOpen(true); }}
+            className="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-slate-500/50"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+            Registrar Movimiento
+          </button>
+        </div>
       </div>
 
       {/* Tabla */}

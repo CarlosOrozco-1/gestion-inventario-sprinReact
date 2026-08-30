@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Fase 16 — Catálogo de materiales con presentaciones múltiples.
@@ -43,7 +44,13 @@ public class ItemService {
         item.setCode(request.getCode());
         item.setName(request.getName().trim());
         for (PresentationRequestDTO presReq : request.getPresentations()) {
-            item.addPresentation(aplicarPresentacion(new Presentation(), presReq));
+            Presentation presentation = aplicarPresentacion(new Presentation(), presReq);
+            presentation.setItem(item);
+            item.addPresentation(presentation);
+        }
+        item = itemRepository.save(item);
+        for (Presentation p : item.getPresentations()) {
+            p.setQrCode(generarQrCode(item.getCode(), p.getId()));
         }
         return itemRepository.save(item);
     }
@@ -64,7 +71,13 @@ public class ItemService {
                 .orElseThrow(() -> new IllegalArgumentException("Material no encontrado."));
         Presentation presentation = aplicarPresentacion(new Presentation(), request);
         presentation.setItem(item);
+        presentation = presentationRepository.save(presentation);
+        presentation.setQrCode(generarQrCode(item.getCode(), presentation.getId()));
         return presentationRepository.save(presentation);
+    }
+
+    private String generarQrCode(Integer itemCode, Long presentationId) {
+        return "SIGES-ITEM-" + itemCode + "-PRES-" + presentationId;
     }
 
     @Transactional
@@ -95,6 +108,7 @@ public class ItemService {
                 dto.setMinStock(p.getMinStock());
                 dto.setMaxStock(p.getMaxStock());
                 dto.setEstimatedCost(p.getEstimatedCost());
+                dto.setQrCode(p.getQrCode());
                 vista.add(dto);
             }
         }
@@ -108,5 +122,10 @@ public class ItemService {
         target.setMaxStock(request.getMaxStock() != null ? request.getMaxStock() : 50);
         target.setEstimatedCost(request.getEstimatedCost() != null ? request.getEstimatedCost() : java.math.BigDecimal.ZERO);
         return target;
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Presentation> findPresentationByQrCode(String qrCode) {
+        return presentationRepository.findByQrCode(qrCode);
     }
 }

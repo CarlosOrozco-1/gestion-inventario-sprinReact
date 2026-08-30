@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 
-export default function AjusteModal({ isOpen, onClose, onSave, insumos }) {
+export default function AjusteModal({ isOpen, onClose, onSave, insumos, preSelectedPresentation }) {
   const [formData, setFormData] = useState({
     presentationId: '',
     type: 'AJUSTE_POSITIVO',
@@ -14,14 +14,14 @@ export default function AjusteModal({ isOpen, onClose, onSave, insumos }) {
   useEffect(() => {
     if (isOpen) {
       setFormData({
-        presentationId: '',
+        presentationId: preSelectedPresentation?.id || '',
         type: 'AJUSTE_POSITIVO',
         quantity: '',
         detail: ''
       });
       setError('');
     }
-  }, [isOpen]);
+  }, [isOpen, preSelectedPresentation]);
 
   const handleChange = (e: any) => {
     const { name, value } = e.target;

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import AjusteModal from '../components/AjusteModal';
+import QrScanner from '../components/QrScanner';
 
 export default function Ajustes() {
   const [movimientos, setMovimientos] = useState<any[]>([]);
@@ -8,6 +9,8 @@ export default function Ajustes() {
   const [loading, setLoading] = useState(true);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [scannedPresentation, setScannedPresentation] = useState<any>(null);
   const [toastMessage, setToastMessage] = useState('');
 
   const fetchData = async (message = null) => {
@@ -33,6 +36,20 @@ export default function Ajustes() {
     }
   };
 
+  const handleQrScan = async (qrCode: string) => {
+    setIsScannerOpen(false);
+    try {
+      const response = await api.get(`/presentations/qr/${qrCode}`);
+      const presentation = response.data;
+      setScannedPresentation(presentation);
+      setIsModalOpen(true);
+      setToastMessage(`Insumo encontrado: ${presentation.item} - ${presentation.presentation}`);
+    } catch (err) {
+      console.error('Error al buscar insumo por QR:', err);
+      setToastMessage('Código QR no encontrado');
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -48,9 +65,15 @@ export default function Ajustes() {
     <div className="max-w-7xl mx-auto animate-in fade-in duration-300">
       <AjusteModal 
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => { setIsModalOpen(false); setScannedPresentation(null); }}
         onSave={fetchData}
         insumos={insumosList}
+        preSelectedPresentation={scannedPresentation}
+      />
+      <QrScanner
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScan={handleQrScan}
       />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
@@ -59,15 +82,27 @@ export default function Ajustes() {
           <p className="text-slate-500 mt-1">Historial de correcciones manuales al inventario.</p>
         </div>
         
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-amber-500/50"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          Nuevo Ajuste
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsScannerOpen(true)}
+            className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-brand-500/50"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Escanear QR
+          </button>
+
+          <button 
+            onClick={() => { setScannedPresentation(null); setIsModalOpen(true); }}
+            className="inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-amber-500/50"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            Nuevo Ajuste
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">

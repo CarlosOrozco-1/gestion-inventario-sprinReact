@@ -1,6 +1,8 @@
 import { useState, useEffect, Fragment } from 'react';
 import api from '../api/axios';
 import InsumoModal from '../components/InsumoModal';
+import QrScanner from '../components/QrScanner';
+import SearchModal from '../components/SearchModal';
 import { useToastStore } from '../store/useToastStore';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 
@@ -11,6 +13,8 @@ export default function Insumos() {
 
   // Estado para controlar el Modal (mode: create-item | edit-item | create-presentation | edit-presentation)
   const [modalConfig, setModalConfig] = useState(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const showToast = useToastStore((s: any) => s.showToast);
 
@@ -41,6 +45,36 @@ export default function Insumos() {
 
   const closeModal = () => setModalConfig(null);
 
+  // Escanea un QR y abre la edición de la presentación encontrada.
+  const handleQrScan = async (qrCode) => {
+    setIsScannerOpen(false);
+    try {
+      const response = await api.get(`/presentations/qr/${qrCode}`);
+      const scanned = response.data; // { id, code, item, presentation, size, ... }
+      for (const it of items) {
+        const pres = it.presentations?.find((p) => p.id === scanned.id);
+        if (pres) {
+          openModal('edit-presentation', it, pres);
+          return;
+        }
+      }
+      showToast('Insumo encontrado, pero no está en la lista cargada. Actualiza la página.');
+    } catch (err) {
+      console.error('Error al buscar insumo por QR:', err);
+      showToast('Código QR no encontrado');
+    }
+  };
+
+  const handleSearchSelectItem = (item) => {
+    setIsSearchOpen(false);
+    openModal('edit-item', item);
+  };
+
+  const handleSearchSelectPresentation = (item, pres) => {
+    setIsSearchOpen(false);
+    openModal('edit-presentation', item, pres);
+  };
+
   const stockBadge = (stock) => {
     const style = stock > 10 ? 'bg-green-100 text-green-700' : stock > 0 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700';
     return (
@@ -63,6 +97,22 @@ export default function Insumos() {
         items={items}
       />
 
+      {/* Escáner QR para localizar y editar un insumo sin buscarlo en la tabla */}
+      <QrScanner
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScan={handleQrScan}
+      />
+
+      {/* Búsqueda por nombre / código / presentación cuando no se tiene el QR */}
+      <SearchModal
+        isOpen={isSearchOpen}
+        items={items}
+        onClose={() => setIsSearchOpen(false)}
+        onSelectItem={handleSearchSelectItem}
+        onSelectPresentation={handleSearchSelectPresentation}
+      />
+
       {/* Header de la vista */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
@@ -70,15 +120,37 @@ export default function Insumos() {
           <p className="text-slate-500 mt-1">Materiales y sus presentaciones (variantes) con stock propio.</p>
         </div>
 
-        <button
-          onClick={() => openModal('create-item')}
-          className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-brand-500/50"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Nuevo Material
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setIsSearchOpen(true)}
+            className="inline-flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            Buscar insumo
+          </button>
+
+          <button
+            onClick={() => setIsScannerOpen(true)}
+            className="inline-flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m4-14a6 6 0 00-8 8m8-8a6 6 0 010 8m-8-8a6 6 0 000 8" />
+            </svg>
+            Escanear QR
+          </button>
+
+          <button
+            onClick={() => openModal('create-item')}
+            className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-brand-500/50"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Nuevo Material
+          </button>
+        </div>
       </div>
 
       {error && (

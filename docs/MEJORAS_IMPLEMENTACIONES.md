@@ -88,5 +88,52 @@ Para evitar una migración `Integer → String` se optó por:
 - `frontend/src/pages/Insumos.tsx` — pasa la lista de items existentes al modal.
 - Backend: sin cambios (la validación de duplicados ya existe en `ItemService`).
 
-### Próximas mejoras
+---
+
+## 3. Búsqueda y Edición de Insumos desde el Catálogo (QR o Buscador)
+
+**Fecha:** 2026-08-31
+**Naturaleza:** Mejora de UX para localizar y editar un producto sin recorrer la tabla.
+
+### Descripción
+En el módulo **Catálogo de Insumos** se agregaron dos vías para ubicar un insumo
+y abrir su edición directamente, sin buscar fila por fila entre muchos materiales:
+
+1. **Escáner QR:** se apunta la cámara al QR del insumo y el sistema encuentra la
+   presentación y abre el modal de edición.
+2. **Buscador:** modal que permite buscar por **nombre, código interno, presentación,
+   tamaño o primeras letras**, y abrir la edición del material o de la presentación.
+
+### Comportamiento
+1. En el header del catálogo hay dos botones nuevos: **"Buscar insumo"** (lupa) y
+   **"Escanear QR"**.
+2. **Escanear QR:**
+   - Usa el componente reutilizable `QrScanner`.
+   - Al detectar un QR llama a `GET /api/presentations/qr/{qrCode}`.
+   - Con el `id` de la presentación devuelta, busca en la lista de catálogo ya
+     cargada el `Item` dueño de esa presentación y abre `edit-presentation`.
+   - Si el QR no existe muestra el toast "Código QR no encontrado".
+3. **Buscador (SearchModal):**
+   - Campo de texto con auto-foco; filtra en vivo.
+   - Coincidencias por: nombre del material, código del material (como texto),
+     nombre de presentación y tamaño. Basta que estén contenidas (primeras letras).
+   - Muestra dos grupos de resultados: **materiales** (abren `edit-item`) y
+     **presentaciones** (abren `edit-presentation`).
+   - Al hacer clic cierra el buscador y abre el modal de edición correspondiente.
+
+### Archivos involucrados
+- `frontend/src/components/SearchModal.tsx` — **nuevo**, modal de búsqueda del catálogo.
+- `frontend/src/pages/Insumos.tsx` — botones "Buscar insumo" / "Escanear QR",
+  `handleQrScan`, render de `SearchModal` y `QrScanner`.
+- Backend: **sin cambios** (solo consumo del endpoint QR existente).
+
+### Notas
+- `InsumoModal` no se modificó: la edición por QR/búsqueda reutiliza los modos
+  `edit-item` y `edit-presentation` existentes.
+- Como el QR devuelve el `id` de la presentación (no el `itemId`), el frontend lo
+  resuelve buscándolo dentro de la lista de catálogo ya cargada.
+
+---
+
+## 4. Próximas mejoras / pendientes
 - (registrar aquí futuras implementaciones)

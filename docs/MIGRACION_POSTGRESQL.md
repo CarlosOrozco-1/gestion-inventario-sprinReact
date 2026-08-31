@@ -70,9 +70,11 @@ Controller (API/REST)
 en todos los módulos:
 
 - ✅ `MovimientoController` → `MovimientoService` → `MovimientoRepository`.
-- ⚠️ `InsumoController` → `InsumoRepository` directamente (se salta la capa
-  `Service`). Las reglas de insumos (cálculo de stock, validaciones) deberían
-  vivir en un `InsumoService`.
+- ✅ `ItemController` / `InsumoController` / `PresentationController` →
+  `ItemService` → `ItemRepository`/`PresentationRepository` (catálogo de
+  materiales y presentaciones, incluido el QR).
+- ✅ `UsuarioController` → `UsuarioService` → `UsuarioRepository`.
+- ✅ `AuthController` → `AuthService`.
 
 No es Clean Architecture ni ports & adapters: no hay casos de uso, interfaces
 de puerto ni inyección invertida por dominio. Es un estilo pragmático de
@@ -166,7 +168,8 @@ Guía de conexión para DBeaver/pgAdmin:
       (Flyway aplica V1 y Hibernate valida el esquema).
       — **Validado:** el backend corre con `SPRING_PROFILES_ACTIVE=prod` sobre
       PostgreSQL y Flyway aplica `V1__esquema_inicial.sql` y
-      `V2__password_reset_tokens.sql` sin errores.
+      `V2__password_reset_tokens.sql` sin errores (luego `V3__presentaciones_multiples.sql`,
+      `V4__normalizar_schema_al_ingles.sql` y `V5__add_qr_code_to_presentations.sql`).
 - [x] **Backups automáticos:** `database/scripts/backup_postgres.sh` (`pg_dump`
       -Fc con rotación de `BACKUP_KEEP` días) y `database/scripts/restore_postgres.sh`
       (restauración con `--clean --if-exists`). Ejemplo de cron incluido en el
@@ -189,8 +192,9 @@ Guía de conexión para DBeaver/pgAdmin:
 
 - [x] Smoke test completo con rol ADMIN: login, insumos, movimientos,
       ajustes, reportes PDF/Excel, proyecciones, usuarios.
-      — **Validado:** `scripts/smoke_test_e2e.py` (56 aserciones, 0 fallos);
-      limpieza de datos de prueba con `scripts/limpiar_e2e.sql`.
+      — **Validado:** `scripts/smoke_test_e2e.py` (56+ aserciones, 0 fallos);
+      incluye el flujo de códigos QR (Fases 20-23). Limpieza de datos de
+      prueba con `scripts/limpiar_e2e.sql`.
 - [x] Prueba con roles JEFE y AUXILIAR (menú y rutas según matriz de acceso).
       — **Validado:** el E2E verifica rechazos 401/403 por rol en endpoints
       protegidos (`@PreAuthorize`).

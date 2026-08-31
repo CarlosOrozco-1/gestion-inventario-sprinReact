@@ -62,61 +62,80 @@ migracion-springboot-react/
 erDiagram
     roles {
         int id PK
-        string nombre UK
-        int nivel
-        string descripcion
+        string name UK
+        int level
+        string description
     }
 
     usuarios {
         int id PK
-        string nombre
+        string name
         string email UK
         string password_hash
         int rol_id FK
-        int activo
+        boolean active
     }
 
-    inventario_insumos {
+    items {
         int id PK
-        int numero
-        string insumo
-        string presentacion
-        string tamano_presentacion
+        int code
+        string name
+    }
+
+    presentations {
+        int id PK
+        int item_id FK
+        string name
+        string size
+        int min_stock
+        int max_stock
+        numeric estimated_cost
         int stock
-        int entrada
-    }
-
-    inventario_saldos_mensuales {
-        int id PK
-        int inventario_id FK
-        int anio
-        int mes
-        int egresos
-    }
-
-    inventario_requerimientos_anuales {
-        int id PK
-        int inventario_id FK
-        int anio
-        int cantidad
+        string qr_code UK
     }
 
     inventario_movimientos {
         int id PK
         int inventario_id FK
-        string tipo
+        string type
         int usuario_id FK
-        int mes
-        int anio
-        int cantidad
-        string detalle
+        int month
+        int year
+        int quantity
+        string detail
+    }
+
+    inventario_saldos_mensuales {
+        int id PK
+        int inventario_id FK
+        int year
+        int month
+        int outflows
+    }
+
+    inventario_requerimientos_anuales {
+        int id PK
+        int inventario_id FK
+        int year
+        int quantity
+    }
+
+    password_reset_tokens {
+        int id PK
+        int usuario_id FK
+        string code_hash
+        timestamp expires_at
+        boolean used
+        int failed_attempts
     }
 
     roles ||--o{ usuarios : "tiene"
+    items ||--o{ presentations : "tiene"
+    presentations ||--o{ inventario_movimientos : "genera"
     usuarios ||--o{ inventario_movimientos : "realiza"
-    inventario_insumos ||--o{ inventario_movimientos : "genera"
-    inventario_insumos ||--o{ inventario_saldos_mensuales : "tiene"
-    inventario_insumos ||--o{ inventario_requerimientos_anuales : "tiene"
+    presentations ||--o{ inventario_saldos_mensuales : "tiene"
+    presentations ||--o{ inventario_requerimientos_anuales : "tiene"
+    usuarios ||--o{ password_reset_tokens : "solicita"
 ```
 
 ---
@@ -259,14 +278,24 @@ docker compose down
 
 ## Roles y Permisos
 
+Matriz de acceso por módulo/URL (fuente: `frontend/src/access.ts`) reforzada en el
+backend con `@PreAuthorize`.
+
 | Modulo | Admin | Jefe | Auxiliar |
 |--------|:-----:|:----:|:--------:|
-| Gestionar usuarios | Si | No | No |
-| Agregar insumo | Si | Si | No |
-| Editar insumo | Si | Si | No |
-| Eliminar insumo | Si | No | No |
-| Registrar entrada | Si | Si | Si |
-| Registrar salida | Si | Si | Si |
-| Registrar ajuste | Si | Si | No |
-| Ver inventario | Si | Si | Si |
-| Ver reportes | Si | Si | No |
+| Dashboard | Si | Si | Si |
+| Catálogo de Insumos | Si | Si | No |
+| Movimientos (Kárdex) | Si | Si | Si |
+| Auditoría / Ajustes | Si | Si | No |
+| Reportes | Si | Si | Si |
+| Proyecciones (Smart Restock) | Si | Si | No |
+| Gestión de Usuarios | Si | No | No |
+
+Operaciones que requieren **solo ADMIN** (backend `@PreAuthorize`): crear/editar
+materiales y presentaciones (`POST/PUT /items`, `PUT /presentations`), y todo el
+CRUD de usuarios. Movimientos y reportes están disponibles para los tres roles.
+
+> Nota: en la versión distribuida (Spring Boot + React), los módulos de
+> "Eliminar insumo" y "Requerimientos/Saldos" anuales pasaron a un esquema
+> normalizado de **items -> presentations**; el catálogo es gestionado por
+> ADMIN/JEFE y los ajustes quedan restringidos a ADMIN/JEFE.

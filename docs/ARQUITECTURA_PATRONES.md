@@ -104,6 +104,7 @@ frontend/src
 | **API Client (capa de servicio)**     | `api/axios.ts` con interceptores (adjunta el JWT).    |
 | **Router (SPA)**                      | React Router DOM v6 con rutas protegidas por rol.     |
 | **Guard de rutas**                    | `ProtectedRoute` (autenticado) y `RequireRole` (rol). |
+| **Escáner QR (integración cámara)**   | `QrScanner.tsx` con `html5-qrcode`; generación con `qrcode.react`. |
 
 ---
 
@@ -111,17 +112,25 @@ frontend/src
 
 - **Base de datos intercambiable:** JPA abstrae la base (PostgreSQL en
   todos los entornos) → la arquitectura es portable a otro motor si hiciera falta.
-- **`ddl-auto=update`:** genera el esquema automáticamente, pero en
-  producción a largo plazo conviene **Flyway/Liquibase** + `ddl-auto=validate`.
-- **`InsumoController` omite la capa Service** (usa el Repository directo).
-  Para consistencia, las reglas de negocio de insumos deberían moverse a un
-  `InsumoService`.
+- **`Flyway` versiona el esquema:** en el perfil `prod` se usa
+  `spring.jpa.hibernate.ddl-auto=validate` + `spring.flyway.enabled=true` con
+  migraciones `V1...V5`. El perfil de desarrollo conserva `ddl-auto=update`.
+- **Esquema normalizado (Fase 16-17):** el catálogo se modela como
+  `Item` (material) → `Presentation` (variante con stock propio). La tabla
+  legada `inventario_insumos` se conserva como archivo para saldos/
+  requerimientos; `inventario_movimientos.inventario_id` apunta a
+  `presentations.id`.
+- **`@PreAuthorize` a nivel de API:** la matriz de roles se aplica en cada
+  endpoint (`@EnableMethodSecurity` activo). Ver `docs/ACCESOS_ROLES_MODULOS.md`
+  y `frontend/src/access.ts`.
+- **Códigos QR (Fases 20-23):** cada `Presentation` tiene un `qr_code` único
+  autogenerado (`SIGES-ITEM-<code>-PRES-<id>`). El escáner (`QrScanner.tsx`,
+  `html5-qrcode`) busca la presentación vía `GET /api/presentations/qr/{qrCode}`
+  para pre-seleccionarla en Kárdex y Auditoría.
 - **`MovimientoService` usa un `switch` por tipo de movimiento:** funciona,
   pero si crecen los tipos, conviene aplicar el patrón **Strategy**.
 - **No hay capa de mapeo DTO→Entidad explícita** (los controllers arman las
   respuestas a mano). Con más DTOs, evaluar **MapStruct**.
-- **Seguridad por rol solo en la UI:** los endpoints no validan el rol
-  (`@PreAuthorize` pendiente).
 
 ---
 

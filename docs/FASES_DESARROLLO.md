@@ -193,9 +193,10 @@ graph TD
 
 ### Fase 19: Verificación E2E, documentación y cierre
 - **Est. de esfuerzo: ~0.5 día.**
-- [ ] Actualizar `scripts/smoke_test_e2e.py` y `scripts/limpiar_e2e.sql` a los nuevos nombres y estructura (items/presentations).
-- [ ] Revisar y actualizar `README.md`, `ARQUITECTURA_PATRONES.md`, `MIGRACION_POSTGRESQL.md` y diagramas.
-- [ ] Marcar fases completadas en este documento y `git commit`.
+- [x] Actualizar `scripts/smoke_test_e2e.py` y `scripts/limpiar_e2e.sql` a los nuevos nombres y estructura (items/presentations). Se agregó cobertura del flujo QR (Fases 20-23).
+- [x] Revisar y actualizar `README.md`, `ARQUITECTURA_PATRONES.md`, `MIGRACION_POSTGRESQL.md` y diagramas.
+- [x] Corregir endpoint faltante `PUT /api/presentations/{id}` (exponía `ItemService.actualizarPresentacion`): rompía "Editar Presentación", "Aplicar sugerencia de stock" y la aserción de edición del smoke test.
+- [x] Marcar fases completadas en este documento y `git commit`.
 
 **Total estimado del paquete (15-19): ~4.5-6 días de trabajo neto.**
 De ellos, la refactorización de normalización a inglés (17+18) suma **~2-2.5 días**, y las presentaciones (16) **~1.5-2 días**.
@@ -262,7 +263,7 @@ De ellos, la refactorización de normalización a inglés (17+18) suma **~2-2.5 
 | 16   | Presentaciones múltiples por insumo| **Completada** |
 | 17   | Normalización a inglés (Backend/BD)| **Completada** |
 | 18   | Normalización a inglés (Frontend)  | **Completada** |
-| 19   | E2E, documentación y cierre        | Pendiente  |
+| 19   | E2E, documentación y cierre        | **Completada** |
 | 20   | QR Code en Presentaciones (Backend)| **Completada** |
 | 21   | QR Code en Catálogo (Frontend)     | **Completada** |
 | 22   | Escáner QR en Kárdex               | **Completada** |

@@ -34,7 +34,7 @@ const emptyForm = {
   estimatedCost: 0,
 };
 
-export default function InsumoModal({ isOpen, onClose, onSave, modalConfig }) {
+export default function InsumoModal({ isOpen, onClose, onSave, modalConfig, items = [] }) {
   const mode = modalConfig?.mode || 'create-item';
   const item = modalConfig?.item || null;
   const presentation = modalConfig?.presentation || null;
@@ -43,11 +43,21 @@ export default function InsumoModal({ isOpen, onClose, onSave, modalConfig }) {
   const [formData, setFormData] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [codeTouched, setCodeTouched] = useState(false);
+
+  // Genera un código sugerido (entero aleatorio de hasta 9 dígitos).
+  const generarCodigo = () => {
+    const min = 100000000; // 9 dígitos
+    const max = 2000000000; // dentro del rango de Integer
+    return String(Math.floor(Math.random() * (max - min + 1)) + min);
+  };
 
   // Cargar los datos según el modo cada vez que se abre
   useEffect(() => {
     if (isOpen) {
-      if (mode === 'edit-item' && item) {
+      if (mode === 'create-item') {
+        setFormData({ ...emptyForm, code: generarCodigo() });
+      } else if (mode === 'edit-item' && item) {
         setFormData({ ...emptyForm, code: item.code ?? '', name: item.name ?? '' });
       } else if (mode === 'edit-presentation' && presentation) {
         setFormData({
@@ -64,16 +74,30 @@ export default function InsumoModal({ isOpen, onClose, onSave, modalConfig }) {
         setFormData(emptyForm);
       }
       setError('');
+      setCodeTouched(false);
     }
   }, [isOpen, mode, item, presentation]);
 
+  // En modo 'create-item': verifica en vivo si el código ya está en uso.
+  const codeAsNumber = Number(formData.code);
+  const isCodeTaken =
+    mode === 'create-item' &&
+    formData.code !== '' &&
+    !Number.isNaN(codeAsNumber) &&
+    items.some((it: any) => it.code === codeAsNumber);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'code') setCodeTouched(true);
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (mode === 'create-item' && isCodeTaken) {
+      setError('El código que ingresaste ya está en uso. Elige otro o usa el sugerido.');
+      return;
+    }
     setLoading(true);
     setError('');
 
@@ -164,15 +188,43 @@ export default function InsumoModal({ isOpen, onClose, onSave, modalConfig }) {
                   <label className="block text-sm font-semibold text-slate-700 mb-1">
                     Número / Código interno
                   </label>
-                  <input
-                    type="number"
-                    name="code"
-                    value={formData.code}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
-                    placeholder="Ej. 101"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      name="code"
+                      value={formData.code}
+                      onChange={handleChange}
+                      required
+                      className={`w-full px-4 py-2 bg-slate-50 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                        mode === 'create-item' && codeTouched && isCodeTaken
+                          ? 'border-red-400 focus:ring-red-500/20 focus:border-red-500'
+                          : 'border-slate-200 focus:ring-brand-500/20 focus:border-brand-500'
+                      }`}
+                      placeholder="Autogenerado..."
+                    />
+                    {mode === 'create-item' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, code: generarCodigo() }));
+                          setCodeTouched(false);
+                        }}
+                        title="Generar otro código"
+                        className="shrink-0 inline-flex items-center justify-center px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border border-slate-200 transition-colors"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  {mode === 'create-item' && (
+                    <p className={`text-xs mt-1 ${isCodeTaken ? 'text-red-500' : 'text-slate-400'}`}>
+                      {isCodeTaken
+                        ? 'El código ya está en uso.'
+                        : 'Código autogenerado. Puedes reemplazarlo o generar otro con el botón.'}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">
@@ -281,7 +333,7 @@ export default function InsumoModal({ isOpen, onClose, onSave, modalConfig }) {
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (mode === 'create-item' && isCodeTaken)}
               className="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg transition-colors shadow-sm focus:ring-2 focus:ring-brand-500/50 disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {loading && (

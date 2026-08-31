@@ -60,6 +60,7 @@ export default function Insumos() {
         onClose={closeModal}
         onSave={fetchItems}
         modalConfig={modalConfig}
+        items={items}
       />
 
       {/* Header de la vista */}

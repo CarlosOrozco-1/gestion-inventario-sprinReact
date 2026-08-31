@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 
 interface QrScannerProps {
@@ -9,69 +9,79 @@ interface QrScannerProps {
 
 export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [scanning, setScanning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
+  const stoppedRef = useRef(false);
+  const scannedRef = useRef(false);
+  const [error, setError] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
 
-  const stopScanner = useCallback(() => {
-    if (html5QrcodeRef.current && scanning) {
-      html5QrcodeRef.current.stop().catch((err) => {
-        console.error('Error stopping QR scanner:', err);
-      }).finally(() => {
-        setScanning(false);
-      });
+  // Detiene la cámara de forma segura (evita "already under transition").
+  const stopScanner = async () => {
+    if (html5QrcodeRef.current && !stoppedRef.current) {
+      stoppedRef.current = true;
+      try {
+        await html5QrcodeRef.current.stop();
+        await html5QrcodeRef.current.clear();
+      } catch (err) {
+        console.warn('QR scanner teardown:', err);
+      }
+      html5QrcodeRef.current = null;
+      setScanning(false);
     }
-  }, [scanning]);
+  };
 
+  const scanHandler = (qrCode: string) => {
+    // Previene múltiples disparos del mismo QR.
+    if (scannedRef.current) return;
+    scannedRef.current = true;
+    stopScanner();
+    onScan(qrCode);
+  };
+
+  // Arranca la cámara cuando se abre el escáner.
   useEffect(() => {
-    if (!isOpen) {
-      stopScanner();
-      return;
-    }
+    if (!isOpen) return;
 
     const startScanner = async () => {
       if (!containerRef.current) return;
-      
+      const el = containerRef.current;
+
       try {
-        html5QrcodeRef.current = new Html5Qrcode('qr-reader');
-        await html5QrcodeRef.current.start(
+        scannedRef.current = false;
+        stoppedRef.current = false;
+        // Espera un tick para asegurar que el contenedor esté montado.
+        await new Promise((r) => setTimeout(r, 50));
+        const scanner = new Html5Qrcode('qr-reader');
+        html5QrcodeRef.current = scanner;
+        await scanner.start(
           { facingMode: 'environment' },
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 }
-          },
-          (qrCode: string) => {
-            onScan(qrCode);
-          },
-          (errorMessage: string) => {
-            // Ignore scan errors (no QR code found)
-          }
+          { fps: 10, qrbox: { width: 200, height: 200 } },
+          scanHandler,
+          () => { /* errores de decodificación: ignorar */ }
         );
         setScanning(true);
       } catch (err) {
         console.error('Error starting QR scanner:', err);
         setError('No se pudo acceder a la cámara. Verifica los permisos.');
+        // Limpia el contenedor para no dejar un video roto.
+        el.innerHTML = '';
         setScanning(false);
       }
     };
 
     startScanner();
+    // Cleanup: detiene la cámara al cerrar o desmontar.
     return () => {
-      if (html5QrcodeRef.current) {
-        html5QrcodeRef.current.stop().catch(() => {});
-      }
+      stopScanner();
     };
-  }, [isOpen, onScan, stopScanner]);
+  }, [isOpen]);
 
   const handleClose = () => {
-    stopScanner();
-    onClose();
+    stopScanner().finally(() => onClose());
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
       <div className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden">
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
           <h3 className="text-lg font-semibold text-slate-800">Escanear Código QR</h3>
@@ -85,9 +95,15 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
             </svg>
           </button>
         </div>
-        
+
         <div className="p-4">
-          <div ref={containerRef} id="qr-reader" className="w-full aspect-video bg-slate-100 rounded-xl overflow-hidden relative">
+          {/* El contenedor permanece SIEMPRE montado para que html5-qrcode no
+              pierda el elemento video mientras la cámara está activa. */}
+          <div
+            ref={containerRef}
+            id="qr-reader"
+            className="w-full aspect-video bg-slate-100 rounded-xl overflow-hidden relative"
+          >
             {error && (
               <div className="absolute inset-0 flex items-center justify-center bg-red-50 text-red-600 p-4 text-center">
                 <p className="font-medium">{error}</p>
@@ -95,12 +111,12 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
               </div>
             )}
           </div>
-          
+
           <div className="mt-4 space-y-3">
             <p className="text-sm text-slate-500 text-center">
               Apunta la cámara al código QR del insumo
             </p>
-            
+
             <button
               onClick={handleClose}
               className="w-full inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-lg font-medium transition-colors"

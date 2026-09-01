@@ -50,7 +50,7 @@ public class ItemService {
         }
         item = itemRepository.save(item);
         for (Presentation p : item.getPresentations()) {
-            p.setQrCode(generarQrCode(item.getCode(), p.getId()));
+            p.setQrCode(generarQrCode(p.getId()));
         }
         return itemRepository.save(item);
     }
@@ -72,12 +72,12 @@ public class ItemService {
         Presentation presentation = aplicarPresentacion(new Presentation(), request);
         presentation.setItem(item);
         presentation = presentationRepository.save(presentation);
-        presentation.setQrCode(generarQrCode(item.getCode(), presentation.getId()));
+        presentation.setQrCode(generarQrCode(presentation.getId()));
         return presentationRepository.save(presentation);
     }
 
-    private String generarQrCode(Integer itemCode, Long presentationId) {
-        return "SIGES-ITEM-" + itemCode + "-PRES-" + presentationId;
+    private String generarQrCode(Long presentationId) {
+        return "SIGES-PRES-" + presentationId;
     }
 
     @Transactional

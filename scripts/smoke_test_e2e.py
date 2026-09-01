@@ -130,7 +130,7 @@ def main():
     ins = request("GET", "/insumos", admin_tok)
     a = next(x for x in ins if x["id"] == a_id)
     check("cada presentación trae un qrCode autogenerado", bool(a.get("qrCode")))
-    check("el qrCode sigue el formato SIGES-ITEM-<code>-PRES-<id>", str(a["qrCode"]).startswith("SIGES-ITEM-"))
+    check("el qrCode sigue el formato SIGES-PRES-<id>", str(a["qrCode"]).startswith("SIGES-PRES-"))
     # Búsqueda por QR (Fases 22-23: escáner)
     byqr = request("GET", f"/presentations/qr/{a['qrCode']}", admin_tok)
     check("búsqueda por QR devuelve la presentación", byqr and byqr["id"] == a_id and byqr["presentation"] == "Caja")

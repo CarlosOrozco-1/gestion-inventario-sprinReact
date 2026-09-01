@@ -128,12 +128,67 @@ y abrir su edición directamente, sin buscar fila por fila entre muchos material
 - Backend: **sin cambios** (solo consumo del endpoint QR existente).
 
 ### Notas
-- `InsumoModal` no se modificó: la edición por QR/búsqueda reutiliza los modos
-  `edit-item` y `edit-presentation` existentes.
+- `InsumoModal` no se modificó para la búsqueda: la edición por QR/búsqueda
+  reutiliza los modos `edit-item` y `edit-presentation` existentes.
 - Como el QR devuelve el `id` de la presentación (no el `itemId`), el frontend lo
   resuelve buscándolo dentro de la lista de catálogo ya cargada.
 
 ---
 
-## 4. Próximas mejoras / pendientes
+## 4. Edición de Presentación con Contexto del Material + QR Estable
+
+**Fecha:** 2026-08-31
+**Naturaleza:** Corrección de UX + mejora de robustez del QR.
+
+### 4.1 Campos de solo lectura del material en el modal de presentación
+
+**Problema detectado:** Al editar una presentación (manualmente o vía escáner QR),
+el modal solo mostraba los campos de la variante, sin indicar a qué **material**
+pertenecía. Tras escanear un QR, el usuario editaba "a ciegas" sin saber qué
+producto era, con riesgo de modificar por error la presentación equivocada.
+
+**Solución:** Al editar/crear una presentación (`edit-presentation` /
+`create-presentation`) el modal muestra ahora una tarjeta **"Material (solo
+lectura)"** con el código interno y nombre del material en campos **no editables**
+(`readOnly`, `cursor-not-allowed`). De este modo el material queda como referencia
+inmutable y solo la presentación es modificable.
+
+### 4.2 QR basado en el id de la presentación (formato estable)
+
+**Problema detectado:** El QR usaba el formato `SIGES-ITEM-{code}-PRES-{id}`,
+que dependía del **código interno del material** (editable por el usuario). Eso
+presentaba tres inconvenientes:
+
+1. **Inestabilidad:** si el usuario cambiaba el código del material, los QR ya
+   impresos dejaban de resolver (el string dejaba de existir).
+2. **Exposición de datos:** el QR revelaba el código interno del material a
+   cualquiera que lo fotografiara.
+3. **Redundancia:** el `id` de la presentación ya identifica de forma única al
+   registro; duplicar el código del material era innecesario.
+
+**Solución:** Se cambió el formato a **`SIGES-PRES-{id}`**, donde `{id}` es la clave
+primaria inmutable de la presentación. El `id` nunca cambia, por lo que el QR es
+estable de por vida, no expone datos y mantiene la unicidad (columna `UNIQUE`).
+
+### Migración de datos
+Se creó la migración **`V6__regenerar_qr_code_formato_estable.sql`** que regenera
+los `qr_code` de todas las presentaciones existentes (`UPDATE ... SET qr_code =
+'SIGES-PRES-' || id`). Aplicada automáticamente por Flyway al arrancar el backend.
+
+### Archivos involucrados
+- `frontend/src/components/InsumoModal.tsx` — tarjeta "Material (solo lectura)".
+- `backend/src/main/java/com/gestion/inventario/service/ItemService.java` —
+  `generarQrCode` ahora genera `SIGES-PRES-{id}`.
+- `backend/src/main/resources/db/migration/V6__regenerar_qr_code_formato_estable.sql` — **nuevo**.
+- `scripts/smoke_test_e2e.py` — validación del nuevo formato del QR.
+
+### Notas
+- El endpoint `GET /api/presentations/qr/{qrCode}` no cambió: sigue recibiendo el
+  string completo del QR y lo busca por igualdad exacta en la BD.
+- El escáner y el render del QR funcionan con el nuevo formato sin cambios en el
+  frontend (usan el string que devuelve el backend).
+
+---
+
+## 5. Próximas mejoras / pendientes
 - (registrar aquí futuras implementaciones)

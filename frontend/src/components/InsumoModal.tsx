@@ -182,6 +182,46 @@ export default function InsumoModal({ isOpen, onClose, onSave, modalConfig, item
           )}
 
           <div className="grid grid-cols-1 gap-5">
+            {!includesItem && item && (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                  <h3 className="text-sm font-bold text-slate-700">Material (solo lectura)</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">
+                      Número / Código interno
+                    </label>
+                    <input
+                      type="text"
+                      value={item.code ?? ''}
+                      readOnly
+                      tabIndex={-1}
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-500 cursor-not-allowed"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">
+                      Nombre del Material
+                    </label>
+                    <input
+                      type="text"
+                      value={item.name ?? ''}
+                      readOnly
+                      tabIndex={-1}
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-500 cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-slate-400 mt-2">
+                  Este insumo solo se modifica desde el catálogo principal. Aquí solo editas la presentación.
+                </p>
+              </div>
+            )}
+
             {includesItem && (
               <div className="grid grid-cols-2 gap-4">
                 <div>

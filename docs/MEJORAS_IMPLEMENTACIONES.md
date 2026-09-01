@@ -190,5 +190,73 @@ los `qr_code` de todas las presentaciones existentes (`UPDATE ... SET qr_code =
 
 ---
 
-## 5. Próximas mejoras / pendientes
+## 5. Modal de Vista Ampliada del QR (Descargar PNG / Imprimir)
+
+**Fecha:** 2026-08-31
+**Naturaleza:** Mejora de utilidad del catálogo.
+
+### Descripción
+En el **Catálogo de Insumos**, cada código QR mostrado en la tabla ahora es
+**clicable** y abre un modal con el QR **en grande** (al estilo de un cartel) que
+incluye el nombre del insumo y su código. Ofrece dos acciones:
+
+1. **Descargar PNG:** exporta el QR como imagen PNG descargable.
+2. **Imprimir cartel:** muestra una vista previa (nombre + código + QR) e imprime.
+
+### Comportamiento
+1. Al hacer clic en un QR de la tabla se abre `QrModal` con la vista previa del
+   cartel: logo **SIGES**, nombre del material, código y presentación.
+2. **Descargar PNG:** toma el canvas del QR (`QRCodeCanvas` de `qrcode.react`)
+   y lo descarga vía `canvas.toDataURL('image/png')`. Nombre de archivo
+   `QR-{code}-{presentación}.png`.
+3. **Imprimir:** serializa el QR a **SVG** (`QRCodeSVG.outerHTML`), abre una
+   ventana nueva con el cartel formateado y llama a `win.print()`. Así el QR se
+   imprime nítido (el SVG es vectorial, no depende del canvas).
+
+### Archivos involucrados
+- `frontend/src/components/QrModal.tsx` — **nuevo**, modal de vista ampliada del QR.
+- `frontend/src/pages/Insumos.tsx` — QR clicable que abre `QrModal`.
+
+### Notas
+- Se usa el canvas del QR (del modal) para el PNG y el SVG para la impresión,
+  cada uno óptimo para su medio. No se agregaron dependencias nuevas.
+
+---
+
+## 6. Menú Lateral Colapsable (Solo Iconos) con Tooltips
+
+**Fecha:** 2026-08-31
+**Naturaleza:** Mejora de usabilidad del menú de navegación.
+
+### Descripción
+El menú lateral (sidebar) ahora tiene un **botón para colapsarse** en desktop,
+dejando **solo los iconos visibles** (ancho reducido). Cada botón del menú
+(incluso colapsado) muestra un **tooltip** con el nombre del módulo al pasar el
+mouse, para que el usuario sepa a dónde va a navegar.
+
+### Comportamiento
+1. En la cabecera del menú hay un botón (icono de chevron) para **colapsar /
+   expandir** — solo visible en desktop (`lg`).
+2. Colapsado, el menú pasa a un ancho estrecho (~`lg:w-20`) y cada enlace muestra
+   **solo el icono centrado**; el texto del módulo se oculta.
+3. Todos los enlaces llevan el atributo `title` (tooltip) con el nombre del
+   módulo, por lo que al colapsar sigue siendo claro qué representa cada icono.
+4. También se colapsan el logo/texto del usuario y el botón "Cerrar Sesión"
+   (queda solo el icono con su tooltip).
+5. En **móvil** el comportamiento del menú (drawer) no cambia: se sigue
+   desplegando a ancho completo.
+
+### Archivos involucrados
+- `frontend/src/components/Layout.tsx` — estado `collapsed`, toggle, ancho dinámico
+  del sidebar, enlaces con tooltip.
+
+### Notas
+- El colapso es solo de layout en desktop; no afecta la navegación ni la lógica
+  de accesos (`hasAccess`).
+- Se usa el `title` nativo como tooltip (sin dependencias extra), acorde a la
+  convención de UI/UX (sección 5 de AGENTS.md).
+
+---
+
+## 7. Próximas mejoras / pendientes
 - (registrar aquí futuras implementaciones)

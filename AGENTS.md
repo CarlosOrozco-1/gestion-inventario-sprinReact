@@ -104,3 +104,18 @@ Crear una clase anotada con `@RestControllerAdvice` para capturar excepciones e 
 
 ### Transaccionalidad
 Toda función en la capa Service que afecte inventario (entradas o salidas) **debe** llevar la anotación `@Transactional`. Esto asegura que si una validación falla a mitad de un proceso (o si la BD falla), **nada** se guarde y el stock no se corrompa.
+
+---
+
+## 5. Convenciones de UI/UX (Frontend)
+
+1. **Texto informativo en tooltips, no en los modales/módulos.** Mantener los
+   modales y módulos lo más limpios posible. NO colocar párrafos o frases
+   informativas largas directamente en la interfaz; en su lugar, ese contenido
+   va en un **tooltip** (atributo `title`, `data-tip` o un tooltip custom) para
+   que el usuario tenga la instrucción sin recargar la UI.
+2. **Textos breves en campos, títulos y secciones.** Preferir etiquetas y
+   encabezados cortos (una o pocas palabras). Si un concepto requiere
+   explicación, ir al tooltip.
+3. **Botones y enlaces de solo icono** (p. ej. menú colapsado) **deben llevar
+   tooltip** indicando el nombre del módulo/acción.

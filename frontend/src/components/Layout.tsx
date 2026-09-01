@@ -13,6 +13,9 @@ export default function Layout() {
   // Estado para controlar el menú móvil
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Menú colapsado en desktop (solo iconos visibles)
+  const [collapsed, setCollapsed] = useState(false);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -117,32 +120,53 @@ export default function Layout() {
 
       {/* Sidebar (Menú Lateral) */}
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-white flex flex-col transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 bg-slate-900 text-white flex flex-col transform transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 ${
+          collapsed ? 'lg:w-20' : 'lg:w-72'
+        } w-72 ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="p-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
+        <div className={`p-6 flex items-center ${collapsed ? 'lg:justify-center lg:px-0' : 'justify-between'}`}>
+          <div className={`flex items-center gap-3 ${collapsed ? 'lg:justify-center' : ''}`}>
+            <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center shrink-0">
               <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <h2 className="text-2xl font-black tracking-tight text-white">SIGES<span className="text-brand-400">.</span></h2>
+            <h2 className={`text-2xl font-black tracking-tight text-white ${collapsed ? 'lg:hidden' : ''}`}>SIGES<span className="text-brand-400">.</span></h2>
           </div>
           
-          {/* Botón cerrar sidebar (Solo Móvil) */}
-          <button 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="lg:hidden p-1 text-slate-400 hover:text-white transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Botón colapsar/expandir menú (Solo Desktop) */}
+            <button
+              onClick={() => setCollapsed((c) => !c)}
+              title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+              className="hidden lg:inline-flex p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              {collapsed ? (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l5 5-5 5m-6-10l-5 5 5 5" />
+                </svg>
+              )}
+            </button>
+
+            {/* Botón cerrar sidebar (Solo Móvil) */}
+            <button 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="lg:hidden p-1 text-slate-400 hover:text-white transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
         
-        <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto">
+        <nav className={`flex-1 px-2 lg:px-4 space-y-2 mt-4 overflow-y-auto`}>
           {navLinks
             .filter(link => hasAccess(link.path, user))
             .map((link) => {
@@ -152,25 +176,28 @@ export default function Layout() {
                 key={link.path}
                 to={link.path} 
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
+                title={link.name}
+                className={`flex items-center gap-3 py-3.5 rounded-xl transition-all duration-200 ${
+                  collapsed ? 'lg:justify-center lg:px-0' : 'px-4'
+                } ${
                   isActive 
                     ? 'bg-brand-600/10 text-brand-400 font-semibold border border-brand-500/20 shadow-inner' 
                     : 'text-slate-400 hover:bg-slate-800 hover:text-white font-medium'
                 }`}
               >
-                {link.icon}
-                {link.name}
+                <span className="shrink-0">{link.icon}</span>
+                <span className={collapsed ? 'lg:hidden' : ''}>{link.name}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-6 border-t border-slate-800">
-          <div className="flex items-center gap-3 mb-6 px-2">
-            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 font-bold border border-slate-700">
+        <div className={`p-6 border-t border-slate-800 ${collapsed ? 'lg:px-0 lg:flex lg:flex-col lg:items-center' : ''}`}>
+          <div className={`flex items-center gap-3 mb-6 px-2 ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}>
+            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 font-bold border border-slate-700 shrink-0">
               {user?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
-            <div className="overflow-hidden">
+            <div className={`overflow-hidden ${collapsed ? 'lg:hidden' : ''}`}>
               <p className="text-sm font-semibold text-slate-200 truncate">{user?.name}</p>
               <p className="text-xs text-slate-500 truncate">{user?.email}</p>
             </div>
@@ -178,12 +205,17 @@ export default function Layout() {
           
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all border border-transparent hover:border-rose-500/20"
+            title="Cerrar Sesión"
+            className={`flex items-center gap-3 w-full py-3 text-sm font-medium text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all border border-transparent hover:border-rose-500/20 ${
+              collapsed ? 'lg:justify-center lg:px-0' : 'px-4'
+            }`}
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Cerrar Sesión
+            <span className="shrink-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </span>
+            <span className={collapsed ? 'lg:hidden' : ''}>Cerrar Sesión</span>
           </button>
         </div>
       </aside>

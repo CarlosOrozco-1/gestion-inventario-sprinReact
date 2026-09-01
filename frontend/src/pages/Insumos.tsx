@@ -3,6 +3,7 @@ import api from '../api/axios';
 import InsumoModal from '../components/InsumoModal';
 import QrScanner from '../components/QrScanner';
 import SearchModal from '../components/SearchModal';
+import QrModal from '../components/QrModal';
 import { useToastStore } from '../store/useToastStore';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 
@@ -15,6 +16,7 @@ export default function Insumos() {
   const [modalConfig, setModalConfig] = useState(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [qrModal, setQrModal] = useState(null);
 
   const showToast = useToastStore((s: any) => s.showToast);
 
@@ -111,6 +113,14 @@ export default function Insumos() {
         onClose={() => setIsSearchOpen(false)}
         onSelectItem={handleSearchSelectItem}
         onSelectPresentation={handleSearchSelectPresentation}
+      />
+
+      {/* Vista ampliada del QR (descargar PNG / imprimir) */}
+      <QrModal
+        isOpen={!!qrModal}
+        item={qrModal?.item}
+        presentation={qrModal?.pres}
+        onClose={() => setQrModal(null)}
       />
 
       {/* Header de la vista */}
@@ -251,9 +261,14 @@ export default function Insumos() {
                           </td>
                           <td className="p-4 text-center">
                             {pres.qrCode && (
-                              <div className="flex justify-center">
+                              <button
+                                type="button"
+                                title="Ver QR en grande (descargar / imprimir)"
+                                onClick={() => setQrModal({ item, pres })}
+                                className="inline-flex rounded-lg hover:scale-105 hover:ring-2 hover:ring-brand-500/30 transition-transform"
+                              >
                                 <QRCode value={pres.qrCode} size={64} level="M" includeMargin={true} />
-                              </div>
+                              </button>
                             )}
                           </td>
                           <td className="p-4 text-center">

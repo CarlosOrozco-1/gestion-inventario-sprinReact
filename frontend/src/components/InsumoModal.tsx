@@ -188,7 +188,7 @@ export default function InsumoModal({ isOpen, onClose, onSave, modalConfig, item
                   <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                   </svg>
-                  <h3 className="text-sm font-bold text-slate-700">Material (solo lectura)</h3>
+                  <h3 className="text-sm font-bold text-slate-700">Material</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -217,7 +217,7 @@ export default function InsumoModal({ isOpen, onClose, onSave, modalConfig, item
                   </div>
                 </div>
                 <p className="text-xs text-slate-400 mt-2">
-                  Este insumo solo se modifica desde el catálogo principal. Aquí solo editas la presentación.
+                  Editar en el catálogo principal
                 </p>
               </div>
             )}

@@ -367,5 +367,50 @@ produce:
 
 ---
 
-## 10. Próximas mejoras / pendientes
+## 10. Limpieza de textos largos en modales y skill de auditoría técnica
+
+**Fecha:** 2026-09-01
+**Naturaleza:** Mantenimiento de UI + herramienta de revisión de estándares.
+
+### Descripción
+Se redujo la carga de información de la interfaz y se agregó una herramienta de
+revisión técnica:
+
+- **Proyecciones:** se retiró el párrafo que explicaba la fórmula de las
+  sugerencias de stock (Mín = CPD × lead-time(7 días), Máx = CPD ×
+  lead-time+cobertura; ventana de 90 días). Era información para el desarrollador,
+  no para el usuario. Ahora queda como **comentario en el código** del endpoint
+  (la fórmula completa vive en `SugerenciaStockService` en el backend).
+- **AjusteModal:** el banner "Atención: todo ajuste altera el patrimonio..."
+  pasó a un **tooltip** (`i`) junto al título del modal, dejando el formulario limpio.
+- **Skill `auditoria-tecnica`**: nueva skill de opencode que audita el
+  cumplimiento de estándares del stack (React + Spring Boot, endpoints,
+  estructura, validaciones) y **solo reporta hallazgos** por severidad, sin
+  modificar código.
+
+### Comportamiento
+1. El usuario ya no ve textos técnicos de criterios de cálculo en los modales.
+2. La advertencia legal del ajuste se muestra solo al pasar el cursor por el `i`.
+3. Al pedir una auditoría técnica, opencode cargará la skill y devolverá un
+   checklist de hallazgos (Bloqueante/Importante/Menor) con archivos afectados.
+
+### Archivos involucrados
+- `frontend/src/pages/Proyecciones.tsx` — párrafo de fórmula de sugerencia
+  reemplazado por un comentario JSX (remitente a `SugerenciaStockService`).
+- `frontend/src/components/AjusteModal.tsx` — banner "Atención" → tooltip `i`.
+- `.opencode/skills/auditoria-tecnica/SKILL.md` — **nuevo**, checklist de
+  estándares técnicos del stack.
+- `.opencode/skills/mejora-ux/SKILL.md` — regla: texto técnico va al código.
+- `AGENTS.md` — sección 5.5 (texto de desarrollador en el código) y skill
+  `auditoria-tecnica` en la sección 6.
+
+### Notas
+- Para que opencode cargue la skill nueva, reiniciar la sesión (la skill se
+  auto-descubre desde `.opencode/skills/`).
+- La fórmula en sí ya estaba documentada en el backend
+  (`SugerenciaStockService`, Javadoc de clase), no había pérdida de información.
+
+---
+
+## 11. Próximas mejoras / pendientes
 - (registrar aquí futuras implementaciones)

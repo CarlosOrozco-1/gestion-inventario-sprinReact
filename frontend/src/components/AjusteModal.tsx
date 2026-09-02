@@ -113,6 +113,12 @@ export default function AjusteModal({ isOpen, onClose, onSave, insumos, preSelec
               </svg>
             </div>
             <h2 className="text-xl font-bold text-slate-800">Auditoría: Ajuste de Stock</h2>
+            <span
+              title="Todo ajuste altera el patrimonio y quedará registrado a su nombre."
+              className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-600 text-xs font-bold cursor-help"
+            >
+              i
+            </span>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-1">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -122,10 +128,6 @@ export default function AjusteModal({ isOpen, onClose, onSave, insumos, preSelec
         </div>
 
         <form onSubmit={handleContinue} className="p-6">
-          <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-sm mb-6 border border-amber-200">
-            <strong>Atención:</strong> Todo ajuste altera el patrimonio y quedará registrado a su nombre.
-          </div>
-
           {error && (
             <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-100">
               {error}

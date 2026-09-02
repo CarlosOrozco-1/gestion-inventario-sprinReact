@@ -347,18 +347,16 @@ export default function Proyecciones() {
         </div>
       </div>
 
-      {/* Criterios Avanzados: Sugerencias de stock según consumo */}
+      {/* Sugerencias de stock según consumo.
+          La fórmula vive en el backend: SugerenciaStockService (consumo de los
+          últimos "ventana-dias" = 90 días; Mín = CPD*leadTime(7); Máx = CPD*
+          (leadTime+cobertura)). Aquí solo se consume el endpoint. */}
       <div className="mt-10 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-bold text-slate-800">
               Sugerencias de Stock (Smart Restock)
             </h2>
-            <p className="text-slate-500 mt-1 text-sm">
-              Mínimo/Máximo recomendados según el consumo de los últimos 90
-              días (salidas + ajustes). Mínimo = consumo diario × 7 días de
-              reposición · Máximo = consumo diario × 37 días de cobertura.
-            </p>
           </div>
           {!esAdmin && (
             <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-500">

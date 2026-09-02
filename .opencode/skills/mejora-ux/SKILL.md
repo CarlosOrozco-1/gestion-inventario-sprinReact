@@ -10,6 +10,9 @@ Aplica estas reglas en **todo** cambio de interfaz del frontend.
 ## 1. Texto informativo en tooltips, no en modales/módulos
 - Los modales y módulos deben verse **limpios**: sin párrafos ni frases largas.
 - La explicación va en un **tooltip** (`title`, `data-tip` o tooltip custom).
+- **Excepción:** si el texto es técnico / solo útil para el desarrollador
+  (fórmulas, cálculos, criterios internos) NO va en la UI ni en tooltip: va como
+  **comentario en el código** junto a la lógica que lo explica.
 
 ## 2. Textos breves en campos, títulos y secciones
 - Etiquetas y encabezados cortos (una o pocas palabras).

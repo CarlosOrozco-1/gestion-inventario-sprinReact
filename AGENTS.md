@@ -124,6 +124,11 @@ Toda función en la capa Service que afecte inventario (entradas o salidas) **de
    exitoso / Cargando datos...") antes de abrir el modal con la información, para
    que el cambio no sea abrupto. (Utilidad: `src/utils/sound.ts` +
    `QrScanner.tsx`.)
+5. **Texto técnico/para el desarrollador va en el código, no en la UI.** Si una
+   explicación (fórmulas, reglas de cálculo, criterios de negocio) NO añade
+   valor al usuario, NO debe mostrarse en modal ni en tooltip: queda como
+   **comentario en el código** (junto a la lógica, p. ej. en el service del
+   backend). Solo lo útil para el usuario final va como tooltip breve.
 
 ---
 
@@ -147,6 +152,8 @@ Toda función en la capa Service que afecte inventario (entradas o salidas) **de
 - **`mejora-ux`** — convenciones de UI/UX para cambios de interfaz.
 - **`deploy-docker`** — desplegar/validar el stack y diagnosticar "el front no
   carga" (incluye verificación con Chromium headless).
+- **`auditoria-tecnica`** — auditoría de cumplimiento de estándares del stack
+  (React/Spring Boot, endpoints, estructura); solo reporta hallazgos.
 - Agregar una skill nueva = crear `.opencode/skills/<nombre>/SKILL.md` con
   frontmatter (`name`, `description`) y cuerpo en markdown. Tras crearla o
   editar config, **reiniciar opencode** para que la cargue.

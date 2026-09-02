@@ -124,3 +124,29 @@ Toda función en la capa Service que afecte inventario (entradas o salidas) **de
    exitoso / Cargando datos...") antes de abrir el modal con la información, para
    que el cambio no sea abrupto. (Utilidad: `src/utils/sound.ts` +
    `QrScanner.tsx`.)
+
+---
+
+## 6. Testing y Skills del Proyecto
+
+### Framework de testing
+- **Frontend (React):** `Vitest` + `React Testing Library` + `jsdom`
+  (config en `frontend/vitest.config.ts`, setup en `src/test/setup.ts`).
+  - Ejecutar: `cd frontend && npm test` (una sola pasada) o `npm run test:watch`.
+  - Convección: archivos `src/**/*.test.{ts,tsx}` junto al código que prueban.
+- **Backend (Spring Boot):** `JUnit 5` + `Mockito` (ya en `build.gradle`).
+  - El entorno local NO tiene JDK compilador, por lo que los tests se ejecutan
+    en Docker: **`scripts/test_backend.sh`** (imagen `gradle:9.5.1-jdk21`,
+    corre el paquete `com.gestion.inventario.service.*`; `BackendApplicationTests`
+    requiere PostgreSQL y queda fuera de la corrida Docker).
+  - Reporte HTML: `backend/build/reports/tests/test/index.html` (en la copia
+    de trabajo `/tmp/opencode/backend-tests`).
+
+### Skills de opencode (`.opencode/skills/`)
+- **`validacion-e2e`** — ejecutar el smoke test E2E y limpiar datos residuales.
+- **`mejora-ux`** — convenciones de UI/UX para cambios de interfaz.
+- **`deploy-docker`** — desplegar/validar el stack y diagnosticar "el front no
+  carga" (incluye verificación con Chromium headless).
+- Agregar una skill nueva = crear `.opencode/skills/<nombre>/SKILL.md` con
+  frontmatter (`name`, `description`) y cuerpo en markdown. Tras crearla o
+  editar config, **reiniciar opencode** para que la cargue.

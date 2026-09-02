@@ -34,7 +34,7 @@ export default function Usuarios() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto animate-in fade-in duration-300">
+    <div className="page-container animate-in fade-in duration-300">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Gestión de Usuarios</h1>

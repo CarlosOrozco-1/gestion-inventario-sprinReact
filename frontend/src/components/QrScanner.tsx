@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
+import { playQrSuccess } from '../utils/sound';
 
 interface QrScannerProps {
   isOpen: boolean;
@@ -12,8 +13,10 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
   const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
   const stoppedRef = useRef(false);
   const scannedRef = useRef(false);
+  const pendingTimerRef = useRef<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [detected, setDetected] = useState(false);
 
   // Detiene la cámara de forma segura (evita "already under transition").
   const stopScanner = async () => {
@@ -34,8 +37,13 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
     // Previene múltiples disparos del mismo QR.
     if (scannedRef.current) return;
     scannedRef.current = true;
+    // Feedback sonoro + transición de carga antes de abrir el resultado.
+    playQrSuccess();
+    setDetected(true);
     stopScanner();
-    onScan(qrCode);
+    pendingTimerRef.current = window.setTimeout(() => {
+      onScan(qrCode);
+    }, 900);
   };
 
   // Arranca la cámara cuando se abre el escáner.
@@ -49,6 +57,7 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
       try {
         scannedRef.current = false;
         stoppedRef.current = false;
+        setDetected(false);
         // Espera un tick para asegurar que el contenedor esté montado.
         await new Promise((r) => setTimeout(r, 50));
         const scanner = new Html5Qrcode('qr-reader');
@@ -72,11 +81,20 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
     startScanner();
     // Cleanup: detiene la cámara al cerrar o desmontar.
     return () => {
+      if (pendingTimerRef.current) {
+        clearTimeout(pendingTimerRef.current);
+        pendingTimerRef.current = null;
+      }
       stopScanner();
     };
   }, [isOpen]);
 
   const handleClose = () => {
+    if (pendingTimerRef.current) {
+      clearTimeout(pendingTimerRef.current);
+      pendingTimerRef.current = null;
+    }
+    setDetected(false);
     stopScanner().finally(() => onClose());
   };
 
@@ -99,15 +117,21 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
         <div className="p-4">
           {/* El contenedor permanece SIEMPRE montado para que html5-qrcode no
               pierda el elemento video mientras la cámara está activa. */}
-          <div
-            ref={containerRef}
-            id="qr-reader"
-            className="w-full aspect-video bg-slate-100 rounded-xl overflow-hidden relative"
-          >
+          <div className="w-full aspect-video bg-slate-100 rounded-xl overflow-hidden relative">
+            <div ref={containerRef} id="qr-reader" className="w-full h-full"></div>
+
             {error && (
               <div className="absolute inset-0 flex items-center justify-center bg-red-50 text-red-600 p-4 text-center">
                 <p className="font-medium">{error}</p>
                 <p className="text-sm mt-1">Ingresa el código manualmente o intenta de nuevo.</p>
+              </div>
+            )}
+
+            {detected && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-emerald-50/95 text-emerald-700">
+                <div className="w-10 h-10 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin"></div>
+                <p className="font-semibold">ESCANEO EXITOSO</p>
+                <p className="text-sm text-emerald-600">Cargando datos del insumo...</p>
               </div>
             )}
           </div>

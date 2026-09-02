@@ -35,6 +35,20 @@ body {
     @apply bg-surface-card/80 backdrop-blur-md border border-white/10 shadow-2xl;
 }
 
+/* Contenedor base de las páginas: centrado y con ancho cómodo */
+@utility page-container {
+    @apply w-full max-w-7xl mx-auto transition-[max-width] duration-300 ease-in-out;
+}
+
+/*
+  Cuando el menú lateral está colapsado (solo iconos), el contenido
+  aprovecha el ancho liberado: las tablas y tarjetas ya no quedan
+  "en medio de un gran espacio" sino que se expanden.
+*/
+main.side-collapsed .page-container {
+    max-width: 96rem;
+}
+
 /*
   Tailwind v4 (preflight) deja los botones con cursor: default (nativo).
   Restauramos la mano en todo elemento interactivo no deshabilitado.

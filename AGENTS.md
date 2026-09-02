@@ -119,3 +119,8 @@ Toda función en la capa Service que afecte inventario (entradas o salidas) **de
    explicación, ir al tooltip.
 3. **Botones y enlaces de solo icono** (p. ej. menú colapsado) **deben llevar
    tooltip** indicando el nombre del módulo/acción.
+4. **Feedback del escáner QR:** el escaneo exitoso debe reproducir un **sonido**
+   de confirmación y mostrar una **breve transición de carga** ("Escaneo
+   exitoso / Cargando datos...") antes de abrir el modal con la información, para
+   que el cambio no sea abrupto. (Utilidad: `src/utils/sound.ts` +
+   `QrScanner.tsx`.)

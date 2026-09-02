@@ -221,7 +221,7 @@ export default function Layout() {
       </aside>
 
       {/* Contenido Principal */}
-      <main className="flex-1 overflow-y-auto w-full lg:w-auto relative bg-slate-50 pt-16 lg:pt-0">
+      <main className={`flex-1 overflow-y-auto w-full lg:w-auto relative bg-slate-50 pt-16 lg:pt-0 ${collapsed ? 'side-collapsed' : ''}`}>
         <div className="p-4 md:p-8 min-h-full">
           <Outlet />
         </div>

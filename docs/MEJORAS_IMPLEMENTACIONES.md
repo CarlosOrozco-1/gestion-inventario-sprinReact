@@ -258,5 +258,114 @@ mouse, para que el usuario sepa a dónde va a navegar.
 
 ---
 
-## 7. Próximas mejoras / pendientes
+## 7. Contenido Responsive al Colapsar el Menú Lateral
+
+**Fecha:** 2026-09-01
+**Naturaleza:** Mejora de layout / aprovechamiento del espacio.
+
+### Descripción
+Al colapsar el menú lateral (solo iconos, desktop), el espacio disponible para
+el contenido crece, pero antes las tablas y tarjetas seguían fijas en el ancho
+`max-w-7xl` centrado, dejándose **"en medio de un gran espacio"** (margen amplio
+a la izquierda, junto al menú colapsado, y a la derecha).
+
+Ahora el contenido **se expande** para aprovechar el ancho liberado cuando el
+menú está colapsado, manteniéndose centrado y cómodo.
+
+### Comportamiento
+1. Nuevo contenedor reutilizable **`page-container`** (definido en `index.css`)
+   usado por todas las páginas: `w-full max-w-7xl mx-auto` con transición suave
+   de `max-width`.
+2. El `Layout` marca el `<main>` con la clase **`side-collapsed`** cuando el
+   menú está colapsado.
+3. Regla CSS `main.side-collapsed .page-container`: amplía el ancho máximo a
+   `96rem` (1536px) en esas páginas, eliminando el espacio muerto y haciendo las
+   tablas más anchas y legibles.
+4. La transición del ancho es animada (`transition-[max-width]`), acorde al
+   resto de la UI.
+
+### Archivos involucrados
+- `frontend/src/index.css` — utilidad `page-container` y regla `side-collapsed`.
+- `frontend/src/components/Layout.tsx` — marca `<main>` con `side-collapsed`.
+- `frontend/src/pages/{Dashboard,Insumos,Movimientos,Ajustes,Reportes,Proyecciones,Usuarios}.tsx`
+  — contenedor raíz pasa de `max-w-7xl mx-auto` a `page-container`.
+
+### Notas
+- El `overflow-x-auto` de las tablas se mantiene, por lo que en pantallas
+  angostas el scroll horizontal sigue funcionando (responsive móvil intacto).
+- Los modales son `fixed inset-0` centrados en el viewport y no dependen del
+  ancho del contenido.
+
+---
+
+## 8. Botón de Escanear QR Unificado (Catálogo y Kárdex)
+
+**Fecha:** 2026-09-01
+**Naturaleza:** Consistencia de diseño en los módulos.
+
+### Descripción
+El botón **"Escanear QR"** tenía un diseño distinto entre el **Catálogo de
+Insumos** (botón blanco/borde) y el **Kárdex/Movimientos** (botón brand sólido).
+Se unificó el diseño para que sean **idénticos**, tomando como referencia el del
+módulo de Kárdex.
+
+### Comportamiento
+1. En ambos módulos el botón "Escanear QR" ahora es:
+   `bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg
+   focus:ring-2 focus:ring-brand-500/50`.
+2. Ambos usan el **mismo icono** de escaneo QR (marca de esquinas + línea
+   central). En Kárdex se corrigió el icono anterior (era un "+", que parecía de
+   "nuevo movimiento").
+
+### Archivos involucrados
+- `frontend/src/pages/Insumos.tsx` — botón "Escanear QR" con estilo brand sólido.
+- `frontend/src/pages/Movimientos.tsx` — mismo icono de escaneo QR (sin "+").
+
+### Notas
+- El botón "Buscar insumo" (catálogo) y "Registrar Movimiento" (Kárdex)
+  conservan su propio diseño funcional; solo se unificó la acción de escanear.
+
+---
+
+## 9. Feedback al Escanear QR: Sonido + Transición de Carga
+
+**Fecha:** 2026-09-01
+**Naturaleza:** Mejora de UX en el flujo de escaneo.
+
+### Descripción
+Antes, al escanear un QR el módulo de resultado aparecía **de forma casi
+inmediata** (casi directa), sin confirmación previa. Ahora el escaneo exitoso
+produce:
+
+1. **Un sonido** de confirmación (doble beep ascendente).
+2. **Una pequeña transición/modal de carga** ("Escaneo exitoso — Cargando datos
+   del insumo...") que amortigua el salto al modal con la información.
+
+### Comportamiento
+1. Al detectarse un QR válido, `QrScanner` reproduce el sonido vía **Web Audio
+   API** (sin archivos de audio adicionales) y muestra el overlay de carga por
+   ~0.9s.
+2. Pasado ese intervalo se invoca `onScan(qrCode)` y el módulo/acción resultado
+   aparece de forma natural.
+3. El overlay se superpone al área del video, sin alterar el contenedor
+   controlado por `html5-qrcode` (evita que `clear()` borre el overlay).
+4. Si el usuario cierra el escáner durante la carga, se cancela el temporizador
+   y no se dispara el resultado.
+
+### Archivos involucrados
+- `frontend/src/utils/sound.ts` — **nuevo**, reproducción del beep de éxito con
+  la Web Audio API.
+- `frontend/src/components/QrScanner.tsx` — estado `detected`, overlay de carga,
+  sonido al detectar y cancelación segura del temporizador.
+
+### Notas
+- El sonido no requiere archivos ni dependencias: se genera con
+  `OscillatorNode`. Requiere interacción previa del usuario (abrir el escáner),
+  por lo que cumple las políticas de autoplay de los navegadores.
+- La transición beneficia tanto al Catálogo de Insumos como al Kárdex, ya que
+  ambos usan el mismo componente `QrScanner`.
+
+---
+
+## 10. Próximas mejoras / pendientes
 - (registrar aquí futuras implementaciones)

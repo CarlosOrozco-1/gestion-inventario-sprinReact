@@ -62,7 +62,7 @@ export default function Ajustes() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto animate-in fade-in duration-300">
+    <div className="page-container animate-in fade-in duration-300">
       <AjusteModal 
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setScannedPresentation(null); }}

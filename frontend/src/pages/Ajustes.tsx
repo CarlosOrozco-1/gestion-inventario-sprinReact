@@ -78,7 +78,7 @@ export default function Ajustes() {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Auditoría y Ajustes</h1>
+          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Ajustes</h1>
           <p className="text-slate-500 mt-1">Historial de correcciones manuales al inventario.</p>
         </div>
         
@@ -114,14 +114,14 @@ export default function Ajustes() {
                 <th className="p-4 font-semibold">Insumo</th>
                 <th className="p-4 font-semibold text-center">Impacto</th>
                 <th className="p-4 font-semibold text-right">Cant.</th>
-                <th className="p-4 font-semibold">Auditor</th>
+                <th className="p-4 font-semibold">Responsable</th>
                 <th className="p-4 font-semibold">Justificación Obligatoria</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-400">Cargando auditoría...</td>
+                  <td colSpan={6} className="p-8 text-center text-slate-400">Cargando ajustes...</td>
                 </tr>
               ) : movimientos.length === 0 ? (
                 <tr>

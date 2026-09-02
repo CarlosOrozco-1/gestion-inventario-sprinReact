@@ -32,18 +32,18 @@ por el campo `nivel` de la tabla `roles`.
 | Inicio (Dashboard)          | `/`            |   ✔   |  ✔   |    ✔     |
 | Insumos                     | `/insumos`     |   ✔   |  ✘   |    ✘     |
 | Kárdex (Movimientos)        | `/movimientos` |   ✔   |  ✔   |    ✔     |
-| Auditoría (Ajustes)         | `/ajustes`     |   ✔   |  ✔   |    ✘     |
+| Ajustes                      | `/ajustes`     |   ✔   |  ✔   |    ✘     |
 | Reportería                  | `/reportes`    |   ✔   |  ✔   |    ✔     |
-| Proyecciones (Beta)         | `/proyecciones`|   ✔   |  ✔   |    ✘     |
+| Proyecciones                | `/proyecciones`|   ✔   |  ✔   |    ✘     |
 | Gestión de Usuarios         | `/usuarios`    |   ✔   |  ✘   |    ✘     |
 
 ### Resumen por Rol
 
 - **ADMIN:** Acceso total a todos los módulos.
-- **JEFE:** Reportería, Kárdex (Movimientos), Auditoría (Ajustes) y
+- **JEFE:** Reportería, Kárdex (Movimientos), Ajustes y
   Proyecciones. **No** ve Insumos ni Gestión de Usuarios.
 - **AUXILIAR:** Reportería y Kárdex (Movimientos). **No** ve Insumos,
-  Auditoría, Proyecciones ni Gestión de Usuarios.
+  Ajustes, Proyecciones ni Gestión de Usuarios.
 
 ---
 

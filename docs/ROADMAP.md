@@ -2,7 +2,7 @@
 
 ## Estado de Fases
 
-### Fase 10: Módulo Beta de Proyecciones (Smart Restock) — ✅ Completada
+### Fase 10: Módulo de Proyecciones (Smart Restock) — ✅ Completada
 - **Objetivo:** Calcular presupuesto necesario para llevar el stock actual al stock óptimo (Máximo).
 - **Lógica:** `Déficit = Stock Máximo - Stock Actual`. Si `Déficit > 0`, entonces `Inversión = Déficit * Costo Estimado`.
 

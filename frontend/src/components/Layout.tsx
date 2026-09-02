@@ -50,7 +50,7 @@ export default function Layout() {
       )
     },
     {
-      name: 'Auditoría (Ajustes)',
+      name: 'Ajustes',
       path: '/ajustes',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -68,7 +68,7 @@ export default function Layout() {
       )
     },
     {
-      name: 'Proyecciones (Beta)',
+      name: 'Proyecciones',
       path: '/proyecciones',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

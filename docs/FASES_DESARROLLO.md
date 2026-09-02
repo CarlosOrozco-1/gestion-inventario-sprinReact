@@ -67,7 +67,7 @@ graph TD
 - [x] Exportación de movimientos filtrados (PDF con OpenPDF, Excel con Apache POI).
 - [x] Descarga desde el frontend (`Reportes.tsx`) y filtros cruzados en memoria.
 
-### Fase 10: Módulo Beta de Proyecciones (Smart Restock)
+### Fase 10: Módulo de Proyecciones (Smart Restock)
 - [x] Lógica `Déficit = Stock Máximo - Stock Actual` e `Inversión = Déficit * Costo Estimado`.
 - [x] Endpoints `POST /api/reportes/proyecciones/pdf` y `/excel`.
 - [x] Pantalla `Proyecciones.tsx` con resumen financiero y exportaciones.
@@ -206,7 +206,7 @@ De ellos, la refactorización de normalización a inglés (17+18) suma **~2-2.5 
 ## Fases Adicionales: Soporte QR Code en Insumos
 
 ### Fase 20: Agregar campo QR Code a Presentaciones (Backend + BD)
-- **Objetivo:** Cada presentación (variante de insumo) tendrá un código QR único para identificación rápida en Kárdex y Auditoría.
+- **Objetivo:** Cada presentación (variante de insumo) tendrá un código QR único para identificación rápida en Kárdex y Ajustes.
 - **Backend:**
   - [x] Migración Flyway `V5__add_qr_code_to_presentations.sql`: agregar columna `qr_code VARCHAR(255) UNIQUE` a tabla `presentations`, generar QR codes para existentes (`SIGES-ITEM-{code}-PRES-{id}`), crear índice `idx_presentations_qr_code`.
   - [x] Entidad `Presentation`: agregar campo `qrCode` con `@Column(name="qr_code", unique=true)`.
@@ -235,7 +235,7 @@ De ellos, la refactorización de normalización a inglés (17+18) suma **~2-2.5 
 - **Est. de esfuerzo: ~0.5 día.**
 - **Validación:** Build frontend + prueba manual de escaneo.
 
-### Fase 23: Escáner QR en Módulo Auditoría (Ajustes)
+### Fase 23: Escáner QR en Módulo de Ajustes
 - **Objetivo:** Permitir escanear QR de insumo para abrir modal de ajuste con el insumo pre-seleccionado.
 - **Frontend:**
   - [x] `Ajustes.tsx`: botón "Escanear QR" (mismo componente `QrScanner`) → al escanear busca insumo y abre `AjusteModal` con `preSelectedPresentation`.
@@ -267,4 +267,4 @@ De ellos, la refactorización de normalización a inglés (17+18) suma **~2-2.5 
 | 20   | QR Code en Presentaciones (Backend)| **Completada** |
 | 21   | QR Code en Catálogo (Frontend)     | **Completada** |
 | 22   | Escáner QR en Kárdex               | **Completada** |
-| 23   | Escáner QR en Auditoría            | **Completada** |
+| 23   | Escáner QR en Ajustes            | **Completada** |

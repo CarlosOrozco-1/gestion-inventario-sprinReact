@@ -15,6 +15,10 @@
 - **Detalle:** Filtrado del menú lateral y protección de rutas por rol. Ver `docs/ACCESOS_ROLES_MODULOS.md`.
 - **Pendiente:** Reforzar endpoints del backend con `@PreAuthorize`.
 
+### Fase 24: Auditoría del Sistema — ✅ Completada
+- **Objetivo:** Bitácora inmutable que registra accesos al sistema (login), movimientos/ajustes, gestión de usuarios y exportaciones.
+- **Detalle:** Tabla `audit_logs` + servicio automático (`AuditService`) + `GET /api/auditoria`. Módulo `/auditoria` solo ADMIN. Ver `docs/diagramas/flujo_auditoria.md`.
+
 ## Siguientes Fases
 
 ### Fase 12: Recuperación de Contraseña (Código por Correo Electrónico)

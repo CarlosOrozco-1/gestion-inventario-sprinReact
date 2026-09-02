@@ -12,6 +12,7 @@ export const MODULE_ACCESS: Record<string, string[]> = {
   "/reportes": [ROLES.ADMIN, ROLES.JEFE, ROLES.AUXILIAR],
   "/proyecciones": [ROLES.ADMIN, ROLES.JEFE],
   "/usuarios": [ROLES.ADMIN],
+  "/auditoria": [ROLES.ADMIN],
 };
 
 export const hasAccess = (path: string, user: any): boolean => {

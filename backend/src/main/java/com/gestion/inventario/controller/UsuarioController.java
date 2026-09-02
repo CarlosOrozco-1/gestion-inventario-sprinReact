@@ -6,6 +6,8 @@ import com.gestion.inventario.model.Rol;
 import com.gestion.inventario.model.Usuario;
 import com.gestion.inventario.repository.RolRepository;
 import com.gestion.inventario.repository.UsuarioRepository;
+import com.gestion.inventario.service.AuditService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -31,6 +33,9 @@ public class UsuarioController {
     @Autowired
     private RolRepository rolRepository;
 
+    @Autowired
+    private AuditService auditService;
+
     @GetMapping
     public List<Map<String, Object>> listarUsuariosResumen() {
         return usuarioRepository.findAll().stream().map(u -> 
@@ -48,7 +53,8 @@ public class UsuarioController {
     }
 
     @PostMapping("/admin")
-    public Usuario crearUsuario(@RequestBody NuevoUsuarioDTO dto) {
+    public Usuario crearUsuario(@RequestBody NuevoUsuarioDTO dto, Authentication authentication,
+                                HttpServletRequest httpRequest) {
         if (usuarioRepository.findByEmail(dto.getEmail()).isPresent()) {
             throw new IllegalArgumentException("El correo ya está en uso");
         }
@@ -63,12 +69,19 @@ public class UsuarioController {
         usuario.setRol(rol);
         usuario.setActive(true);
         
-        return usuarioRepository.save(usuario);
+        usuario = usuarioRepository.save(usuario);
+
+        auditService.registrar(AuditService.USUARIO_CREADO,
+                "Creación del usuario " + usuario.getEmail() + " (rol " + rol.getName() + ")",
+                "usuarios", usuario.getId(), authentication.getName(), authentication.getName(), httpRequest.getRemoteAddr());
+
+        return usuario;
     }
 
     @PutMapping("/admin/{id}")
     @Transactional
-    public Usuario actualizarUsuario(@PathVariable Long id, @RequestBody ActualizarUsuarioDTO dto) {
+    public Usuario actualizarUsuario(@PathVariable Long id, @RequestBody ActualizarUsuarioDTO dto,
+                                     Authentication authentication, HttpServletRequest httpRequest) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
 
@@ -96,13 +109,19 @@ public class UsuarioController {
             usuario.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         }
 
-        return usuarioRepository.save(usuario);
+        usuario = usuarioRepository.save(usuario);
+
+        auditService.registrar(AuditService.USUARIO_ACTUALIZADO,
+                "Datos del usuario " + usuario.getEmail() + " actualizados",
+                "usuarios", usuario.getId(), authentication.getName(), authentication.getName(), httpRequest.getRemoteAddr());
+
+        return usuario;
     }
 
     @PutMapping("/admin/{id}/rol")
     @Transactional
     public Usuario cambiarRol(@PathVariable Long id, @RequestBody Map<String, String> rolBody,
-                              Authentication authentication) {
+                              Authentication authentication, HttpServletRequest httpRequest) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
 
@@ -119,13 +138,19 @@ public class UsuarioController {
         }
 
         usuario.setRol(rol);
-        return usuarioRepository.save(usuario);
+        usuario = usuarioRepository.save(usuario);
+
+        auditService.registrar(AuditService.USUARIO_ROL_CAMBIADO,
+                "Rol de " + usuario.getEmail() + " cambiado a " + rol.getName(),
+                "usuarios", usuario.getId(), authentication.getName(), authentication.getName(), httpRequest.getRemoteAddr());
+
+        return usuario;
     }
 
     @PutMapping("/admin/{id}/status")
     @Transactional
     public Usuario cambiarEstado(@PathVariable Long id, @RequestBody Map<String, Boolean> status,
-                                 Authentication authentication) {
+                                 Authentication authentication, HttpServletRequest httpRequest) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
 
@@ -134,6 +159,13 @@ public class UsuarioController {
         }
 
         usuario.setActive(status.get("active"));
-        return usuarioRepository.save(usuario);
+        usuario = usuarioRepository.save(usuario);
+
+        String accion = Boolean.TRUE.equals(status.get("active")) ? "activado" : "suspendido";
+        auditService.registrar(AuditService.USUARIO_ESTADO_CAMBIADO,
+                "Usuario " + usuario.getEmail() + " " + accion,
+                "usuarios", usuario.getId(), authentication.getName(), authentication.getName(), httpRequest.getRemoteAddr());
+
+        return usuario;
     }
 }

@@ -10,8 +10,9 @@ Los flujos de cada módulo tienen un archivo propio; este documento los indexa:
 | Autenticación — Login | [`flujo_login.md`](./flujo_login.md) |
 | Autenticación — Recuperación de contraseña | [`flujo_recuperar_contrasena.md`](./flujo_recuperar_contrasena.md) |
 | Movimientos (Kárdex y Transacciones) | sección 1 abajo |
-| Auditoría (Ajustes) | sección 2 abajo |
+| Ajustes (correcciones manuales de stock) | sección 2 abajo |
 | Reportería (Excel) | sección 3 abajo |
+| Auditoría del Sistema (bitácora de eventos) | [`flujo_auditoria.md`](./flujo_auditoria.md) |
 
 ---
 
@@ -31,7 +32,7 @@ graph TD
     F --> I[Mostrar Error en Interfaz]
 ```
 
-## 2. Flujo de Módulo de Auditoría (Ajustes)
+## 2. Flujo de Módulo de Ajustes (correcciones manuales de stock)
 ```mermaid
 graph TD
     A[Administrador inicia Ajuste] --> B[Seleccionar Insumo y Tipo de Ajuste]

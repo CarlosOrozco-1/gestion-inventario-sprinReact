@@ -33,6 +33,9 @@ public class MovimientoServiceTest {
     @Mock
     private UsuarioRepository usuarioRepository;
 
+    @Mock
+    private AuditService auditService;
+
     @InjectMocks
     private MovimientoService movimientoService;
 
@@ -78,6 +81,8 @@ public class MovimientoServiceTest {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioPrueba));
 
         Movimiento mockMovimiento = new Movimiento();
+        mockMovimiento.setId(1L);
+        mockMovimiento.setType("ENTRADA");
         when(movimientoRepository.save(any(Movimiento.class))).thenReturn(mockMovimiento);
 
         movimientoService.registrarMovimiento(1L, "ENTRADA", 20, "Compra nueva", 1L);
@@ -107,6 +112,8 @@ public class MovimientoServiceTest {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioPrueba));
 
         Movimiento mockMovimiento = new Movimiento();
+        mockMovimiento.setId(1L);
+        mockMovimiento.setType("SALIDA");
         when(movimientoRepository.save(any(Movimiento.class))).thenReturn(mockMovimiento);
 
         movimientoService.registrarMovimiento(1L, "SALIDA", 30, "Uso en laboratorio", 1L);

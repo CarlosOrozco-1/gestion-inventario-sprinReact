@@ -8,6 +8,7 @@ import Ajustes from "./pages/Ajustes";
 import Reportes from "./pages/Reportes";
 import Proyecciones from "./pages/Proyecciones";
 import Usuarios from "./pages/Usuarios";
+import Auditoria from "./pages/Auditoria";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RequireRole from "./components/RequireRole";
@@ -43,6 +44,7 @@ function App() {
             </Route>
             <Route element={<RequireRole roles={[ROLES.ADMIN]} />}>
               <Route path="/usuarios" element={<Usuarios />} />
+              <Route path="/auditoria" element={<Auditoria />} />
             </Route>
           </Route>
         </Route>

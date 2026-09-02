@@ -1,6 +1,14 @@
 -- Limpia los datos de prueba generados por scripts/smoke_test_e2e.py
 -- (usuarios/movimientos/items/presentations marcados con "E2E"). No borra datos reales.
+--
+-- ADVERTENCIA: purga la bitácora de auditoría (audit_logs). Este script es de
+-- DESARROLLO/QA (se ejecuta después de cada smoke test): en producción no
+-- debe usarse, porque borraría la trazabilidad del sistema.
 BEGIN;
+
+-- Auditoría: el smoke test genera eventos (logins admin, movimientos E2E,
+-- exportaciones). Se purgan para dejar la BD/bitácora pristina tras cada run.
+DELETE FROM audit_logs;
 
 DELETE FROM inventario_movimientos
 WHERE inventario_id IN (

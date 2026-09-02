@@ -412,5 +412,60 @@ revisión técnica:
 
 ---
 
-## 11. Próximas mejoras / pendientes
+## 12. Módulo de Auditoría del Sistema (bitácora de eventos)
+
+**Fecha:** 2026-09-01
+**Naturaleza:** Nuevo módulo de trazabilidad (solo Administradores).
+
+### ¿Qué problema resuelve?
+Antes no existía registro de "quién hizo qué": los ajustes eran movimientos
+(`AJUSTE_*`) y nada registraba accesos al sistema, cambios de usuarios o
+exportaciones. El módulo **Auditoría** deja constancia **inmutable** de cada
+acción relevante.
+
+### Funcionamiento
+- **Escritura automática:** las acciones del sistema notifican a
+  `AuditService.registrar(...)`, que inserta una fila en `audit_logs`:
+  - `auth/login` → `LOGIN` (éxito) o `LOGIN_FALLIDO` (intento fallido).
+  - `movimientos` (POST) → `MOVIMIENTO_CREADO` (entrada/salida/ajuste con detalle).
+  - `usuarios/admin` (crear / actualizar / rol / estado) →
+    `USUARIO_CREADO / USUARIO_ACTUALIZADO / USUARIO_ROL_CAMBIADO / USUARIO_ESTADO_CAMBIADO`.
+  - `reportes` (PDF / Excel / Proyecciones) → `EXPORTACION_PDF / EXPORTACION_EXCEL / EXPORTACION_PROYECCIONES_PDF / EXPORTACION_PROYECCIONES_EXCEL`.
+- Cada registro guarda: `event_type`, descripción legible, entidad e id
+  afectados (ej. `inventario_movimientos`, id del movimiento), correo/nombre
+  del responsable, **IP origen** y `created_at`. Las filas no se editan ni
+  borran (append-only).
+- **Consulta:** `GET /api/auditoria` (solo ADMIN, `@PreAuthorize`) devuelve
+  `Page<AuditLog>` paginada (más reciente primero) con filtros opcionales por
+  evento, usuario y rango de fechas (inclusivo). `GET /api/auditoria/eventos`
+  expone el catálogo código→etiqueta.
+
+### Frontend (`/auditoria`)
+- Página **Auditoría del Sistema** con diseño uniforme (`page-container`,
+  tarjeta blanca, tabla con badges por tipo de evento, columna IP y
+  paginación).
+- Filtros: evento (select con catálogo del backend), usuario, desde/hasta
+  (fechas) y botones **Buscar / Limpiar**.
+- Menú y ruta **solo ADMIN** (`MODULE_ACCESS['/auditoria']` +
+  `RequireRole`).
+
+### Archivos involucrados
+- `backend/.../db/migration/V7__auditoria.sql` — **nuevo**, tabla `audit_logs` + índices.
+- `backend/.../model/AuditLog.java`, `repository/AuditLogRepository.java` — **nuevos**.
+- `backend/.../service/AuditService.java` — **nuevo**, registrar + listar (Specification) + catálogo.
+- `backend/.../controller/AuditController.java` — **nuevo**, `GET /api/auditoria`. `/eventos`.
+- Hooks: `AuthController`, `MovimientoService`, `UsuarioController`, `ReporteController`, `MovimientoController` (pasa IP).
+- `frontend/src/pages/Auditoria.tsx` (+ test) — **nuevo**.
+- `frontend/src/App.tsx`, `access.ts`, `components/Layout.tsx` — ruta/menú solo ADMIN.
+- `scripts/test_backend.sh` — carpeta de trabajo única por corrida (permisos root).
+- `docs/diagramas/flujo_auditoria.md` — **nuevo** diagrama de flujo del módulo.
+
+### Notas
+- El login fallido se registra con el correo intentado (sin contraseña).
+- `BackendApplicationTests` sigue excluido de la corrida Docker (requiere PostgreSQL).
+- Pruebas: 14 tests JUnit (3 nuevos de `AuditService`) + 11 tests Vitest (2 nuevos).
+
+---
+
+## 13. Próximas mejoras / pendientes
 - (registrar aquí futuras implementaciones)

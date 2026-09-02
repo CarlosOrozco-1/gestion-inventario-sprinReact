@@ -26,8 +26,16 @@ public class MovimientoService {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+    @Autowired
+    private AuditService auditService;
+
     @Transactional
     public Movimiento registrarMovimiento(Long presentationId, String type, Integer quantity, String detail, Long usuarioId) {
+        return registrarMovimiento(presentationId, type, quantity, detail, usuarioId, null);
+    }
+
+    @Transactional
+    public Movimiento registrarMovimiento(Long presentationId, String type, Integer quantity, String detail, Long usuarioId, String ip) {
 
         // 1. Validar que la cantidad sea positiva
         if (quantity == null || quantity <= 0) {
@@ -76,7 +84,24 @@ public class MovimientoService {
         movimiento.setUsuario(usuario);
         // Opcional: configurar mes y año si se requiere derivarlo del LocalDateTime.now()
 
-        return movimientoRepository.save(movimiento);
+        movimiento = movimientoRepository.save(movimiento);
+
+        // 6. Auditoría: registramos el movimiento en la bitácora
+        String etiquetaTipo = switch (movimiento.getType()) {
+            case "ENTRADA" -> "Entrada";
+            case "SALIDA" -> "Salida";
+            case "AJUSTE_POSITIVO" -> "Ajuste positivo (sobrante)";
+            case "AJUSTE_NEGATIVO" -> "Ajuste negativo (merma)";
+            default -> movimiento.getType();
+        };
+        auditService.registrar(AuditService.MOVIMIENTO_CREADO,
+                etiquetaTipo + " de " + quantity + " unidades - "
+                        + presentation.getItem().getName() + " (" + presentation.getName() + " "
+                        + presentation.getSize() + ")",
+                "inventario_movimientos", movimiento.getId(),
+                usuario.getEmail(), usuario.getName(), ip);
+
+        return movimiento;
     }
 
     @Transactional(readOnly = true)

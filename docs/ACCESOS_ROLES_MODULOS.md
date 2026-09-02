@@ -36,14 +36,15 @@ por el campo `nivel` de la tabla `roles`.
 | Reportería                  | `/reportes`    |   ✔   |  ✔   |    ✔     |
 | Proyecciones                | `/proyecciones`|   ✔   |  ✔   |    ✘     |
 | Gestión de Usuarios         | `/usuarios`    |   ✔   |  ✘   |    ✘     |
+| Auditoría                   | `/auditoria`   |   ✔   |  ✘   |    ✘     |
 
 ### Resumen por Rol
 
-- **ADMIN:** Acceso total a todos los módulos.
+- **ADMIN:** Acceso total a todos los módulos (incluye Auditoría y Gestión de Usuarios).
 - **JEFE:** Reportería, Kárdex (Movimientos), Ajustes y
-  Proyecciones. **No** ve Insumos ni Gestión de Usuarios.
+  Proyecciones. **No** ve Insumos, Auditoría ni Gestión de Usuarios.
 - **AUXILIAR:** Reportería y Kárdex (Movimientos). **No** ve Insumos,
-  Ajustes, Proyecciones ni Gestión de Usuarios.
+  Ajustes, Proyecciones, Auditoría ni Gestión de Usuarios.
 
 ---
 

@@ -10,12 +10,15 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-WORKDIR="/tmp/opencode/backend-tests"
+# Carpeta única por corrida: los contenedores Gradle corren como root y dejan
+# archivos sin borrar para el usuario local; con carpeta nueva se evita el error.
+WORKDIR="/tmp/opencode/backend-tests-run-$(date +%s%N)"
 IMG="gradle:9.5.1-jdk21"
 GRADLE_CACHE_VOL="siges-gradle-cache"
 
 echo "[1/3] Preparando copia de trabajo (sin build/.gradle)..."
-rm -rf "$WORKDIR"
+# Limpieza best-effort de corridas anteriores (se ignora si hay archivos de root).
+find /tmp/opencode -maxdepth 1 -type d -name 'backend-tests-run-*' -exec rm -rf {} + 2>/dev/null || true
 mkdir -p "$WORKDIR"
 cp -r "$ROOT/backend/src" "$WORKDIR/src"
 cp "$ROOT/backend/build.gradle" "$WORKDIR/"

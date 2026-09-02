@@ -3,6 +3,7 @@ package com.gestion.inventario.controller;
 import com.gestion.inventario.dto.MovimientoDTO;
 import com.gestion.inventario.model.Movimiento;
 import com.gestion.inventario.service.MovimientoService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -18,13 +19,14 @@ public class MovimientoController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','JEFE','AUXILIAR')")
-    public ResponseEntity<Movimiento> registrarMovimiento(@Valid @RequestBody MovimientoDTO request) {
+    public ResponseEntity<Movimiento> registrarMovimiento(@Valid @RequestBody MovimientoDTO request, HttpServletRequest httpRequest) {
         Movimiento mov = movimientoService.registrarMovimiento(
                 request.getPresentationId(),
                 request.getType(),
                 request.getQuantity(),
                 request.getDetail(),
-                request.getUsuarioId()
+                request.getUsuarioId(),
+                httpRequest.getRemoteAddr()
         );
         return ResponseEntity.ok(mov);
     }

@@ -268,3 +268,4 @@ De ellos, la refactorización de normalización a inglés (17+18) suma **~2-2.5 
 | 21   | QR Code en Catálogo (Frontend)     | **Completada** |
 | 22   | Escáner QR en Kárdex               | **Completada** |
 | 23   | Escáner QR en Ajustes            | **Completada** |
+| 24   | Auditoría del Sistema (bitácora) | **Completada** |

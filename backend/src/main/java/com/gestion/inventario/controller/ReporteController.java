@@ -2,6 +2,8 @@ package com.gestion.inventario.controller;
 
 import com.gestion.inventario.model.Movimiento;
 import com.gestion.inventario.repository.MovimientoRepository;
+import com.gestion.inventario.service.AuditService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +11,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayOutputStream;
@@ -25,10 +28,14 @@ public class ReporteController {
     @Autowired
     private MovimientoRepository movimientoRepository;
 
+    @Autowired
+    private AuditService auditService;
+
     @PostMapping("/excel")
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMIN','JEFE','AUXILIAR')")
-    public ResponseEntity<byte[]> generarReporteExcel(@RequestBody List<Long> idsMovimientos) {
+    public ResponseEntity<byte[]> generarReporteExcel(@RequestBody List<Long> idsMovimientos,
+                                                      Authentication authentication, HttpServletRequest httpRequest) {
         
         List<Movimiento> movimientos = movimientoRepository.findAllById(idsMovimientos);
 
@@ -77,6 +84,10 @@ public class ReporteController {
             responseHeaders.setContentDispositionFormData("attachment", "reporte_movimientos.xlsx");
             responseHeaders.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
 
+            auditService.registrar(AuditService.EXPORTACION_EXCEL,
+                    "Exportación Excel de " + movimientos.size() + " movimientos",
+                    "movimientos", null, authentication.getName(), authentication.getName(), httpRequest.getRemoteAddr());
+
             return ResponseEntity.ok()
                     .headers(responseHeaders)
                     .body(outputStream.toByteArray());
@@ -89,7 +100,8 @@ public class ReporteController {
     @PostMapping("/pdf")
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMIN','JEFE','AUXILIAR')")
-    public ResponseEntity<byte[]> generarReportePdf(@RequestBody List<Long> idsMovimientos) {
+    public ResponseEntity<byte[]> generarReportePdf(@RequestBody List<Long> idsMovimientos,
+                                                    Authentication authentication, HttpServletRequest httpRequest) {
         
         List<Movimiento> movimientos = movimientoRepository.findAllById(idsMovimientos);
 
@@ -140,6 +152,10 @@ public class ReporteController {
             responseHeaders.setContentDispositionFormData("attachment", "reporte_movimientos.pdf");
             responseHeaders.setContentType(MediaType.APPLICATION_PDF);
 
+            auditService.registrar(AuditService.EXPORTACION_PDF,
+                    "Exportación PDF de " + movimientos.size() + " movimientos",
+                    "movimientos", null, authentication.getName(), authentication.getName(), httpRequest.getRemoteAddr());
+
             return ResponseEntity.ok()
                     .headers(responseHeaders)
                     .body(outputStream.toByteArray());
@@ -151,7 +167,8 @@ public class ReporteController {
 
     @PostMapping("/proyecciones/excel")
     @PreAuthorize("hasAnyRole('ADMIN','JEFE')")
-    public ResponseEntity<byte[]> generarProyeccionesExcel(@RequestBody List<com.gestion.inventario.dto.ProyeccionDTO> proyecciones) {
+    public ResponseEntity<byte[]> generarProyeccionesExcel(@RequestBody List<com.gestion.inventario.dto.ProyeccionDTO> proyecciones,
+                                                           Authentication authentication, HttpServletRequest httpRequest) {
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Proyecciones de Compra");
             CellStyle headerStyle = workbook.createCellStyle();
@@ -191,6 +208,10 @@ public class ReporteController {
             responseHeaders.setContentDispositionFormData("attachment", "proyecciones.xlsx");
             responseHeaders.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
 
+            auditService.registrar(AuditService.EXPORTACION_PROYECCIONES_EXCEL,
+                    "Exportación Excel de " + proyecciones.size() + " proyecciones de abastecimiento",
+                    "proyecciones", null, authentication.getName(), authentication.getName(), httpRequest.getRemoteAddr());
+
             return ResponseEntity.ok().headers(responseHeaders).body(outputStream.toByteArray());
         } catch (IOException e) {
             throw new RuntimeException("Error generando Excel de Proyecciones", e);
@@ -199,7 +220,8 @@ public class ReporteController {
 
     @PostMapping("/proyecciones/pdf")
     @PreAuthorize("hasAnyRole('ADMIN','JEFE')")
-    public ResponseEntity<byte[]> generarProyeccionesPdf(@RequestBody List<com.gestion.inventario.dto.ProyeccionDTO> proyecciones) {
+    public ResponseEntity<byte[]> generarProyeccionesPdf(@RequestBody List<com.gestion.inventario.dto.ProyeccionDTO> proyecciones,
+                                                         Authentication authentication, HttpServletRequest httpRequest) {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             com.lowagie.text.Document document = new com.lowagie.text.Document(com.lowagie.text.PageSize.A4);
             com.lowagie.text.pdf.PdfWriter writer = com.lowagie.text.pdf.PdfWriter.getInstance(document, outputStream);
@@ -278,6 +300,10 @@ public class ReporteController {
             HttpHeaders responseHeaders = new HttpHeaders();
             responseHeaders.setContentDispositionFormData("attachment", "proyecciones_financieras.pdf");
             responseHeaders.setContentType(MediaType.APPLICATION_PDF);
+
+            auditService.registrar(AuditService.EXPORTACION_PROYECCIONES_PDF,
+                    "Exportación PDF de " + proyecciones.size() + " proyecciones de abastecimiento",
+                    "proyecciones", null, authentication.getName(), authentication.getName(), httpRequest.getRemoteAddr());
 
             return ResponseEntity.ok().headers(responseHeaders).body(outputStream.toByteArray());
         } catch (Exception e) {

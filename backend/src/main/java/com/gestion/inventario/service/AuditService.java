@@ -2,8 +2,10 @@ package com.gestion.inventario.service;
 
 import com.gestion.inventario.model.AuditLog;
 import com.gestion.inventario.repository.AuditLogRepository;
+import com.gestion.inventario.websocket.AuditLogSavedEvent;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -40,8 +42,15 @@ public class AuditService {
     public static final String EXPORTACION_EXCEL = "EXPORTACION_EXCEL";
     public static final String EXPORTACION_PROYECCIONES_PDF = "EXPORTACION_PROYECCIONES_PDF";
     public static final String EXPORTACION_PROYECCIONES_EXCEL = "EXPORTACION_PROYECCIONES_EXCEL";
+    public static final String INSUMO_CREADO = "INSUMO_CREADO";
+    public static final String INSUMO_ACTUALIZADO = "INSUMO_ACTUALIZADO";
+    public static final String PRESENTACION_AGREGADA = "PRESENTACION_AGREGADA";
+    public static final String QR_DESCARGA = "QR_DESCARGA";
+    public static final String QR_IMPRESION = "QR_IMPRESION";
+    public static final String QR_CONSULTADO = "QR_CONSULTADO";
 
     private final AuditLogRepository auditLogRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
  * Escribe un evento en la bitácora. Se usa REQUIRES_NEW para poder registrar
@@ -60,7 +69,10 @@ public class AuditService {
         log.setUsuarioEmail(usuarioEmail);
         log.setUsuarioName(usuarioName);
         log.setIpAddress(ipAddress);
-        return auditLogRepository.save(log);
+        AuditLog saved = auditLogRepository.save(log);
+        // Notifica a los clientes WebSocket conectados (página de Auditoría se refresca sola).
+        eventPublisher.publishEvent(new AuditLogSavedEvent(this, saved));
+        return saved;
     }
 
     /** Listado paginado, más reciente primero, con filtros opcionales. */
@@ -107,6 +119,12 @@ public class AuditService {
         catalogo.put(EXPORTACION_EXCEL, "Exportación Excel");
         catalogo.put(EXPORTACION_PROYECCIONES_PDF, "Exportación PDF de Proyecciones");
         catalogo.put(EXPORTACION_PROYECCIONES_EXCEL, "Exportación Excel de Proyecciones");
+        catalogo.put(INSUMO_CREADO, "Insumo creado");
+        catalogo.put(INSUMO_ACTUALIZADO, "Insumo actualizado");
+        catalogo.put(PRESENTACION_AGREGADA, "Presentación agregada a insumo");
+        catalogo.put(QR_DESCARGA, "Código QR descargado");
+        catalogo.put(QR_IMPRESION, "Código QR impreso");
+        catalogo.put(QR_CONSULTADO, "Código QR consultado (escaneo)");
         return catalogo;
     }
 }

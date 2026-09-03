@@ -7,6 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -24,8 +25,11 @@ public class AuditServiceTest {
     @Mock
     private AuditLogRepository auditLogRepository;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private AuditService service() {
-        return new AuditService(auditLogRepository);
+        return new AuditService(auditLogRepository, eventPublisher);
     }
 
     @Test
@@ -66,6 +70,6 @@ public class AuditServiceTest {
         assertEquals("Inicio de sesión", catalogo.get(AuditService.LOGIN));
         assertEquals("Movimiento registrado", catalogo.get(AuditService.MOVIMIENTO_CREADO));
         assertEquals("Exportación PDF", catalogo.get(AuditService.EXPORTACION_PDF));
-        assertEquals(11, catalogo.size());
+        assertEquals(17, catalogo.size());
     }
 }

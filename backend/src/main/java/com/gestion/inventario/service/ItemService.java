@@ -128,4 +128,9 @@ public class ItemService {
     public Optional<Presentation> findPresentationByQrCode(String qrCode) {
         return presentationRepository.findByQrCode(qrCode);
     }
+
+    @Transactional(readOnly = true)
+    public Optional<Presentation> findPresentationById(Long id) {
+        return presentationRepository.findById(id);
+    }
 }

@@ -51,6 +51,28 @@ graph TD
     G -->|No| C
 ```
 
+## 2b. Notificación en tiempo real (WebSocket `/ws/auditoria`)
+
+```mermaid
+graph TD
+    subgraph ESCRITURA [Escritura en BD]
+        R[AuditService.registrar] --> INS[INSERT en audit_logs]
+        INS --> PUB[Publica AuditLogSavedEvent por ApplicationEventPublisher]
+    end
+
+    PUB --> WS[AuditWebSocketHandler - broadcast AuditEventMessage]
+    WS --> CLI[Cliente conectado a ws://host/ws/auditoria]
+    CLI --> F[Auditoria.tsx recibe aviso]
+    F --> REC[Re-consulta GET /api/auditoria - tabla se refresca sola]
+```
+
+- El WebSocket es una **señal push** (id, tipo, descripción, fecha) que **no
+  transporta datos sensibles**: el contenido se obtiene siempre por REST
+  autenticado.
+- El frontend se suscribe con `useAuditSocket` (reconexión cada 4s) y re-consulta
+  la bitácora al recibir el aviso.
+- `nginx.conf` proxifica `/ws/` con upgrade de conexión (HTTP/1.1, timeouts 3600s).
+
 ## 3. Reglas de la bitácora
 
 1. Solo el **ADMIN** consulta (`/api/auditoria`); el resto de roles no lo ve ni

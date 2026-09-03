@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
+import api from '../api/axios';
 
 interface QrModalProps {
   isOpen: boolean;
@@ -19,6 +20,19 @@ export default function QrModal({ isOpen, item, presentation, onClose }: QrModal
   const [qrCanvas, setQrCanvas] = useState<HTMLCanvasElement | null>(null);
   const [svgEl, setSvgEl] = useState<SVGSVGElement | null>(null);
 
+  /**
+   * Registra en la bitácora que el usuario descargó/imprimió el QR.
+   * Es un aviso fire-and-forget: si falla no interrumpe la acción del usuario
+   * (la conexión/auth la maneja el interceptor de axios).
+   */
+  const reportarQr = useCallback((accion: 'DESCARGA' | 'IMPRESION') => {
+    const id = presentation?.id;
+    if (!id) return;
+    api.post(`/presentations/${id}/qr-event`, { accion }).catch(() => {
+      // si no se puede registrar, la descarga/impresión igual se completa.
+    });
+  }, [presentation]);
+
   const handleDownloadPng = useCallback(() => {
     const canvas = qrCanvas;
     if (!canvas) return;
@@ -27,7 +41,8 @@ export default function QrModal({ isOpen, item, presentation, onClose }: QrModal
     a.href = url;
     a.download = `QR-${item?.code ?? 'insumo'}-${presentation?.name ?? 'variante'}.png`;
     a.click();
-  }, [qrCanvas, item, presentation]);
+    reportarQr('DESCARGA');
+  }, [qrCanvas, item, presentation, reportarQr]);
 
   const handlePrint = useCallback(() => {
     const svgString = svgEl ? svgEl.outerHTML : '';
@@ -71,7 +86,8 @@ export default function QrModal({ isOpen, item, presentation, onClose }: QrModal
     };
     // Fallback por si onload no se dispara.
     setTimeout(() => { win.focus(); win.print(); }, 600);
-  }, [svgEl, item, presentation]);
+    reportarQr('IMPRESION');
+  }, [svgEl, item, presentation, reportarQr]);
 
   if (!isOpen) return null;
 

@@ -4,10 +4,13 @@ import com.gestion.inventario.dto.ItemRequestDTO;
 import com.gestion.inventario.dto.PresentationRequestDTO;
 import com.gestion.inventario.model.Item;
 import com.gestion.inventario.model.Presentation;
+import com.gestion.inventario.service.AuditService;
 import com.gestion.inventario.service.ItemService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +24,9 @@ public class ItemController {
 
     @Autowired
     private ItemService itemService;
+
+    @Autowired
+    private AuditService auditService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','JEFE','AUXILIAR')")
@@ -39,20 +45,38 @@ public class ItemController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public Item crearItem(@Valid @RequestBody ItemRequestDTO request) {
-        return itemService.crearItem(request);
+    public Item crearItem(@Valid @RequestBody ItemRequestDTO request,
+                          Authentication authentication, HttpServletRequest httpRequest) {
+        Item item = itemService.crearItem(request);
+        auditService.registrar(AuditService.INSUMO_CREADO,
+                "Creó el insumo " + item.getCode() + " · " + item.getName(),
+                "items", item.getId(), authentication.getName(), authentication.getName(),
+                httpRequest.getRemoteAddr());
+        return item;
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public Item actualizarItem(@PathVariable Long id, @RequestBody ItemRequestDTO request) {
-        return itemService.actualizarItem(id, request);
+    public Item actualizarItem(@PathVariable Long id, @RequestBody ItemRequestDTO request,
+                               Authentication authentication, HttpServletRequest httpRequest) {
+        Item item = itemService.actualizarItem(id, request);
+        auditService.registrar(AuditService.INSUMO_ACTUALIZADO,
+                "Actualizó el insumo " + item.getCode() + " · " + item.getName(),
+                "items", item.getId(), authentication.getName(), authentication.getName(),
+                httpRequest.getRemoteAddr());
+        return item;
     }
 
     @PostMapping("/{id}/presentations")
     @PreAuthorize("hasRole('ADMIN')")
     public Presentation agregarPresentacion(@PathVariable Long id,
-                                            @Valid @RequestBody PresentationRequestDTO request) {
-        return itemService.agregarPresentacion(id, request);
+                                            @Valid @RequestBody PresentationRequestDTO request,
+                                            Authentication authentication, HttpServletRequest httpRequest) {
+        Presentation presentation = itemService.agregarPresentacion(id, request);
+        auditService.registrar(AuditService.PRESENTACION_AGREGADA,
+                "Agregó la presentación " + presentation.getName() + " al insumo " + id,
+                "presentations", presentation.getId(), authentication.getName(),
+                authentication.getName(), httpRequest.getRemoteAddr());
+        return presentation;
     }
 }

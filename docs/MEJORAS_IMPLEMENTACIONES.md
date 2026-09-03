@@ -467,5 +467,72 @@ acción relevante.
 
 ---
 
-## 13. Próximas mejoras / pendientes
+## 13. WebSocket en Auditoría (tiempo real) + Eventos ampliados (QR e Insumos)
+
+**Fecha:** 2026-09-02
+**Naturaleza:** Mejora de trazabilidad: notificaciones en tiempo real y nuevos
+tipos de eventos auditables.
+
+### 13.1 WebSocket `/ws/auditoria` (refresco automático)
+
+**Problema:** La página de Auditoría era consulta bajo demanda: si otro usuario
+(o la propia sesión en otra pestaña) generaba un evento, la bitácora no se
+actualizaba hasta pulsar "Buscar".
+
+**Solución:** Se añadió un canal **WebSocket** que actúa como señal push
+(`AuditEventMessage`), transportando solo un aviso (id, tipo, descripción,
+fecha) — **sin datos sensibles**. El frontend, al recibirlo, **re-consulta por
+REST autenticado** (`GET /api/auditoria`), de modo que la seguridad sigue
+residendo en el endpoint REST.
+
+### Comportamiento
+1. `AuditService.registrar(...)` persiste la fila e **inyecta
+   `ApplicationEventPublisher`** para publicar `AuditLogSavedEvent`.
+2. `AuditWebSocketHandler` (escucha el evento de aplicación) hace **broadcast**
+   del `AuditEventMessage` a todas las sesiones conectadas en `/ws/auditoria`.
+3. `useAuditSocket` (hook): conecta con el WebSocket **nativo**, con
+   **reconexión automática** cada 4s y `guard` (`typeof WebSocket ===
+   'undefined'`) para no romper jsdom en los tests.
+4. `Auditoria.tsx` se suscribe y, al recibir un aviso, re-ejecuta la consulta de
+   la bitácora (con los filtros activos). Así, hacer login o un movimiento en
+   otra pestaña refresca la tabla en vivo.
+
+### Archivos involucrados (WebSocket)
+- `backend/build.gradle` — `spring-boot-starter-websocket` + `jackson-datatype-jsr310`.
+- `backend/.../config/WebSocketConfig.java` — **nuevo**, registra `/ws/auditoria`.
+- `backend/.../websocket/AuditWebSocketHandler.java` — **nuevo**, broadcast.
+- `backend/.../websocket/AuditEventMessage.java` — **nuevo**, payload del aviso.
+- `backend/.../websocket/AuditLogSavedEvent.java` — **nuevo**, evento de aplicación.
+- `backend/.../service/AuditService.java` — publica `AuditLogSavedEvent`.
+- `backend/.../config/SecurityConfig.java` — permite `/ws/**`.
+- `frontend/nginx.conf` — `location /ws/` con `Upgrade`/`Connection` y timeouts 3600s.
+- `frontend/src/hooks/useAuditSocket.ts` — **nuevo**, hook de conexión WS.
+- `frontend/src/pages/Auditoria.tsx` — se suscribe y re-consulta.
+
+### 13.2 Auditoría de acciones sobre el QR
+
+Cada vez que se genera/usar el QR de una presentación (descarga o impresión
+desde `QrModal`) se deja constancia:
+
+- `POST /api/presentations/{id}/qr-event` (body `{"accion":"DESCARGA"|"IMPRESION"|"CONSULTA"}`, roles ADMIN/JEFE/AUXILIAR).
+- Registra `QR_DESCARGA` / `QR_IMPRESION` / `QR_CONSULTADO`.
+- Se agregó `ItemService.findPresentationById` y `QrModal.tsx` llama al endpoint
+  (importando `api` de `../api/axios`) en `handleDownloadPng` y `handlePrint`.
+
+### 13.3 Eventos de insumo
+
+`ItemController` registra `INSUMO_CREADO`, `INSUMO_ACTUALIZADO` y
+`PRESENTACION_AGREGADA` (inyectando `AuditService`, `Authentication` y
+`HttpServletRequest`). Con esto el catálogo de `catalogoEventos()` pasa a
+**17 eventos**.
+
+### Notas
+- `AuditServiceTest` se ajustó al constructor (añade `ApplicationEventPublisher`)
+  y al catálogo de 17 eventos.
+- Archivos nuevos de insumo: `ItemController`, `ItemService`, `AuditService`.
+- Validación E2E de roles: `GET /api/auditoria` → ADMIN 200, JEFE/AUXILIAR 403.
+
+---
+
+## 14. Próximas mejoras / pendientes
 - (registrar aquí futuras implementaciones)

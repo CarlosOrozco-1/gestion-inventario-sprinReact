@@ -43,6 +43,7 @@ public class SecurityConfig {
             }))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/error").permitAll() // Login y errores son públicos
+                .requestMatchers("/ws/**").permitAll() // Canal WebSocket de auditoría (datos por REST autenticado)
                 .anyRequest().authenticated() // Todo lo demás requiere token
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

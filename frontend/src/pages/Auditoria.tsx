@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../api/axios';
+import { useAuditSocket } from '../hooks/useAuditSocket';
 
 const PAGE_SIZE = 20;
 
@@ -64,6 +65,21 @@ export default function Auditoria() {
     // Filtros solo se aplican con "Buscar"; no re-ejecutar al teclear.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Refresco en tiempo real: al recibir un aviso por WebSocket, se re-consulta
+  // la bitácora (conservando la página y filtros actuales) sin recargar la pestaña.
+  const fetchRef = useRef(fetchLogs);
+  fetchRef.current = fetchLogs;
+  const auditSocket = useAuditSocket(true);
+  useEffect(() => {
+    return auditSocket.onMessage(() => {
+      fetchRef.current(pageRef.current);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const pageRef = useRef(page);
+  pageRef.current = page;
 
   const formatDate = (isoString: string) => {
     return new Date(isoString).toLocaleDateString('es-ES', {

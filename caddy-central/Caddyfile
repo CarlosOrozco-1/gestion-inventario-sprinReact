@@ -7,8 +7,14 @@ gestioninventario.duckdns.org {
 	reverse_proxy host.docker.internal:8081
 }
 
-# ── Segunda aplicación (agregar subdominio en DuckDNS y descomentar) ──
+# Segunda aplicación (ya en producción): gestión de credenciales.
+gestioncredenciales.duckdns.org {
+	encode gzip
+	reverse_proxy host.docker.internal:8082
+}
+
+# ── Tercera aplicación (agregar subdominio en DuckDNS y descomentar) ──
 # otraapp.duckdns.org {
 # 	encode gzip
-# 	reverse_proxy host.docker.internal:8082
+# 	reverse_proxy host.docker.internal:8083
 # }

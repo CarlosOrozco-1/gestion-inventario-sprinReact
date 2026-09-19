@@ -2,20 +2,26 @@
 # Docker Compose para PRODUCCIÓN: Spring Boot + PostgreSQL
 # Uso: docker compose -f docker-compose.prod.yml up -d --build
 # Las credenciales se cargan del archivo .env (DB_USERNAME,
-# DB_PASSWORD, MAIL_USERNAME, MAIL_PASSWORD). Ver .env.example.
+# DB_PASSWORD, MAIL_USERNAME, MAIL_PASSWORD, JWT_SECRET). Ver .env.example.
+#
+# DESPLIEGUE: el Caddy central enruta el subdominio DuckDNS hacia
+# host.docker.internal:8081 (frontend). El backend queda SOLO interno.
 # ============================================================
 services:
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
     env_file:
       - .env
     environment:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:postgresql://db:5432/inventario
+      JWT_SECRET: ${JWT_SECRET}
+      TZ: ${TZ:-America/Guatemala}
+      JAVA_TOOL_OPTIONS: -Xmx384m -Duser.timezone=${TZ:-America/Guatemala}
+    expose:
+      - "8080"
     depends_on:
       db:
         condition: service_healthy
@@ -27,6 +33,7 @@ services:
       POSTGRES_DB: inventario
       POSTGRES_USER: ${DB_USERNAME:-inventario}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-inventario}
+      TZ: ${TZ:-America/Guatemala}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
@@ -43,7 +50,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "80:80"
+      - "8081:80"
     depends_on:
       - backend
     restart: unless-stopped

@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,13 +20,16 @@ public class MovimientoController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','JEFE','AUXILIAR')")
-    public ResponseEntity<Movimiento> registrarMovimiento(@Valid @RequestBody MovimientoDTO request, HttpServletRequest httpRequest) {
+    public ResponseEntity<Movimiento> registrarMovimiento(@Valid @RequestBody MovimientoDTO request,
+                                                          Authentication authentication,
+                                                          HttpServletRequest httpRequest) {
+        // El responsable se deriva del JWT autenticado (email), NUNCA del body.
         Movimiento mov = movimientoService.registrarMovimiento(
                 request.getPresentationId(),
                 request.getType(),
                 request.getQuantity(),
                 request.getDetail(),
-                request.getUsuarioId(),
+                authentication.getName(),
                 httpRequest.getRemoteAddr()
         );
         return ResponseEntity.ok(mov);

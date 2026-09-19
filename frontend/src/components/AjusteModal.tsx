@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { useAuthStore } from '../store/useAuthStore';
 import ConfirmModal from './ConfirmModal';
 import { getStockInfo } from '../utils/stockStatus';
 
@@ -13,7 +12,6 @@ interface Props {
 }
 
 export default function AjusteModal({ isOpen, onClose, onSave, insumos, preSelectedPresentation }: Props) {
-  const user = useAuthStore((s: any) => s.user);
   const [formData, setFormData] = useState({
     presentationId: '',
     type: 'AJUSTE_POSITIVO',
@@ -71,8 +69,7 @@ export default function AjusteModal({ isOpen, onClose, onSave, insumos, preSelec
       presentationId: formData.presentationId,
       type: formData.type,
       quantity: parseInt(formData.quantity, 10),
-      detail: formData.detail.trim(),
-      usuarioId: user?.id ?? 1
+      detail: formData.detail.trim()
     };
 
     try {

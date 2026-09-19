@@ -3,3 +3,9 @@ backend/data/
 
 # Secretos locales (nunca commitear). Ver .env.example
 .env
+
+# Variables de entorno del frontend (p. ej. VITE_GOOGLE_CLIENT_ID).
+# Nunca commitear: una vez expuesta, se rota el valor, no se sube otra vez.
+frontend/.env
+frontend/.env.*
+!frontend/.env.example

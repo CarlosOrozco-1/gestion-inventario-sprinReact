@@ -64,7 +64,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://localhost:3000"));
+        // PRECAUCIÓN CORS: el navegador envía "Origin" incluso en peticiones
+        // same-origin (nginx :8081 proxya /api), por eso NUNCA enviar 403 aquí
+        // si el origen no figura; se cubren los entornos de dev (Vite, puertos
+        // locales) y el dominio de producción detrás de Caddy.
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:*",
+                "https://localhost:*",
+                "https://gestioninventario.duckdns.org"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

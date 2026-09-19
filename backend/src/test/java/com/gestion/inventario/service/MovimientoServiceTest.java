@@ -3,6 +3,7 @@ package com.gestion.inventario.service;
 import com.gestion.inventario.exception.InsufficientStockException;
 import com.gestion.inventario.model.Item;
 import com.gestion.inventario.model.Movimiento;
+import com.gestion.inventario.model.MovimientoTipo;
 import com.gestion.inventario.model.Presentation;
 import com.gestion.inventario.model.Usuario;
 import com.gestion.inventario.repository.MovimientoRepository;
@@ -41,6 +42,7 @@ public class MovimientoServiceTest {
 
     private Presentation presentationPrueba;
     private Usuario usuarioPrueba;
+    private final String EMAIL = "test@inventario.com";
 
     @BeforeEach
     void setUp() {
@@ -57,12 +59,13 @@ public class MovimientoServiceTest {
         usuarioPrueba = new Usuario();
         usuarioPrueba.setId(1L);
         usuarioPrueba.setName("Test User");
+        usuarioPrueba.setEmail(EMAIL);
     }
 
     @Test
     void debeLanzarExcepcionCuandoCantidadEsCero() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            movimientoService.registrarMovimiento(1L, "ENTRADA", 0, "Test", 1L);
+            movimientoService.registrarMovimiento(1L, MovimientoTipo.ENTRADA, 0, "Test", EMAIL);
         });
         assertEquals("La cantidad debe ser mayor a cero.", exception.getMessage());
     }
@@ -70,22 +73,22 @@ public class MovimientoServiceTest {
     @Test
     void debeLanzarExcepcionCuandoCantidadEsNegativa() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            movimientoService.registrarMovimiento(1L, "ENTRADA", -5, "Test", 1L);
+            movimientoService.registrarMovimiento(1L, MovimientoTipo.ENTRADA, -5, "Test", EMAIL);
         });
         assertEquals("La cantidad debe ser mayor a cero.", exception.getMessage());
     }
 
     @Test
     void debeIncrementarStockEnEntrada() {
-        when(presentationRepository.findById(1L)).thenReturn(Optional.of(presentationPrueba));
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioPrueba));
+        when(presentationRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(presentationPrueba));
+        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuarioPrueba));
 
         Movimiento mockMovimiento = new Movimiento();
         mockMovimiento.setId(1L);
         mockMovimiento.setType("ENTRADA");
         when(movimientoRepository.save(any(Movimiento.class))).thenReturn(mockMovimiento);
 
-        movimientoService.registrarMovimiento(1L, "ENTRADA", 20, "Compra nueva", 1L);
+        movimientoService.registrarMovimiento(1L, MovimientoTipo.ENTRADA, 20, "Compra nueva", EMAIL);
 
         assertEquals(70, presentationPrueba.getStock());
         verify(presentationRepository, times(1)).save(presentationPrueba);
@@ -94,12 +97,12 @@ public class MovimientoServiceTest {
 
     @Test
     void debeLanzarExcepcionEnSalidaPorStockInsuficiente() {
-        when(presentationRepository.findById(1L)).thenReturn(Optional.of(presentationPrueba));
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioPrueba));
+        when(presentationRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(presentationPrueba));
+        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuarioPrueba));
 
         // Intenta sacar 60, pero solo hay 50
         InsufficientStockException exception = assertThrows(InsufficientStockException.class, () -> {
-            movimientoService.registrarMovimiento(1L, "SALIDA", 60, "Uso interno", 1L);
+            movimientoService.registrarMovimiento(1L, MovimientoTipo.SALIDA, 60, "Uso interno", EMAIL);
         });
 
         assertTrue(exception.getMessage().contains("Stock insuficiente"));
@@ -108,15 +111,15 @@ public class MovimientoServiceTest {
 
     @Test
     void debeReducirStockEnSalidaExitosa() {
-        when(presentationRepository.findById(1L)).thenReturn(Optional.of(presentationPrueba));
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioPrueba));
+        when(presentationRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(presentationPrueba));
+        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuarioPrueba));
 
         Movimiento mockMovimiento = new Movimiento();
         mockMovimiento.setId(1L);
         mockMovimiento.setType("SALIDA");
         when(movimientoRepository.save(any(Movimiento.class))).thenReturn(mockMovimiento);
 
-        movimientoService.registrarMovimiento(1L, "SALIDA", 30, "Uso en laboratorio", 1L);
+        movimientoService.registrarMovimiento(1L, MovimientoTipo.SALIDA, 30, "Uso en laboratorio", EMAIL);
 
         assertEquals(20, presentationPrueba.getStock());
         verify(presentationRepository, times(1)).save(presentationPrueba);
@@ -124,14 +127,19 @@ public class MovimientoServiceTest {
 
     @Test
     void debeLanzarExcepcionEnAjusteSinJustificacion() {
-        when(presentationRepository.findById(1L)).thenReturn(Optional.of(presentationPrueba));
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioPrueba));
-
-        // Justificación muy corta (menor a 20 chars)
+        // La justificación se valida ANTES de cargar usuario/presentación (no hace stubs).
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            movimientoService.registrarMovimiento(1L, "AJUSTE_NEGATIVO", 5, "Mala", 1L);
+            movimientoService.registrarMovimiento(1L, MovimientoTipo.AJUSTE_NEGATIVO, 5, "Mala", EMAIL);
         });
 
         assertTrue(exception.getMessage().contains("requieren una justificación (detalle) de al menos 20 caracteres"));
+    }
+
+    @Test
+    void debeRechazarTipoDeMovimientoNulo() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            movimientoService.registrarMovimiento(1L, null, 5, "Justificación suficientemente larga para el ajuste", EMAIL);
+        });
+        assertEquals("El tipo de movimiento es obligatorio.", exception.getMessage());
     }
 }

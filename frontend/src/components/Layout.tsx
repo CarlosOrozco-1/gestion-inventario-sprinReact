@@ -4,6 +4,9 @@ import { useAuthStore } from '../store/useAuthStore';
 import { hasAccess } from '../access';
 import Toast from './Toast';
 
+// Versión del sistema (se muestra en el pie del menú lateral).
+const APP_VERSION = '1.0.0';
+
 export default function Layout() {
   const user = useAuthStore((state: any) => state.user);
   const logout = useAuthStore((state: any) => state.logout);
@@ -226,6 +229,14 @@ export default function Layout() {
             </span>
             <span className={collapsed ? 'lg:hidden' : ''}>Cerrar Sesión</span>
           </button>
+
+          {/* Versión del sistema */}
+          <p
+            title={`SIGES versión ${APP_VERSION}`}
+            className={`mt-4 text-[11px] tracking-wide text-slate-600 ${collapsed ? 'lg:hidden lg:block lg:truncate lg:w-full lg:text-center' : ''}`}
+          >
+            v{APP_VERSION}
+          </p>
         </div>
       </aside>
 

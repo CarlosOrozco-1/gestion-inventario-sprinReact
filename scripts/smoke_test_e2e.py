@@ -138,23 +138,23 @@ def main():
     request("GET", "/presentations/qr/NO-EXISTE-999", admin_tok, expect=404)
 
     print("\n[4] Motor transaccional (movimientos)")
-    m1 = request("POST", "/movimientos", jefe_tok, {"presentationId": a_id, "type": "ENTRADA", "quantity": 20, "detail": "Compra E2E", "usuarioId": jefe_id})
+    m1 = request("POST", "/movimientos", jefe_tok, {"presentationId": a_id, "type": "ENTRADA", "quantity": 20, "detail": "Compra E2E"})
     check("ENTRADA 20 registrada", m1 and m1["quantity"] == 20)
     ins = request("GET", "/insumos", admin_tok)
     a = next(x for x in ins if x["id"] == a_id)
     check("stock 0+20=20 tras entrada", a["stock"] == 20)
-    request("POST", "/movimientos", jefe_tok, {"presentationId": a_id, "type": "SALIDA", "quantity": 8, "detail": "Uso E2E", "usuarioId": jefe_id})
+    request("POST", "/movimientos", jefe_tok, {"presentationId": a_id, "type": "SALIDA", "quantity": 8, "detail": "Uso E2E"})
     ins = request("GET", "/insumos", admin_tok)
     a = next(x for x in ins if x["id"] == a_id)
     check("stock 20-8=12 tras salida", a["stock"] == 12)
     # Salida excesiva -> 422
-    request("POST", "/movimientos", jefe_tok, {"presentationId": a_id, "type": "SALIDA", "quantity": 999, "detail": "Exceso E2E", "usuarioId": jefe_id}, 422)
+    request("POST", "/movimientos", jefe_tok, {"presentationId": a_id, "type": "SALIDA", "quantity": 999, "detail": "Exceso E2E"}, 422)
     # Entrada inválida (0) -> 400
-    request("POST", "/movimientos", jefe_tok, {"presentationId": a_id, "type": "ENTRADA", "quantity": 0, "detail": "Cero E2E", "usuarioId": jefe_id}, 400)
+    request("POST", "/movimientos", jefe_tok, {"presentationId": a_id, "type": "ENTRADA", "quantity": 0, "detail": "Cero E2E"}, 400)
     # Ajuste sin justificación -> 400
-    request("POST", "/movimientos", jefe_tok, {"presentationId": a_id, "type": "AJUSTE_NEGATIVO", "quantity": 2, "detail": "Corto", "usuarioId": jefe_id}, 400)
+    request("POST", "/movimientos", jefe_tok, {"presentationId": a_id, "type": "AJUSTE_NEGATIVO", "quantity": 2, "detail": "Corto"}, 400)
     # Ajuste con justificación -> 200
-    request("POST", "/movimientos", jefe_tok, {"presentationId": a_id, "type": "AJUSTE_NEGATIVO", "quantity": 2, "detail": "Ajuste por merma verificado en inventario", "usuarioId": jefe_id})
+    request("POST", "/movimientos", jefe_tok, {"presentationId": a_id, "type": "AJUSTE_NEGATIVO", "quantity": 2, "detail": "Ajuste por merma verificado en inventario"})
     ins = request("GET", "/insumos", admin_tok)
     a = next(x for x in ins if x["id"] == a_id)
     check("stock 12-2=10 tras ajuste negativo", a["stock"] == 10)

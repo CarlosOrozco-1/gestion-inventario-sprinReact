@@ -2,19 +2,29 @@
 # Docker Compose por defecto: alias de docker-compose.prod.yml
 # Cualquier `docker compose up` usa el entorno de PRODUCCIÓN
 # (PostgreSQL + perfil prod + credenciales desde .env).
+#
+# DESPLIEGUE: el Caddy central (caddy-central/) enruta
+# gestioninventario.duckdns.org -> host.docker.internal:8081.
+# Por eso el frontend expone el puerto 8081 y el backend queda
+# SOLO interno (no se expone 8080 al público).
 # ============================================================
 services:
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
     env_file:
       - .env
     environment:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:postgresql://db:5432/inventario
+      JWT_SECRET: ${JWT_SECRET}
+      TZ: ${TZ:-America/Guatemala}
+      JAVA_TOOL_OPTIONS: -Xmx384m -Duser.timezone=${TZ:-America/Guatemala}
+    expose:
+      - "8080"
+    ports:
+      - "8080:8080"
     depends_on:
       db:
         condition: service_healthy
@@ -26,6 +36,7 @@ services:
       POSTGRES_DB: inventario
       POSTGRES_USER: ${DB_USERNAME:-inventario}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-inventario}
+      TZ: ${TZ:-America/Guatemala}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
@@ -42,7 +53,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "80:80"
+      - "8081:80"
     depends_on:
       - backend
     restart: unless-stopped

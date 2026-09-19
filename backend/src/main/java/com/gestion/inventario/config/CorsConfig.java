@@ -9,8 +9,10 @@ public class CorsConfig implements WebMvcConfigurer {
     
     @Override
     public void addCorsMappings(CorsRegistry registry) {
+        // Orígenes de dev (Vite en cualquier puerto local) y el dominio de
+        // producción servido por nginx (:8081) / Caddy.
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:5173", "http://localhost:3000") // Puertos comunes de Vite y React
+                .allowedOriginPatterns("http://localhost:*", "https://localhost:*", "https://gestioninventario.duckdns.org")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);

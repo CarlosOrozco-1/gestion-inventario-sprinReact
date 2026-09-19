@@ -5,6 +5,19 @@ import {
 } from 'recharts';
 import api from '../api/axios';
 
+// Estado de disponibilidad (semáforo) de un insumo dentro de su rango [min, max].
+// Criterios (regla de negocio, ver AGENTS.md):
+//   ROJO    = stock <= mínimo: hay existencias pero quedan pocas ("bajo").
+//   NARANJA = entre el mínimo y la zona óptima: bien, pero aún no óptimo.
+//   VERDE   = zona óptima: stock >= 80% del máximo (incluye sobre-meta).
+const disponibilidad = (stock: number, minStock: number, maxStock: number) => {
+  const min = Number(minStock) || 0;
+  const max = Number(maxStock) || 1;
+  if (stock <= min) return { color: '#ef4444', key: 'bajo', label: 'Bajo' };
+  if (stock >= max * 0.8) return { color: '#22c55e', key: 'optimo', label: 'Óptimo' };
+  return { color: '#f97316', key: 'regular', label: 'Regular' };
+};
+
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [insumos, setInsumos] = useState<any[]>([]);
@@ -52,14 +65,26 @@ export default function Dashboard() {
   });
 
   // --- DATOS PARA GRÁFICOS ---
-  // 1. Top 5 Insumos con más Stock (Gráfico de Barras)
+  // 1. Top 5 Insumos con más Stock (Gráfico de Barras). Cada barra y su tooltip
+  //    muestran el estado semáforo de disponibilidad (verde óptimo / naranja
+  //    regular / rojo bajo) según el rango [minStock, maxStock] de cada insumo.
   const topStockData = [...insumos]
     .sort((a, b) => b.stock - a.stock)
     .slice(0, 5)
-    .map(i => ({
-      name: i.item.length > 15 ? i.item.substring(0, 15) + '...' : i.item,
-      stock: i.stock
-    }));
+    .map(i => {
+      const min = i.minStock || 5;
+      const max = i.maxStock || 50;
+      const estado = disponibilidad(i.stock, min, max);
+      return {
+        name: i.item.length > 15 ? i.item.substring(0, 15) + '...' : i.item,
+        item: i.item,
+        stock: i.stock,
+        minStock: min,
+        maxStock: max,
+        estado,
+        fill: estado.color
+      };
+    });
 
   // 2. Distribución de Movimientos (Gráfico de Pastel)
   const movsAgrupados = movimientos.reduce((acc, curr) => {
@@ -72,6 +97,23 @@ export default function Dashboard() {
     name: tipo,
     value: movsAgrupados[tipo]
   }));
+
+  // Tooltip del Top 5: muestra el estado semáforo y el rango [min, max] del insumo.
+  const TopTooltip = ({ active, payload }: any) => {
+    if (!active || !payload?.length) return null;
+    const d = payload[0].payload;
+    return (
+      <div className="bg-white rounded-xl px-4 py-3 shadow-lg border border-slate-100 text-sm">
+        <p className="font-bold text-slate-800 mb-1">{d.item}</p>
+        <div className="flex items-center gap-2 text-slate-600">
+          <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: d.estado.color }}></span>
+          <span>{d.estado.label}</span>
+          <span className="font-semibold text-slate-800">· {d.stock} uds</span>
+        </div>
+        <p className="text-xs text-slate-400 mt-1">Rango {d.minStock} – {d.maxStock}</p>
+      </div>
+    );
+  };
 
   return (
     <div className="page-container space-y-8 animate-in fade-in duration-500">
@@ -140,7 +182,23 @@ export default function Dashboard() {
         
         {/* Gráfico de Barras (Ocupa 2 columnas) */}
         <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h3 className="text-lg font-bold text-slate-800 mb-6">Top 5 Insumos con Mayor Disponibilidad</h3>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-slate-800">Top 5 Insumos con Mayor Disponibilidad</h3>
+            <div className="flex items-center gap-4 text-xs text-slate-500" title="Disponibilidad según el rango de cada insumo: verde=óptimo, naranja=regular, rojo=bajo">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-sm bg-red-500 inline-block"></span>
+                Bajo
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-sm bg-orange-500 inline-block"></span>
+                Regular
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-sm bg-green-500 inline-block"></span>
+                Óptimo
+              </span>
+            </div>
+          </div>
           {topStockData.length > 0 ? (
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -150,9 +208,14 @@ export default function Dashboard() {
                   <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
                   <Tooltip 
                     cursor={{fill: '#f8fafc'}}
+                    content={<TopTooltip />}
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                   />
-                  <Bar dataKey="stock" fill="#0f172a" radius={[6, 6, 0, 0]} barSize={40} />
+                  <Bar dataKey="stock" radius={[6, 6, 0, 0]} barSize={40}>
+                    {topStockData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>

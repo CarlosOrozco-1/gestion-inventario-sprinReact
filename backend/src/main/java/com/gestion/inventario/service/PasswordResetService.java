@@ -131,16 +131,64 @@ public class PasswordResetService {
             helper.setFrom(mailFrom);
             helper.setTo(usuario.getEmail());
             helper.setSubject("SIGES - Código de recuperación de contraseña");
-            helper.setText(
-                    "Hola " + usuario.getName() + ",\n\n" +
-                    "Tu código para restablecer tu contraseña es: " + codigo + "\n\n" +
-                    "Este código es válido por " + EXPIRACION_MINUTOS + " minutos.\n" +
-                    "Si no solicitaste este cambio, ignora este correo.\n\n" +
-                    "Sistema SIGES - Gestión de Inventarios"
-            );
+            helper.setText(textoPlano(usuario, codigo), htmlCorreo(usuario, codigo));
             mailSender.send(message);
         } catch (MessagingException | MailException e) {
             throw new IllegalStateException("No se pudo enviar el código por correo. Inténtalo de nuevo.");
         }
+    }
+
+    private String textoPlano(Usuario usuario, String codigo) {
+        return "Hola " + usuario.getName() + ",\n\n" +
+                "Tu código para restablecer tu contraseña es: " + codigo + "\n\n" +
+                "Este código es válido por " + EXPIRACION_MINUTOS + " minutos.\n" +
+                "Si no solicitaste este cambio, ignora este correo.\n\n" +
+                "Sistema SIGES - Gestión de Inventarios";
+    }
+
+    private String htmlCorreo(Usuario usuario, String codigo) {
+        String html = """
+                <!DOCTYPE html>
+                <html lang="es">
+                <body style="margin:0;padding:0;background-color:#eef2f9;font-family:Arial,Helvetica,sans-serif;">
+                <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="background-color:#eef2f9;padding:32px 16px;">
+                  <tr>
+                    <td align="center">
+                      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%%;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.08);">
+                        <tr>
+                          <td style="background:linear-gradient(135deg,#2563eb,#1e3a8a);padding:32px 40px;text-align:center;">
+                            <div style="font-size:28px;font-weight:bold;color:#ffffff;letter-spacing:1px;">SIGES</div>
+                            <div style="font-size:14px;color:#dbeafe;margin-top:6px;">Recuperaci&oacute;n de contrase&ntilde;a</div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding:36px 40px 12px;">
+                            <p style="margin:0 0 14px;color:#111827;font-size:16px;line-height:1.6;">Hola %s,</p>
+                            <p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">Recibimos una solicitud para restablecer la contrase&ntilde;a de tu cuenta. Usa el siguiente c&oacute;digo para continuar:</p>
+                            <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="margin:28px 0;">
+                              <tr>
+                                <td align="center" style="background-color:#eff6ff;border:2px dashed #2563eb;border-radius:12px;padding:20px;">
+                                  <div style="font-size:36px;font-weight:bold;color:#2563eb;letter-spacing:10px;font-family:Consolas,Menlo,monospace;">%s</div>
+                                </td>
+                              </tr>
+                            </table>
+                            <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">Este c&oacute;digo es v&aacute;lido por <strong>%d minutos</strong> y solo puede usarse una vez.</p>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding:24px 40px 36px;text-align:center;">
+                            <div style="height:1px;background-color:#e5e7eb;margin-bottom:20px;"></div>
+                            <p style="margin:0;color:#9ca3af;font-size:13px;line-height:1.6;">Si no solicitaste este cambio, puedes ignorar este correo.</p>
+                            <p style="margin:12px 0 0;color:#6b7280;font-size:12px;">&copy; 2026 SIGES &mdash; Sistema de Gesti&oacute;n de Inventarios</p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+                </body>
+                </html>
+                """.formatted(usuario.getName(), codigo, EXPIRACION_MINUTOS);
+        return html;
     }
 }

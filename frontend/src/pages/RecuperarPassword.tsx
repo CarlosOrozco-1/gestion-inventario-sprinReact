@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import SuccessModal from "../components/SuccessModal";
 
 type Paso = "email" | "codigo" | "restablecer";
 
@@ -14,6 +15,7 @@ export default function RecuperarPassword() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [cargando, setCargando] = useState(false);
+  const [exito, setExito] = useState(false);
   const navigate = useNavigate();
 
   const pasoIndex = paso === "email" ? 0 : paso === "codigo" ? 1 : 2;
@@ -63,8 +65,7 @@ export default function RecuperarPassword() {
     setCargando(true);
     try {
       await api.post("/auth/restablecer", { email, codigo, nuevaPassword: password });
-      alert("¡Contraseña actualizada! Ya puedes iniciar sesión.");
-      navigate("/login");
+      setExito(true);
     } catch (err: any) {
       setError(err.response?.data?.message || "No se pudo restablecer la contraseña.");
     } finally {
@@ -250,6 +251,14 @@ export default function RecuperarPassword() {
           </p>
         </div>
       </div>
+
+      <SuccessModal
+        isOpen={exito}
+        title="Contraseña actualizada"
+        message="Ya puedes iniciar sesión con tu nueva contraseña."
+        buttonText="Iniciar sesión"
+        onClose={() => navigate("/login")}
+      />
     </div>
   );
 }

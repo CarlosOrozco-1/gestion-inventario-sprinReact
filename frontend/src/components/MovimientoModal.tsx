@@ -138,29 +138,19 @@ export default function MovimientoModal({ isOpen, onClose, onSave, insumos, preS
             </div>
 
             {selected && stockInfo && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
-                    Insumo Seleccionado
-                  </label>
-                  <p className="font-semibold text-slate-800">{selected.item}</p>
-                  <p className="text-sm text-slate-500">{selected.presentation} · {selected.size}</p>
-                  <p className="text-xs text-slate-400 mt-1">Código interno: {selected.code}</p>
+              <div className="border border-slate-200 rounded-lg p-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  Stock Actual
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold text-slate-800">{selected.stock} uds</span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border ${stockInfo.badgeClass}`}>
+                    {stockInfo.label}
+                  </span>
                 </div>
-                <div className="border border-slate-200 rounded-lg p-3 flex flex-col justify-center">
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
-                    Stock Actual
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold text-slate-800">{selected.stock} uds</span>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border ${stockInfo.badgeClass}`}>
-                      {stockInfo.label}
-                    </span>
-                  </div>
-                  <p className={`text-xs mt-1 ${stockInfo.textClass}`}>
-                    Mín: {selected.minStock ?? '—'} · Máx: {selected.maxStock ?? '—'}
-                  </p>
-                </div>
+                <p className={`text-xs ${stockInfo.textClass}`}>
+                  Mín: {selected.minStock ?? '—'} · Máx: {selected.maxStock ?? '—'}
+                </p>
               </div>
             )}
 

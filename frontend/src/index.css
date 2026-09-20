@@ -63,3 +63,19 @@ select:not(:disabled),
 label[for] {
     cursor: pointer;
 }
+
+/*
+  Oculta los spinners nativos de input[type=number] (webkit + firefox).
+  Además de una UI más limpia, elimina el tooltip nativo del navegador
+  ("Increase value"/"Decrease value") que aparece en el idioma del
+  navegador y no es texto traducible de la aplicación.
+*/
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import InsumoCombobox from '../components/InsumoCombobox';
+import InsumoCombobox from './InsumoCombobox';
 
 const insumos: any[] = [
   { id: 11, code: 10001, item: 'Gasa', presentation: 'Sobre', size: '10x10', stock: 8 },

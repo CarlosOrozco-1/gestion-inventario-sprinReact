@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import SearchModal from './SearchModal';
+import SearchModal from '../components/SearchModal';
 
 const items: any[] = [
   {

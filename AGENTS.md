@@ -138,7 +138,9 @@ Toda función en la capa Service que afecte inventario (entradas o salidas) **de
 - **Frontend (React):** `Vitest` + `React Testing Library` + `jsdom`
   (config en `frontend/vitest.config.ts`, setup en `src/test/setup.ts`).
   - Ejecutar: `cd frontend && npm test` (una sola pasada) o `npm run test:watch`.
-  - Convección: archivos `src/**/*.test.{ts,tsx}` junto al código que prueban.
+  - Convención: todos los archivos `*.test.{ts,tsx}` viven en `src/test/`
+    (junto al `setup.ts`), no junto al código que prueban. Los imports hacia el
+    código bajo prueba son relativos, p. ej. `../components/Foo`.
 - **Backend (Spring Boot):** `JUnit 5` + `Mockito` (ya en `build.gradle`).
   - El entorno local NO tiene JDK compilador, por lo que los tests se ejecutan
     en Docker: **`scripts/test_backend.sh`** (imagen `gradle:9.5.1-jdk21`,

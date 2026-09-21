@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import Auditoria from './Auditoria';
+import Auditoria from '../pages/Auditoria';
 
 const apiMocks = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('../api/axios', () => ({ default: apiMocks }));

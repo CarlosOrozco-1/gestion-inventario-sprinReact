@@ -36,7 +36,7 @@ function installMockAudioContext() {
 // Carga el módulo desde cero para que cada test parta con estado limpio.
 async function freshPlayQrSuccess() {
   vi.resetModules();
-  const m = await import('./sound');
+  const m = await import('../utils/sound');
   return m.playQrSuccess;
 }
 

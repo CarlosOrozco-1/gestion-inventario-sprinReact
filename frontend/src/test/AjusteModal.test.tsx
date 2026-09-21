@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import AjusteModal from './AjusteModal';
+import AjusteModal from '../components/AjusteModal';
 
 const insumos: any[] = [
   {

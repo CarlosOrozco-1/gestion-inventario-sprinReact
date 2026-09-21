@@ -4,7 +4,9 @@ import InsumoModal from '../components/InsumoModal';
 import QrScanner from '../components/QrScanner';
 import SearchModal from '../components/SearchModal';
 import QrModal from '../components/QrModal';
+import ConfirmModal from '../components/ConfirmModal';
 import { useToastStore } from '../store/useToastStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 
 export default function Insumos() {
@@ -17,8 +19,13 @@ export default function Insumos() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [qrModal, setQrModal] = useState(null);
+  const [estadoModal, setEstadoModal] = useState(null);
 
   const showToast = useToastStore((s: any) => s.showToast);
+  const user = useAuthStore((s: any) => s.user);
+
+  // Inactivar/activar material es exclusivo de JEFE y ADMIN.
+  const canToggleEstado = !!(user && ['ADMIN', 'JEFE'].includes(user.rol));
 
   const fetchItems = async (message = null) => {
     try {
@@ -47,12 +54,25 @@ export default function Insumos() {
 
   const closeModal = () => setModalConfig(null);
 
+  const toggleEstadoInsumo = async (item, activo) => {
+    try {
+      await api.put(`/items/${item.id}/estado`, { activo });
+      fetchItems(activo ? 'Material activado' : 'Material inactivado');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Error al cambiar el estado del material.', 'error');
+    }
+  };
+
   // Escanea un QR y abre la edición de la presentación encontrada.
   const handleQrScan = async (qrCode) => {
     setIsScannerOpen(false);
     try {
       const response = await api.get(`/presentations/qr/${qrCode}`);
       const scanned = response.data; // { id, code, item, presentation, size, ... }
+      if (scanned.activo === false) {
+        showToast('Este insumo está inactivo. Consulta con tu superior para su activación.', 'error');
+        return;
+      }
       for (const it of items) {
         const pres = it.presentations?.find((p) => p.id === scanned.id);
         if (pres) {
@@ -121,6 +141,26 @@ export default function Insumos() {
         item={qrModal?.item}
         presentation={qrModal?.pres}
         onClose={() => setQrModal(null)}
+      />
+
+      {/* Confirmación para inactivar / activar un material (JEFE y ADMIN) */}
+      <ConfirmModal
+        isOpen={!!estadoModal}
+        title={estadoModal?.activo ? 'Activar material' : 'Inactivar material'}
+        message={
+          estadoModal?.activo
+            ? `Se reactivará "${estadoModal.item?.name}". Volverá a permitir movimientos.\n\n¿Estás seguro?`
+            : `Se inactivará "${estadoModal?.item?.name}".\n\nNo permitirá movimientos ni aparecerá en nuevas operaciones.\n\n¿Estás seguro?`
+        }
+        confirmText={estadoModal?.activo ? 'Sí, activar' : 'Sí, inactivar'}
+        tone={estadoModal?.activo ? 'success' : 'danger'}
+        onConfirm={() => {
+          if (estadoModal) {
+            toggleEstadoInsumo(estadoModal.item, estadoModal.activo);
+            setEstadoModal(null);
+          }
+        }}
+        onCancel={() => setEstadoModal(null)}
       />
 
       {/* Header de la vista */}
@@ -211,7 +251,16 @@ export default function Insumos() {
                     {/* Fila banner del material */}
                     <tr className="bg-slate-50 border-b border-slate-200">
                       <td className="p-3 pl-4 text-slate-500 font-medium">{item.code}</td>
-                      <td className="p-3 font-bold text-slate-900">{item.name}</td>
+                      <td className="p-3 font-bold text-slate-900">
+                        <span className="flex items-center gap-2">
+                          {item.name}
+                          {item.activo === false && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-slate-200 text-slate-600">
+                              Inactivo
+                            </span>
+                          )}
+                        </span>
+                      </td>
                       <td className="p-3" colSpan={2}>
                         <span className="text-xs text-slate-500">
                           {item.presentations.length} presentación(es)
@@ -222,6 +271,18 @@ export default function Insumos() {
                       </td>
                       <td className="p-3" colSpan={3}>
                         <div className="flex items-center justify-end gap-2">
+                          {canToggleEstado && (
+                            <button
+                              onClick={() => setEstadoModal({ item, activo: item.activo === false })}
+                              className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-md transition-colors ${
+                                item.activo === false
+                                  ? 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
+                                  : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                              }`}
+                            >
+                              {item.activo === false ? 'Activar' : 'Inactivar'}
+                            </button>
+                          )}
                           <button
                             onClick={() => openModal('create-presentation', item)}
                             className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 hover:bg-brand-50 px-2 py-1 rounded-md transition-colors"

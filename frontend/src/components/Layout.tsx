@@ -3,6 +3,7 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { hasAccess } from '../access';
 import Toast from './Toast';
+import ProfileModal from './ProfileModal';
 
 // Versión del sistema (se muestra en el pie del menú lateral).
 const APP_VERSION = '1.0.0';
@@ -18,6 +19,7 @@ export default function Layout() {
 
   // Menú colapsado en desktop (solo iconos visibles)
   const [collapsed, setCollapsed] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -205,7 +207,11 @@ export default function Layout() {
         </nav>
 
         <div className={`p-6 border-t border-slate-800 ${collapsed ? 'lg:px-0 lg:flex lg:flex-col lg:items-center' : ''}`}>
-          <div className={`flex items-center gap-3 mb-6 px-2 ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}>
+          <button
+            onClick={() => setIsProfileOpen(true)}
+            title="Ver perfil"
+            className={`flex items-center gap-3 mb-6 px-2 w-full text-left hover:bg-slate-800 rounded-xl transition-colors ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+          >
             <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 font-bold border border-slate-700 shrink-0">
               {user?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
@@ -213,7 +219,10 @@ export default function Layout() {
               <p className="text-sm font-semibold text-slate-200 truncate">{user?.name}</p>
               <p className="text-xs text-slate-500 truncate">{user?.email}</p>
             </div>
-          </div>
+            <svg className={`w-4 h-4 text-slate-500 shrink-0 ${collapsed ? 'lg:hidden' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
           
           <button 
             onClick={handleLogout}
@@ -248,6 +257,11 @@ export default function Layout() {
       </main>
 
       <Toast />
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        user={user}
+      />
     </div>
   );
 }

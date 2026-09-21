@@ -44,10 +44,13 @@ public class AuditService {
     public static final String EXPORTACION_PROYECCIONES_EXCEL = "EXPORTACION_PROYECCIONES_EXCEL";
     public static final String INSUMO_CREADO = "INSUMO_CREADO";
     public static final String INSUMO_ACTUALIZADO = "INSUMO_ACTUALIZADO";
+    public static final String INSUMO_INACTIVADO = "INSUMO_INACTIVADO";
+    public static final String INSUMO_REACTIVADO = "INSUMO_REACTIVADO";
     public static final String PRESENTACION_AGREGADA = "PRESENTACION_AGREGADA";
     public static final String QR_DESCARGA = "QR_DESCARGA";
     public static final String QR_IMPRESION = "QR_IMPRESION";
     public static final String QR_CONSULTADO = "QR_CONSULTADO";
+    public static final String PASSWORD_CAMBIADO = "PASSWORD_CAMBIADO";
 
     private final AuditLogRepository auditLogRepository;
     private final ApplicationEventPublisher eventPublisher;
@@ -121,10 +124,13 @@ public class AuditService {
         catalogo.put(EXPORTACION_PROYECCIONES_EXCEL, "Exportación Excel de Proyecciones");
         catalogo.put(INSUMO_CREADO, "Insumo creado");
         catalogo.put(INSUMO_ACTUALIZADO, "Insumo actualizado");
+        catalogo.put(INSUMO_INACTIVADO, "Insumo inactivado");
+        catalogo.put(INSUMO_REACTIVADO, "Insumo reactivado");
         catalogo.put(PRESENTACION_AGREGADA, "Presentación agregada a insumo");
         catalogo.put(QR_DESCARGA, "Código QR descargado");
         catalogo.put(QR_IMPRESION, "Código QR impreso");
         catalogo.put(QR_CONSULTADO, "Código QR consultado (escaneo)");
+        catalogo.put(PASSWORD_CAMBIADO, "Contraseña cambiada");
         return catalogo;
     }
 }

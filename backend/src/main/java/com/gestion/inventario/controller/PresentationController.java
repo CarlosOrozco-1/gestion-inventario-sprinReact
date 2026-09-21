@@ -45,6 +45,7 @@ public class PresentationController {
         dto.setMaxStock(p.getMaxStock());
         dto.setEstimatedCost(p.getEstimatedCost());
         dto.setQrCode(p.getQrCode());
+        dto.setActivo(p.getItem().getActivo());
         return ResponseEntity.ok(dto);
     }
 

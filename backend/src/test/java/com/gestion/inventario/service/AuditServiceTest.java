@@ -70,6 +70,6 @@ public class AuditServiceTest {
         assertEquals("Inicio de sesión", catalogo.get(AuditService.LOGIN));
         assertEquals("Movimiento registrado", catalogo.get(AuditService.MOVIMIENTO_CREADO));
         assertEquals("Exportación PDF", catalogo.get(AuditService.EXPORTACION_PDF));
-        assertEquals(17, catalogo.size());
+        assertEquals(20, catalogo.size());
     }
 }

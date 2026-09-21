@@ -59,9 +59,20 @@ public class ItemService {
     public Item actualizarItem(Long id, ItemRequestDTO request) {
         Item item = itemRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Material no encontrado."));
-        item.setCode(request.getCode() != null ? request.getCode() : item.getCode());
+        // El código interno es INMUTABLE tras la creación: es el identificador
+        // impreso en el etiquetado físico (QR usa solo el ID de presentación,
+        // pero los rótulos del insumo dependen del código). Cambiarlo dejaría
+        // las etiquetas existentes sin coincidir con el catálogo.
         item.setName(request.getName() != null && !request.getName().isBlank()
                 ? request.getName().trim() : item.getName());
+        return itemRepository.save(item);
+    }
+
+    @Transactional
+    public Item cambiarActivoItem(Long id, boolean activo) {
+        Item item = itemRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Material no encontrado."));
+        item.setActivo(activo);
         return itemRepository.save(item);
     }
 
@@ -97,6 +108,11 @@ public class ItemService {
     public List<InsumoViewDTO> listarVistaInsumos() {
         List<InsumoViewDTO> vista = new ArrayList<>();
         for (Item item : itemRepository.findAll()) {
+            // Solo se listan los materiales activos: los inactivos no pueden
+            // recibir nuevos movimientos y se ocultan de los selects.
+            if (!Boolean.TRUE.equals(item.getActivo())) {
+                continue;
+            }
             for (Presentation p : item.getPresentations()) {
                 InsumoViewDTO dto = new InsumoViewDTO();
                 dto.setId(p.getId());
@@ -109,6 +125,7 @@ public class ItemService {
                 dto.setMaxStock(p.getMaxStock());
                 dto.setEstimatedCost(p.getEstimatedCost());
                 dto.setQrCode(p.getQrCode());
+                dto.setActivo(item.getActivo());
                 vista.add(dto);
             }
         }

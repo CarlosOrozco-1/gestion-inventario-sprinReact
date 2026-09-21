@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import AjusteModal from '../components/AjusteModal';
 import QrScanner from '../components/QrScanner';
+import { useToastStore } from '../store/useToastStore';
 
 export default function Ajustes() {
   const [movimientos, setMovimientos] = useState<any[]>([]);
@@ -11,7 +12,8 @@ export default function Ajustes() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [scannedPresentation, setScannedPresentation] = useState<any>(null);
-  const [toastMessage, setToastMessage] = useState('');
+
+  const showToast = useToastStore((s: any) => s.showToast);
 
   const fetchData = async (message = null) => {
     try {
@@ -26,8 +28,7 @@ export default function Ajustes() {
       setInsumosList(insumosRes.data);
       
       if (message) {
-        setToastMessage(message as string);
-        setTimeout(() => setToastMessage(''), 3000);
+        showToast(message as string);
       }
     } catch (err) {
       console.error('Error al cargar datos', err);
@@ -41,12 +42,16 @@ export default function Ajustes() {
     try {
       const response = await api.get(`/presentations/qr/${qrCode}`);
       const presentation = response.data;
+      if (presentation.activo === false) {
+        showToast(`El insumo "${presentation.item}" está inactivo. Consulta con tu superior para su activación.`, 'error');
+        return;
+      }
       setScannedPresentation(presentation);
       setIsModalOpen(true);
-      setToastMessage(`Insumo encontrado: ${presentation.item} - ${presentation.presentation}`);
+      showToast(`Insumo encontrado: ${presentation.item} - ${presentation.presentation}`, 'info');
     } catch (err) {
       console.error('Error al buscar insumo por QR:', err);
-      setToastMessage('Código QR no encontrado');
+      showToast('Código QR no encontrado', 'error');
     }
   };
 
@@ -153,17 +158,6 @@ export default function Ajustes() {
           </table>
         </div>
       </div>
-
-      {toastMessage && (
-        <div className="fixed bottom-8 right-8 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
-          <div className="bg-slate-800 text-white px-6 py-3 rounded-xl shadow-xl flex items-center gap-3">
-            <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span className="font-medium">{toastMessage}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

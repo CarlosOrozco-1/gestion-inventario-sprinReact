@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
+import ConfirmModal from './ConfirmModal';
 
 const MODES = {
   'create-item': {
@@ -44,6 +45,7 @@ export default function InsumoModal({ isOpen, onClose, onSave, modalConfig, item
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [codeTouched, setCodeTouched] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // Genera un código sugerido (entero aleatorio de hasta 9 dígitos).
   const generarCodigo = () => {
@@ -75,6 +77,7 @@ export default function InsumoModal({ isOpen, onClose, onSave, modalConfig, item
       }
       setError('');
       setCodeTouched(false);
+      setShowConfirm(false);
     }
   }, [isOpen, mode, item, presentation]);
 
@@ -94,10 +97,20 @@ export default function InsumoModal({ isOpen, onClose, onSave, modalConfig, item
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     if (mode === 'create-item' && isCodeTaken) {
       setError('El código que ingresaste ya está en uso. Elige otro o usa el sugerido.');
       return;
     }
+    // Ediciones requieren confirmación explícita del usuario antes de persistir.
+    if (mode === 'edit-item' || mode === 'edit-presentation') {
+      setShowConfirm(true);
+      return;
+    }
+    await performSave();
+  };
+
+  const performSave = async () => {
     setLoading(true);
     setError('');
 
@@ -118,8 +131,8 @@ export default function InsumoModal({ isOpen, onClose, onSave, modalConfig, item
         });
         onSave('Material creado exitosamente');
       } else if (mode === 'edit-item') {
+        // El código es inmutable: el backend lo conserva. Solo se envía el nombre.
         await api.put(`/items/${item.id}`, {
-          code: Number(formData.code),
           name: formData.name,
         });
         onSave('Material actualizado exitosamente');
@@ -234,16 +247,19 @@ export default function InsumoModal({ isOpen, onClose, onSave, modalConfig, item
                       name="code"
                       value={formData.code}
                       onChange={handleChange}
-                      required
+                      readOnly={mode === 'edit-item'}
+                      required={mode !== 'edit-item'}
                       title={
-                        mode === 'create-item' && !isCodeTaken
-                          ? 'Código autogenerado. Puedes reemplazarlo o generar otro con el botón.'
-                          : undefined
+                        mode === 'edit-item'
+                          ? 'El código interno no puede modificarse: identifica el etiquetado físico del material.'
+                          : 'Código autogenerado. Puedes reemplazarlo o generar otro con el botón.'
                       }
-                      className={`w-full px-4 py-2 bg-slate-50 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
-                        mode === 'create-item' && codeTouched && isCodeTaken
-                          ? 'border-red-400 focus:ring-red-500/20 focus:border-red-500'
-                          : 'border-slate-200 focus:ring-brand-500/20 focus:border-brand-500'
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                        mode === 'edit-item'
+                          ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200'
+                          : mode === 'create-item' && codeTouched && isCodeTaken
+                            ? 'bg-slate-50 border-red-400 focus:ring-red-500/20 focus:border-red-500'
+                            : 'bg-slate-50 border-slate-200 focus:ring-brand-500/20 focus:border-brand-500'
                       }`}
                       placeholder="Autogenerado..."
                     />
@@ -388,6 +404,20 @@ export default function InsumoModal({ isOpen, onClose, onSave, modalConfig, item
           </div>
         </form>
       </div>
+
+      <ConfirmModal
+        isOpen={showConfirm}
+        title={mode === 'edit-item' ? 'Confirmar edición del material' : 'Confirmar edición de presentación'}
+        message={
+          mode === 'edit-item'
+            ? `Se actualizará el material "${formData.name}" (código ${item?.code}).`
+            : `Se actualizarán los datos de "${formData.presName} ${formData.presSize}" en "${item?.name}".`
+        }
+        confirmText="Sí, guardar cambios"
+        tone="success"
+        onConfirm={() => { setShowConfirm(false); performSave(); }}
+        onCancel={() => setShowConfirm(false)}
+      />
     </div>
   );
 }

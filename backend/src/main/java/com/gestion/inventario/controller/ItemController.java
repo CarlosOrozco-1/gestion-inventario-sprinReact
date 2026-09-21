@@ -67,6 +67,23 @@ public class ItemController {
         return item;
     }
 
+    /**
+     * Inactivar / reactivar un material (eliminación lógica). Acción exclusiva
+     * de JEFE y ADMIN. Un material inactivo no permite nuevos movimientos.
+     */
+    @PutMapping("/{id}/estado")
+    @PreAuthorize("hasAnyRole('ADMIN','JEFE')")
+    public Item cambiarEstado(@PathVariable Long id, @RequestBody java.util.Map<String, Boolean> body,
+                              Authentication authentication, HttpServletRequest httpRequest) {
+        boolean activo = Boolean.TRUE.equals(body.get("activo"));
+        Item item = itemService.cambiarActivoItem(id, activo);
+        auditService.registrar(activo ? AuditService.INSUMO_REACTIVADO : AuditService.INSUMO_INACTIVADO,
+                (activo ? "Reactivó el insumo " : "Inactivó el insumo ") + item.getCode() + " · " + item.getName(),
+                "items", item.getId(), authentication.getName(), authentication.getName(),
+                httpRequest.getRemoteAddr());
+        return item;
+    }
+
     @PostMapping("/{id}/presentations")
     @PreAuthorize("hasRole('ADMIN')")
     public Presentation agregarPresentacion(@PathVariable Long id,

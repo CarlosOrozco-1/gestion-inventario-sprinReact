@@ -61,6 +61,11 @@ public class MovimientoService {
         Presentation presentation = presentationRepository.findByIdForUpdate(presentationId)
                 .orElseThrow(() -> new IllegalArgumentException("Presentación no encontrada."));
 
+        // 4b. Material inactivo: no se permiten movimientos (eliminación lógica).
+        if (presentation.getItem() != null && !Boolean.TRUE.equals(presentation.getItem().getActivo())) {
+            throw new IllegalArgumentException("El insumo está inactivo. No se pueden registrar movimientos.");
+        }
+
         // 5. Aplicar reglas de negocio según el tipo de movimiento.
         switch (type) {
             case ENTRADA:

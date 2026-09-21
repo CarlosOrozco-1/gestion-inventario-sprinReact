@@ -28,6 +28,9 @@ public class Item {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false)
+    private Boolean activo = true;
+
     @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true,
             fetch = FetchType.LAZY)
     @OrderBy("id ASC")

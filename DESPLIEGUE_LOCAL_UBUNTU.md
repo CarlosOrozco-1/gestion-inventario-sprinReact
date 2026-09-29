@@ -242,6 +242,56 @@ cloudflared tunnel route dns siges-local inventario-local.tudominio.com
 #    command: tunnel --no-autoupdate run --token <TOKEN>
 ```
 
+### 3-bis. Enterarte de la URL sin conectarte por SSH
+
+El hostname es aleatorio, así que después de reiniciar el servidor **no hay forma de adivinarlo**. `notify-url.sh` lo resuelve: lee la URL de los logs y te la manda al celular con [ntfy.sh](https://ntfy.sh), un servicio de push gratuito y sin cuenta.
+
+```bash
+cd /home/gestioninventario/siges/gestion-inventario-sprinReact/tunnel-local
+
+# 1. Definir un topic propio (cadena larga y aleatoria)
+echo 'NTFY_TOPIC=inv-mi-cadena-aleatoria-larga' > .env
+chmod 600 .env
+
+# 2. Probar que las notificaciones llegan
+set -a; source .env; set +a
+./notify-url.sh --test     # mensaje de prueba
+./notify-url.sh            # envía la URL vigente
+./notify-url.sh --force    # reenvía aunque no haya cambiado
+```
+
+Recibirás en el celular: `La app ya esta accesible en: https://...`
+
+> El topic funciona como contraseña: **quien conozca la cadena puede leer tu URL y
+> enviarte mensajes.** Por eso debe ser larga y aleatoria, y el archivo lleva
+> `chmod 600`. `.env` está en `.gitignore`.
+
+**Recibir en el celular:** instala la app [ntfy](https://ntfy.sh) (Android/iOS) y suscríbete al topic con el mismo nombre.
+
+**Para que sea automático al encender el equipo**, crear la unidad systemd:
+
+```bash
+sudo tee /etc/systemd/system/tunnel-inventario.service <<'EOF'
+[Unit]
+Description=Notifica la URL del tunel de inventario
+Requires=docker.service
+After=docker.service network-online.target
+[Service]
+Type=oneshot
+WorkingDirectory=/home/gestioninventario/siges/gestion-inventario-sprinReact/tunnel-local
+EnvironmentFile=/home/gestioninventario/siges/gestion-inventario-sprinReact/tunnel-local/.env
+ExecStart=/home/gestioninventario/siges/gestion-inventario-sprinReact/tunnel-local/notify-url.sh
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now tunnel-inventario.service
+```
+
+Esto corre al arrancar el equipo, cuando todavía sabes que no vas a estar
+disponible para conectarte por SSH.
+
 ---
 
 ## 📝 Comandos Útiles de Mantenimiento

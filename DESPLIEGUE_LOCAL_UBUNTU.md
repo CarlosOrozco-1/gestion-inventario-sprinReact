@@ -54,11 +54,24 @@ Asegurar las siguientes variables en `.env`:
 ```env
 DB_USERNAME=inventario
 DB_PASSWORD=inventario_pass_local
-JWT_SECRET=SjMu(rC<J7)UAmoz[,>}X}fxDe;=s$Y{|RDrTG3m@-oqHd=bv4[~wSz-40k
+JWT_SECRET=<generar con: openssl rand -hex 48>
 TZ=America/Guatemala
 MAIL_USERNAME=dummy@example.com
 MAIL_PASSWORD=dummy
 ```
+
+> ⚠️ **`JWT_SECRET` debe tener 64 bytes o más.** La firma de sesión usa HS512 y
+> con menos bytes el backend responde `500` en `/api/auth/login`
+> (`io.jsonwebtoken.security.WeakKeyException`). No escribir un valor real en
+> este archivo: está versionado en git. El placeholder de `.env.example`
+> (`cambiar_esto`) también es inválido por este motivo.
+>
+> Generar y aplicar el secreto directamente en el servidor:
+>
+> ```bash
+> sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$(openssl rand -hex 48)|" .env
+> docker compose up -d --force-recreate backend
+> ```
 
 ### 3. Levantar los Contenedores (Frontend, Backend y PostgreSQL)
 ```bash

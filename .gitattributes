@@ -1,0 +1,9 @@
+# Los scripts de shell deben viajar con LF. Con CRLF fallan en Linux con
+# errores tipo "\r: command not found" al ejecutar deploy-local.sh y los
+# scripts de respaldo. Se fija aqui para que no dependa del core.autocrlf
+# de cada maquina.
+*.sh text eol=lf
+
+# Los Dockerfiles se interpretan linea por linea: CRLF tambien los rompe.
+Dockerfile text eol=lf
+*/Dockerfile text eol=lf

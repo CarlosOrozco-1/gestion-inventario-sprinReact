@@ -78,7 +78,11 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
         html5QrcodeRef.current = scanner;
         await scanner.start(
           { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 200, height: 200 } },
+          // Sin qrbox fijo: html5-qrcode solo analiza lo que cae DENTRO de esa
+          // caja, y con 200x200 px un QR pequeño qued fuera del centro y nunca
+          // se leia. La camara nativa del telefono si lo capturaba porque
+          // escanea el fotograma completo. fps alto para dar mas intentos.
+          { fps: 20 },
           scanHandler,
           () => { /* errores de decodificación: ignorar */ }
         );

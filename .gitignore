@@ -5,6 +5,12 @@ backend/data/
 .env
 .env.bak.*
 
+# Respaldos de la base de datos (pg_dump) generados en el servidor
+respaldos/
+
+# URL del tunel ya notificada, para no repetir el push
+tunnel-local/.ultima-url
+
 # Variables de entorno del frontend (p. ej. VITE_GOOGLE_CLIENT_ID).
 # Nunca commitear: una vez expuesta, se rota el valor, no se sube otra vez.
 frontend/.env

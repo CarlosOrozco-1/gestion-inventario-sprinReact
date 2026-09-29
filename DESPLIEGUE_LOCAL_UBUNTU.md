@@ -210,8 +210,10 @@ La allowlist de CORS se configura **por entorno** desde `.env` (nunca en código
 ```bash
 cd /home/gestioninventario/siges/gestion-inventario-sprinReact
 sed -i 's|^CORS_ALLOWED_ORIGINS=.*|CORS_ALLOWED_ORIGINS=http://localhost:*,http://192.168.200.*:*,https://*.trycloudflare.com|' .env
-docker compose up -d --force-recreate backend
+docker compose up -d --build backend
 ```
+
+> ⚠️ **`--force-recreate` NO recompila.** Si el backend sigue rejecting un origen que sí está en `CORS_ALLOWED_ORIGINS`, casi siempre es que la imagen es vieja: usá `--build`. Un `.env` nuevo solo se aplica recreando el contenedor, pero un cambio en Java exige volver a compilar la imagen.
 
 > `https://*.trycloudflare.com` es un comodín: cubre el hostname aleatorio sin
 > tener que editar el `.env` cada vez que el túnel se reinicia.

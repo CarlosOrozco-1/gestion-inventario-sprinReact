@@ -4,6 +4,7 @@ import org.springframework.security.config.Customizer;
 
 import com.gestion.inventario.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -28,6 +29,11 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
+
+    // Orígenes permitidos: los declara cada entorno en su .env
+    // (CORS_ALLOWED_ORIGINS) para que el mismo build sirva en todos.
+    @Value("${app.cors.allowed-origin-patterns}")
+    private String[] allowedOriginPatterns;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -66,13 +72,8 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         // PRECAUCIÓN CORS: el navegador envía "Origin" incluso en peticiones
         // same-origin (nginx :8081 proxya /api), por eso NUNCA enviar 403 aquí
-        // si el origen no figura; se cubren los entornos de dev (Vite, puertos
-        // locales) y el dominio de producción detrás de Caddy.
-        configuration.setAllowedOriginPatterns(Arrays.asList(
-                "http://localhost:*",
-                "https://localhost:*",
-                "https://gestioninventario.duckdns.org",
-                "http://192.168.200.*:*"));
+        // si el origen no figura. Cada entorno declara los suyos en .env.
+        configuration.setAllowedOriginPatterns(Arrays.asList(allowedOriginPatterns));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

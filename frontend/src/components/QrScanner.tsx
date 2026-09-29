@@ -17,6 +17,8 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [detected, setDetected] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
+  const [manualCode, setManualCode] = useState('');
 
   // Detiene la cámara de forma segura (evita "already under transition").
   const stopScanner = async () => {
@@ -58,8 +60,20 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
         scannedRef.current = false;
         stoppedRef.current = false;
         setDetected(false);
+        setError(null);
+        setManualMode(false);
+        setManualCode('');
         // Espera un tick para asegurar que el contenedor esté montado.
         await new Promise((r) => setTimeout(r, 50));
+        // La cámara solo existe en un contexto seguro (HTTPS o localhost).
+        // Servida por HTTP en una IP de red local, el navegador no expone
+        // navigator.mediaDevices y html5-qrcode lanza "Camera streaming not
+        // supported by the browser". Se cae a la entrada manual.
+        if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+          setError('Cámara no disponible');
+          setManualMode(true);
+          return;
+        }
         const scanner = new Html5Qrcode('qr-reader');
         html5QrcodeRef.current = scanner;
         await scanner.start(
@@ -71,7 +85,11 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
         setScanning(true);
       } catch (err) {
         console.error('Error starting QR scanner:', err);
-        setError('No se pudo acceder a la cámara. Verifica los permisos.');
+        setError('No se pudo acceder a la cámara');
+        setManualMode(true);
+        // El escáner nunca llegó a arrancar: soltar la referencia evita que
+        // el cleanup intente detener un scanner que no está corriendo.
+        html5QrcodeRef.current = null;
         // Limpia el contenedor para no dejar un video roto.
         el.innerHTML = '';
         setScanning(false);
@@ -121,9 +139,11 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
             <div ref={containerRef} id="qr-reader" className="w-full h-full"></div>
 
             {error && (
-              <div className="absolute inset-0 flex items-center justify-center bg-red-50 text-red-600 p-4 text-center">
+              <div
+                className="absolute inset-0 flex items-center justify-center bg-red-50 text-red-600 p-4 text-center"
+                title="La cámara del navegador solo está disponible en HTTPS o en localhost. Al entrar por HTTP a una IP de red local, el navegador la bloquea por seguridad. Puedes consultar el insumo escribiendo su código."
+              >
                 <p className="font-medium">{error}</p>
-                <p className="text-sm mt-1">Ingresa el código manualmente o intenta de nuevo.</p>
               </div>
             )}
 
@@ -137,9 +157,48 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
           </div>
 
           <div className="mt-4 space-y-3">
-            <p className="text-sm text-slate-500 text-center">
-              Apunta la cámara al código QR del insumo
+            <p
+              className="text-sm text-slate-500 text-center"
+              title="Apunta la cámara al código QR impreso en la etiqueta del insumo."
+            >
+              Apunta la cámara al código QR
             </p>
+
+            {manualMode ? (
+              <form
+                className="space-y-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const code = manualCode.trim();
+                  if (!code) return;
+                  onScan(code);
+                }}
+              >
+                <input
+                  type="text"
+                  value={manualCode}
+                  onChange={(e) => setManualCode(e.target.value)}
+                  placeholder="Código del insumo"
+                  autoFocus
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500"
+                />
+                <button
+                  type="submit"
+                  disabled={!manualCode.trim()}
+                  className="w-full inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  Consultar
+                </button>
+              </form>
+            ) : (
+              <button
+                onClick={() => setManualMode(true)}
+                title="Escribe el código del insumo en lugar de usar la cámara."
+                className="w-full text-sm font-medium text-brand-600 hover:text-brand-700 transition-colors"
+              >
+                Ingresar código
+              </button>
+            )}
 
             <button
               onClick={handleClose}

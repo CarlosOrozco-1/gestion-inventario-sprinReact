@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { playQrSuccess } from '../utils/sound';
 
 interface QrScannerProps {
@@ -74,14 +74,26 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
           setManualMode(true);
           return;
         }
-        const scanner = new Html5Qrcode('qr-reader');
+        // BarcodeDetector es el detector NATIVO del navegador (Android/Chrome).
+        // Es el mismo motor que usa la app de camara del telefono, y detecta
+        // QR pequenos que el decodificador en JavaScript no logra. Donde no
+        // existe (iPhone, escritorio) la libreria cae sola a ZXing.
+        const scanner = new Html5Qrcode('qr-reader', {
+          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+          useBarCodeDetectorIfSupported: true,
+        });
         html5QrcodeRef.current = scanner;
         await scanner.start(
-          { facingMode: 'environment' },
-          // Sin qrbox fijo: html5-qrcode solo analiza lo que cae DENTRO de esa
-          // caja, y con 200x200 px un QR pequeño qued fuera del centro y nunca
-          // se leia. La camara nativa del telefono si lo capturaba porque
-          // escanea el fotograma completo. fps alto para dar mas intentos.
+          // Pedir 1080p: sin esto el movil entrega 480p y un QR pequeno se
+          // queda sin pixeles suficientes por modulo para decodificarse.
+          {
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+          // Sin qrbox: html5-qrcode solo analiza lo que cae DENTRO de esa caja,
+          // y con 200x200 px un QR pequeno quedaba fuera del centro y no se
+          // leia. fps alto para dar mas intentos por segundo.
           { fps: 20 },
           scanHandler,
           () => { /* errores de decodificación: ignorar */ }

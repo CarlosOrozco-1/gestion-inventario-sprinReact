@@ -71,7 +71,8 @@ public class SecurityConfig {
         configuration.setAllowedOriginPatterns(Arrays.asList(
                 "http://localhost:*",
                 "https://localhost:*",
-                "https://gestioninventario.duckdns.org"));
+                "https://gestioninventario.duckdns.org",
+                "http://192.168.200.*:*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

@@ -12,7 +12,7 @@ public class CorsConfig implements WebMvcConfigurer {
         // Orígenes de dev (Vite en cualquier puerto local) y el dominio de
         // producción servido por nginx (:8081) / Caddy.
         registry.addMapping("/**")
-                .allowedOriginPatterns("http://localhost:*", "https://localhost:*", "https://gestioninventario.duckdns.org")
+                .allowedOriginPatterns("http://localhost:*", "https://localhost:*", "https://gestioninventario.duckdns.org", "http://192.168.200.*:*")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);

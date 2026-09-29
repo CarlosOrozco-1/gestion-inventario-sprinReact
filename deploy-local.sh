@@ -27,7 +27,29 @@ echo ">> JWT_SECRET OK ($JWT_SECRET_LEN bytes)"
 echo ">> Construyendo y levantando contenedores (PostgreSQL + Backend + Frontend)..."
 docker compose up -d --build
 
+# El túnel HTTPS es lo unico que habilita la camara del escaner QR: el
+# navegador solo la expone en un contexto seguro y por IP de red no lo es.
+if [ -d tunnel-local ]; then
+    echo ">> Levantando el tunel HTTPS..."
+    (cd tunnel-local && docker compose up -d)
+
+    # El quick tunnel genera un hostname aleatorio distinto en cada arranque.
+    # Sin avisar, nadie sabria como entrar tras reiniciar el equipo.
+    if [ -f tunnel-local/.env ]; then
+        echo ">> Notificando la URL del tunel..."
+        (cd tunnel-local && set -a && . ./.env && set +a && ./notify-url.sh) || \
+            echo ">> AVISO: no se pudo notificar la URL. Consultala con: cd tunnel-local && ./get-url.sh"
+    else
+        echo ">> AVISO: falta tunnel-local/.env, no se puede notificar la URL."
+        echo ">> Consulta la URL vigente con:  cd tunnel-local && ./get-url.sh"
+    fi
+fi
+
 echo ""
 echo ">> Despliegue Local Exitoso!"
 echo ">> Acceso a la Aplicación: http://192.168.200.23:8081"
 echo ">> Acceso a la API Backend: http://192.168.200.23:8080/api"
+if [ -d tunnel-local ] && [ -f tunnel-local/.env ]; then
+    echo ">> Camara QR (requiere HTTPS): ver la URL notificada o ejecuta:"
+    echo ">>   cd tunnel-local && ./get-url.sh"
+fi

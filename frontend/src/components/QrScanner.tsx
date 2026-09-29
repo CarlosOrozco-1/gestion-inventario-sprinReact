@@ -84,17 +84,22 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
         });
         html5QrcodeRef.current = scanner;
         await scanner.start(
-          // Pedir 1080p: sin esto el movil entrega 480p y un QR pequeno se
-          // queda sin pixeles suficientes por modulo para decodificarse.
+          // OJO: html5-qrcode exige que este objeto tenga EXACTAMENTE una clave
+          // (facingMode o deviceId). Meter width/height aqui revienta con
+          // "should have exactly 1 key, found 3 keys".
+          { facingMode: 'environment' },
           {
-            facingMode: 'environment',
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+            fps: 20,
+            // Las restricciones de video van aqui, y REEMPLAZAN a las que la
+            // libreria derivaria del facingMode, asi que hay que repetirlo.
+            // Sin pedir 1080p el movil entrega 480p y un QR pequeno se queda
+            // sin pixeles suficientes por modulo para decodificarse.
+            videoConstraints: {
+              facingMode: 'environment',
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
           },
-          // Sin qrbox: html5-qrcode solo analiza lo que cae DENTRO de esa caja,
-          // y con 200x200 px un QR pequeno quedaba fuera del centro y no se
-          // leia. fps alto para dar mas intentos por segundo.
-          { fps: 20 },
           scanHandler,
           () => { /* errores de decodificación: ignorar */ }
         );

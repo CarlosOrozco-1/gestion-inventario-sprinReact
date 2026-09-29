@@ -175,9 +175,78 @@ Agregar la línea:
 
 ---
 
+## 🔐 FASE 5: Acceso HTTPS con Túnel Cloudflare (habilita la cámara)
+
+> **Solo para esta rama local.** Nada de esta fase se usa en `desa` / `pre` / `pro`.
+
+### ¿Por qué es necesario?
+
+El navegador solo habilita la cámara (`getUserMedia`) en un **contexto seguro**: HTTPS o `localhost`. Al entrar por `http://192.168.200.23:8081` no existe `navigator.mediaDevices` y el escáner QR falla con `Camera streaming not supported by the browser`. No es un bug: es el modelo de seguridad del navegador.
+
+El túnel da una URL HTTPS con certificado público **sin instalar nada en los equipos y sin abrir puertos en el router**. Los usuarios (PC y celulares) abren la URL y la cámara funciona.
+
+### 1. Levantar el túnel
+
+```bash
+cd /home/gestioninventario/siges/gestion-inventario-sprinReact/tunnel-local
+docker compose up -d
+```
+
+### 2. Obtener la URL vigente
+
+El *quick tunnel* genera un hostname **aleatorio que cambia en cada reinicio**:
+
+```bash
+./get-url.sh
+./get-url.sh --check     # además verifica que responda HTTP 200
+```
+
+Ejemplo de salida: `https://tmp-aspects-heritage-pledge.trycloudflare.com`
+
+### 3. Permitir ese origen en el backend
+
+La allowlist de CORS se configura **por entorno** desde `.env` (nunca en código, para que el mismo build sirva en todos los ambientes):
+
+```bash
+cd /home/gestioninventario/siges/gestion-inventario-sprinReact
+sed -i 's|^CORS_ALLOWED_ORIGINS=.*|CORS_ALLOWED_ORIGINS=http://localhost:*,http://192.168.200.*:*,https://*.trycloudflare.com|' .env
+docker compose up -d --force-recreate backend
+```
+
+> `https://*.trycloudflare.com` es un comodín: cubre el hostname aleatorio sin
+> tener que editar el `.env` cada vez que el túnel se reinicia.
+
+### ⚠️ Limitaciones conocidas
+
+| Tema | Detalle |
+|---|---|
+| **Hostname aleatorio** | Cambia en cada `docker compose restart`. Los usuarios necesitan la URL vigente. |
+| **Sin garantía de uptime** | Cloudflare lo ofrece solo para pruebas; no es un servicio con SLA. |
+| **Expone a internet** | La app queda accesible desde internet por Cloudflare. Para uso interno, proteger con Cloudflare Access o mantener el túnel apagado cuando no se use. |
+| **`--protocol http2` es obligatorio** | Por QUIC/UDP el túnel se registra pero el hostname queda en `NXDOMAIN` porque la red estrangula UDP. |
+| **Certificado autofirmado no sirve** | `tls internal` en Caddy **no** habilita la cámara: el navegador trata el certificado inválido como contexto no seguro. |
+
+### Para una URL fija (tunnel nombrado)
+
+Requiere cuenta de Cloudflare y un dominio administrado ahí:
+
+```bash
+# 1. Instalar cloudflared en el host y autenticarse contra la cuenta
+cloudflared tunnel login
+cloudflared tunnel create siges-local
+cloudflared tunnel route dns siges-local inventario-local.tudominio.com
+
+# 2. Sustituir el comando del contenedor por el token, en tunnel-local/docker-compose.yml
+#    command: tunnel --no-autoupdate run --token <TOKEN>
+```
+
+---
+
 ## 📝 Comandos Útiles de Mantenimiento
 
 * **Ver logs en tiempo real:** `docker compose logs -f`
 * **Reiniciar servicios:** `docker compose restart`
 * **Reconstruir y desplegar cambios nuevos tras `git pull`:** `docker compose up -d --build`
 * **Detener todo:** `docker compose down`
+* **URL pública del túnel:** `cd tunnel-local && ./get-url.sh`
+

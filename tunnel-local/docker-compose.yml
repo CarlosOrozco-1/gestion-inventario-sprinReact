@@ -1,0 +1,32 @@
+# ============================================================
+# TUNEL HTTPS LOCAL (solo rama deploy-local)
+# ============================================================
+# Da acceso HTTPS con certificado de confianza publica a la app
+# que vive en http://192.168.200.23:8081 dentro de la LAN, sin
+# instalar nada en los equipos ni abrir puertos en el router.
+#
+# POR QUE: el navegador solo habilita la camara (getUserMedia) en
+# un contexto seguro, es decir HTTPS o localhost. Servida por HTTP
+# en una IP de red, navigator.mediaDevices no existe y el escaner QR
+# falla con "Camera streaming not supported by the browser".
+#
+# --protocol http2 es OBLIGATORIO en esta red: por QUIC/UDP el
+# tunnel se registra pero el DNS del hostname nunca propaga
+# (queda NXDOMAIN) porque la red estrangula el trafico UDP.
+#
+# LIMITACION: es un "quick tunnel" sin cuenta de Cloudflare, asi que
+# el hostname es aleatorio y CAMBIA en cada reinicio. Consulta la
+# URL vigente con ./get-url.sh. Para una URL fija hace falta un
+# tunnel nombrado (ver DESPLIEGUE_LOCAL_UBUNTU.md).
+# ============================================================
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: >
+      tunnel
+      --no-autoupdate
+      --protocol http2
+      --url http://host.docker.internal:8081
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

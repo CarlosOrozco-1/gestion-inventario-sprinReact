@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import QrScannerLib from 'qr-scanner';
 import { playQrSuccess } from '../utils/sound';
 
 interface QrScannerProps {
@@ -9,8 +9,8 @@ interface QrScannerProps {
 }
 
 export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const scannerRef = useRef<QrScannerLib | null>(null);
   const stoppedRef = useRef(false);
   const scannedRef = useRef(false);
   const pendingTimerRef = useRef<number | null>(null);
@@ -20,32 +20,19 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
   const [manualMode, setManualMode] = useState(false);
   const [manualCode, setManualCode] = useState('');
 
-  // Detiene la cámara de forma segura (evita "already under transition").
-  const stopScanner = async () => {
-    if (html5QrcodeRef.current && !stoppedRef.current) {
+  // Detiene la cámara: destroy() libera el stream, los listeners y cierra el
+  // motor de decodificación. Es síncrono, evita cerrado en cascada.
+  const stopScanner = () => {
+    if (scannerRef.current && !stoppedRef.current) {
       stoppedRef.current = true;
       try {
-        await html5QrcodeRef.current.stop();
-        await html5QrcodeRef.current.clear();
+        scannerRef.current.destroy();
       } catch (err) {
         console.warn('QR scanner teardown:', err);
       }
-      html5QrcodeRef.current = null;
+      scannerRef.current = null;
       setScanning(false);
     }
-  };
-
-  const scanHandler = (qrCode: string) => {
-    // Previene múltiples disparos del mismo QR.
-    if (scannedRef.current) return;
-    scannedRef.current = true;
-    // Feedback sonoro + transición de carga antes de abrir el resultado.
-    playQrSuccess();
-    setDetected(true);
-    stopScanner();
-    pendingTimerRef.current = window.setTimeout(() => {
-      onScan(qrCode);
-    }, 900);
   };
 
   // Arranca la cámara cuando se abre el escáner.
@@ -53,8 +40,7 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
     if (!isOpen) return;
 
     const startScanner = async () => {
-      if (!containerRef.current) return;
-      const el = containerRef.current;
+      if (!videoRef.current) return;
 
       try {
         scannedRef.current = false;
@@ -63,56 +49,69 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
         setError(null);
         setManualMode(false);
         setManualCode('');
-        // Espera un tick para asegurar que el contenedor esté montado.
+        // Espera un tick para asegurar que el video esté montado.
         await new Promise((r) => setTimeout(r, 50));
         // La cámara solo existe en un contexto seguro (HTTPS o localhost).
         // Servida por HTTP en una IP de red local, el navegador no expone
-        // navigator.mediaDevices y html5-qrcode lanza "Camera streaming not
-        // supported by the browser". Se cae a la entrada manual.
+        // navigator.mediaDevices y qr-scanner no puede pedir permisos.
+        // Se cae a la entrada manual.
         if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
           setError('Cámara no disponible');
           setManualMode(true);
           return;
         }
-        // BarcodeDetector es el detector NATIVO del navegador (Android/Chrome).
-        // Es el mismo motor que usa la app de camara del telefono, y detecta
-        // QR pequenos que el decodificador en JavaScript no logra. Donde no
-        // existe (iPhone, escritorio) la libreria cae sola a ZXing.
-        const scanner = new Html5Qrcode('qr-reader', {
-          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-          useBarCodeDetectorIfSupported: true,
-        });
-        html5QrcodeRef.current = scanner;
-        await scanner.start(
-          // OJO: html5-qrcode exige que este objeto tenga EXACTAMENTE una clave
-          // (facingMode o deviceId). Meter width/height aqui revienta con
-          // "should have exactly 1 key, found 3 keys".
-          { facingMode: 'environment' },
-          {
-            fps: 20,
-            // Las restricciones de video van aqui, y REEMPLAZAN a las que la
-            // libreria derivaria del facingMode, asi que hay que repetirlo.
-            // Sin pedir 1080p el movil entrega 480p y un QR pequeno se queda
-            // sin pixeles suficientes por modulo para decodificarse.
-            videoConstraints: {
-              facingMode: 'environment',
-              width: { ideal: 1920 },
-              height: { ideal: 1080 },
-            },
+        // qr-scanner usa BarcodeDetector NATIVO (Chrome/Android, mismo motor
+        // que la app de camara del telefono) y cae a un worker de ZXing donde
+        // no existe (iPhone, escritorio). Los dos motores decodifican el
+        // canvas que la libreria dibuja, por eso el scanRegion define la
+        // resolucion real: el frame completo SIN downscale mantiene todos los
+        // pixeles para codigos pequenos. Sin detector nativo se limita a 640px
+        // para no saturar el worker con 1080p completo.
+        const scanner = new QrScannerLib(
+          videoRef.current,
+          (result) => {
+            // Previene múltiples disparos del mismo QR.
+            if (scannedRef.current) return;
+            scannedRef.current = true;
+            // Feedback sonoro + transición de carga antes de abrir el resultado.
+            playQrSuccess();
+            setDetected(true);
+            stopScanner();
+            pendingTimerRef.current = window.setTimeout(() => {
+              onScan(result.data);
+            }, 900);
           },
-          scanHandler,
-          () => { /* errores de decodificación: ignorar */ }
+          {
+            preferredCamera: 'environment',
+            maxScansPerSecond: 10,
+            calculateScanRegion: (video) => {
+              const frame = {
+                x: 0,
+                y: 0,
+                width: video.videoWidth,
+                height: video.videoHeight,
+              };
+              if ('BarcodeDetector' in window) return frame;
+              return { ...frame, downScaledWidth: 640, downScaledHeight: 640 };
+            },
+            onDecodeError: () => { /* errores de decodificación: ignorar */ },
+          }
         );
+        scannerRef.current = scanner;
+        await scanner.start();
         setScanning(true);
       } catch (err) {
         console.error('Error starting QR scanner:', err);
+        if (scannerRef.current) {
+          try {
+            scannerRef.current.destroy();
+          } catch {
+            /* ya está cerrado */
+          }
+          scannerRef.current = null;
+        }
         setError('No se pudo acceder a la cámara');
         setManualMode(true);
-        // El escáner nunca llegó a arrancar: soltar la referencia evita que
-        // el cleanup intente detener un scanner que no está corriendo.
-        html5QrcodeRef.current = null;
-        // Limpia el contenedor para no dejar un video roto.
-        el.innerHTML = '';
         setScanning(false);
       }
     };
@@ -134,7 +133,8 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
       pendingTimerRef.current = null;
     }
     setDetected(false);
-    stopScanner().finally(() => onClose());
+    stopScanner();
+    onClose();
   };
 
   return (
@@ -154,10 +154,10 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
         </div>
 
         <div className="p-4">
-          {/* El contenedor permanece SIEMPRE montado para que html5-qrcode no
-              pierda el elemento video mientras la cámara está activa. */}
+          {/* El video permanece SIEMPRE montado mientras la cámara está activa;
+              qr-scanner lo usa como superficie y aplica playsInline/muted. */}
           <div className="w-full aspect-video bg-slate-100 rounded-xl overflow-hidden relative">
-            <div ref={containerRef} id="qr-reader" className="w-full h-full"></div>
+            <video ref={videoRef} className="w-full h-full object-cover" playsInline muted></video>
 
             {error && (
               <div

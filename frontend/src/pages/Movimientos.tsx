@@ -3,6 +3,7 @@ import api from '../api/axios';
 import MovimientoModal from '../components/MovimientoModal';
 import QrScanner from '../components/QrScanner';
 import { useToastStore } from '../store/useToastStore';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 
 export default function Movimientos() {
   const [movimientos, setMovimientos] = useState([]);
@@ -57,6 +58,20 @@ export default function Movimientos() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Refresca el kárdex en vivo: un movimiento nuevo registrado por otro usuario
+  // (o un cambio en el catálogo de insumos) se refleja sin recargar la página.
+  useRealtimeSync(
+    [
+      'MOVIMIENTO_CREADO',
+      'INSUMO_CREADO',
+      'INSUMO_ACTUALIZADO',
+      'INSUMO_INACTIVADO',
+      'INSUMO_REACTIVADO',
+      'PRESENTACION_AGREGADA',
+    ],
+    () => fetchData()
+  );
 
   const formatDate = (isoString) => {
     const date = new Date(isoString);

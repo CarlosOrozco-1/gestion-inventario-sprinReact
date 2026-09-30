@@ -3,6 +3,7 @@ import api from '../api/axios';
 import AjusteModal from '../components/AjusteModal';
 import QrScanner from '../components/QrScanner';
 import { useToastStore } from '../store/useToastStore';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 
 export default function Ajustes() {
   const [movimientos, setMovimientos] = useState<any[]>([]);
@@ -58,6 +59,20 @@ export default function Ajustes() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Refresca los ajustes en vivo: un ajuste registrado por otro usuario (o un
+  // cambio en el catálogo de insumos) se refleja sin recargar la página.
+  useRealtimeSync(
+    [
+      'MOVIMIENTO_CREADO',
+      'INSUMO_CREADO',
+      'INSUMO_ACTUALIZADO',
+      'INSUMO_INACTIVADO',
+      'INSUMO_REACTIVADO',
+      'PRESENTACION_AGREGADA',
+    ],
+    () => fetchData()
+  );
 
   const formatDate = (isoString: string) => {
     return new Date(isoString).toLocaleDateString('es-ES', { 

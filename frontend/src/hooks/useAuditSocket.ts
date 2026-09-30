@@ -1,16 +1,21 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 /**
  * Canal WebSocket de auditoría (`/ws/auditoria`).
  *
  * Mantiene una única conexión por pestaña y notifica a los suscriptores cuando
- * llega un evento nuevo. Se usa como SEÑAL push: la página de Auditoría
- * re-consulta `GET /api/auditoria` (REST autenticado) al recibir el aviso; los
- * datos sensibles nunca viajan por el WebSocket.
+ * llega un evento nuevo. Se usa como SEÑAL push: las páginas re-consultan sus
+ * datos por REST autenticado al recibir el aviso; los datos sensibles nunca
+ * viajan por el WebSocket.
  *
  * Uso:
- *   const { onMessage } = useAuditSocketDep();
- *   onMessage(() => fetchLogs(page));
+ *   const { onMessage } = useAuditSocket();
+ *   onMessage((payload) => fetchLogs(page));
+ *
+ * El backend difunde por este canal TODOS los eventos de la bitácora
+ * (INSUMO_CREADO, MOVIMIENTO_CREADO, PRESENTACION_AGREGADA, ...). Para refrescar
+ * una página ante cambios que le afectan, filtrar por `payload.eventType`
+ * (ver `useRealtimeSync`).
  */
 
 type Listener = (payload: any) => void;
@@ -84,5 +89,5 @@ export function useAuditSocket(autoConnect = false) {
     };
   }, [autoConnect]);
 
-  return { onMessage: subscribe };
+  return useMemo(() => ({ onMessage: subscribe }), []);
 }

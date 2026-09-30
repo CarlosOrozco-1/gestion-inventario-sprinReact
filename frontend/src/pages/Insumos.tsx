@@ -7,6 +7,7 @@ import QrModal from '../components/QrModal';
 import ConfirmModal from '../components/ConfirmModal';
 import { useToastStore } from '../store/useToastStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 
 export default function Insumos() {
@@ -47,6 +48,20 @@ export default function Insumos() {
   useEffect(() => {
     fetchItems();
   }, []);
+
+  // Refresca el catálogo en vivo cuando otro usuario crea/edita/desactiva un
+  // insumo, agrega una presentación o registra un movimiento (cambia el stock).
+  useRealtimeSync(
+    [
+      'INSUMO_CREADO',
+      'INSUMO_ACTUALIZADO',
+      'INSUMO_INACTIVADO',
+      'INSUMO_REACTIVADO',
+      'PRESENTACION_AGREGADA',
+      'MOVIMIENTO_CREADO',
+    ],
+    () => fetchItems()
+  );
 
   const openModal = (mode, item = null, presentation = null) => {
     setModalConfig({ mode, item, presentation });

@@ -5,8 +5,8 @@ import { useAuthStore } from "../store/useAuthStore";
 import { useToastStore } from "../store/useToastStore";
 
 export default function Login() {
-  const [email, setEmail] = useState("admin@inventario.com");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 

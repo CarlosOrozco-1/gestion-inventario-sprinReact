@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import QrScannerLib from 'qr-scanner';
 import { playQrSuccess } from '../utils/sound';
 
 interface QrScannerProps {
@@ -9,41 +9,30 @@ interface QrScannerProps {
 }
 
 export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const scannerRef = useRef<QrScannerLib | null>(null);
   const stoppedRef = useRef(false);
   const scannedRef = useRef(false);
   const pendingTimerRef = useRef<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [detected, setDetected] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
+  const [manualCode, setManualCode] = useState('');
 
-  // Detiene la cámara de forma segura (evita "already under transition").
-  const stopScanner = async () => {
-    if (html5QrcodeRef.current && !stoppedRef.current) {
+  // Detiene la cámara: destroy() libera el stream, los listeners y cierra el
+  // motor de decodificación. Es síncrono, evita cerrado en cascada.
+  const stopScanner = () => {
+    if (scannerRef.current && !stoppedRef.current) {
       stoppedRef.current = true;
       try {
-        await html5QrcodeRef.current.stop();
-        await html5QrcodeRef.current.clear();
+        scannerRef.current.destroy();
       } catch (err) {
         console.warn('QR scanner teardown:', err);
       }
-      html5QrcodeRef.current = null;
+      scannerRef.current = null;
       setScanning(false);
     }
-  };
-
-  const scanHandler = (qrCode: string) => {
-    // Previene múltiples disparos del mismo QR.
-    if (scannedRef.current) return;
-    scannedRef.current = true;
-    // Feedback sonoro + transición de carga antes de abrir el resultado.
-    playQrSuccess();
-    setDetected(true);
-    stopScanner();
-    pendingTimerRef.current = window.setTimeout(() => {
-      onScan(qrCode);
-    }, 900);
   };
 
   // Arranca la cámara cuando se abre el escáner.
@@ -51,33 +40,78 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
     if (!isOpen) return;
 
     const startScanner = async () => {
-      if (!containerRef.current) return;
-      const el = containerRef.current;
+      if (!videoRef.current) return;
 
       try {
         scannedRef.current = false;
         stoppedRef.current = false;
         setDetected(false);
-        // Espera un tick para asegurar que el contenedor esté montado.
+        setError(null);
+        setManualMode(false);
+        setManualCode('');
+        // Espera un tick para asegurar que el video esté montado.
         await new Promise((r) => setTimeout(r, 50));
-        const scanner = new Html5Qrcode('qr-reader');
-        html5QrcodeRef.current = scanner;
-        await scanner.start(
-          { facingMode: 'environment' },
-          // Sin qrbox fijo: html5-qrcode solo analiza lo que cae DENTRO de esa
-          // caja, y con 200x200 px un QR pequeño qued fuera del centro y nunca
-          // se leia. La camara nativa del telefono si lo capturaba porque
-          // escanea el fotograma completo. fps alto para dar mas intentos.
-          { fps: 20 },
-          scanHandler,
-          () => { /* errores de decodificación: ignorar */ }
+        // La cámara solo existe en un contexto seguro (HTTPS o localhost).
+        // Servida por HTTP en una IP de red local, el navegador no expone
+        // navigator.mediaDevices y qr-scanner no puede pedir permisos.
+        // Se cae a la entrada manual.
+        if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+          setError('Cámara no disponible');
+          setManualMode(true);
+          return;
+        }
+        // qr-scanner usa BarcodeDetector NATIVO (Chrome/Android, mismo motor
+        // que la app de camara del telefono) y cae a un worker de ZXing donde
+        // no existe (iPhone, escritorio). Los dos motores decodifican el
+        // canvas que la libreria dibuja, por eso el scanRegion define la
+        // resolucion real: el frame completo SIN downscale mantiene todos los
+        // pixeles para codigos pequenos. Sin detector nativo se limita a 640px
+        // para no saturar el worker con 1080p completo.
+        const scanner = new QrScannerLib(
+          videoRef.current,
+          (result) => {
+            // Previene múltiples disparos del mismo QR.
+            if (scannedRef.current) return;
+            scannedRef.current = true;
+            // Feedback sonoro + transición de carga antes de abrir el resultado.
+            playQrSuccess();
+            setDetected(true);
+            stopScanner();
+            pendingTimerRef.current = window.setTimeout(() => {
+              onScan(result.data);
+            }, 900);
+          },
+          {
+            preferredCamera: 'environment',
+            maxScansPerSecond: 10,
+            calculateScanRegion: (video) => {
+              const frame = {
+                x: 0,
+                y: 0,
+                width: video.videoWidth,
+                height: video.videoHeight,
+              };
+              if ('BarcodeDetector' in window) return frame;
+              return { ...frame, downScaledWidth: 640, downScaledHeight: 640 };
+            },
+            onDecodeError: () => { /* errores de decodificación: ignorar */ },
+          }
         );
+        scannerRef.current = scanner;
+        await scanner.start();
         setScanning(true);
       } catch (err) {
         console.error('Error starting QR scanner:', err);
-        setError('No se pudo acceder a la cámara. Verifica los permisos.');
-        // Limpia el contenedor para no dejar un video roto.
-        el.innerHTML = '';
+        if (scannerRef.current) {
+          try {
+            scannerRef.current.destroy();
+          } catch {
+            /* ya está cerrado */
+          }
+          scannerRef.current = null;
+        }
+        setError('No se pudo acceder a la cámara');
+        setManualMode(true);
         setScanning(false);
       }
     };
@@ -99,7 +133,8 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
       pendingTimerRef.current = null;
     }
     setDetected(false);
-    stopScanner().finally(() => onClose());
+    stopScanner();
+    onClose();
   };
 
   return (
@@ -119,15 +154,17 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
         </div>
 
         <div className="p-4">
-          {/* El contenedor permanece SIEMPRE montado para que html5-qrcode no
-              pierda el elemento video mientras la cámara está activa. */}
+          {/* El video permanece SIEMPRE montado mientras la cámara está activa;
+              qr-scanner lo usa como superficie y aplica playsInline/muted. */}
           <div className="w-full aspect-video bg-slate-100 rounded-xl overflow-hidden relative">
-            <div ref={containerRef} id="qr-reader" className="w-full h-full"></div>
+            <video ref={videoRef} className="w-full h-full object-cover" playsInline muted></video>
 
             {error && (
-              <div className="absolute inset-0 flex items-center justify-center bg-red-50 text-red-600 p-4 text-center">
+              <div
+                className="absolute inset-0 flex items-center justify-center bg-red-50 text-red-600 p-4 text-center"
+                title="La cámara del navegador solo está disponible en HTTPS o en localhost. Al entrar por HTTP a una IP de red local, el navegador la bloquea por seguridad. Puedes consultar el insumo escribiendo su código."
+              >
                 <p className="font-medium">{error}</p>
-                <p className="text-sm mt-1">Ingresa el código manualmente o intenta de nuevo.</p>
               </div>
             )}
 
@@ -141,9 +178,48 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
           </div>
 
           <div className="mt-4 space-y-3">
-            <p className="text-sm text-slate-500 text-center">
-              Apunta la cámara al código QR del insumo
+            <p
+              className="text-sm text-slate-500 text-center"
+              title="Apunta la cámara al código QR impreso en la etiqueta del insumo."
+            >
+              Apunta la cámara al código QR
             </p>
+
+            {manualMode ? (
+              <form
+                className="space-y-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const code = manualCode.trim();
+                  if (!code) return;
+                  onScan(code);
+                }}
+              >
+                <input
+                  type="text"
+                  value={manualCode}
+                  onChange={(e) => setManualCode(e.target.value)}
+                  placeholder="Código del insumo"
+                  autoFocus
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500"
+                />
+                <button
+                  type="submit"
+                  disabled={!manualCode.trim()}
+                  className="w-full inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  Consultar
+                </button>
+              </form>
+            ) : (
+              <button
+                onClick={() => setManualMode(true)}
+                title="Escribe el código del insumo en lugar de usar la cámara."
+                className="w-full text-sm font-medium text-brand-600 hover:text-brand-700 transition-colors"
+              >
+                Ingresar código
+              </button>
+            )}
 
             <button
               onClick={handleClose}

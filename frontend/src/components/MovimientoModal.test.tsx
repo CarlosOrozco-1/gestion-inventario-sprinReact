@@ -86,4 +86,18 @@ describe('MovimientoModal (registro de entradas y salidas)', () => {
 
     expect(screen.getByText(/al menos 20 caracteres/i)).toBeInTheDocument();
   });
+
+  it('reabre con el campo de insumo en blanco para una nueva búsqueda', async () => {
+    // El modal se desmonta al cerrar (montaje condicional en Movimientos.tsx),
+    // por lo que al reabrirlo el combobox no conserva la búsqueda anterior.
+    const user = userEvent.setup();
+    const first = renderModal();
+    await seleccionarInsumo(user);
+    expect((screen.getByRole('combobox') as HTMLInputElement).value).toBe('Gasa (Sobre 10x10)');
+
+    first.unmount();
+    renderModal();
+
+    expect((screen.getByRole('combobox') as HTMLInputElement).value).toBe('');
+  });
 });

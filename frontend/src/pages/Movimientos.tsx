@@ -75,13 +75,15 @@ export default function Movimientos() {
 
   return (
     <div className="page-container">
-      <MovimientoModal 
-        isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); setScannedPresentation(null); }}
-        onSave={fetchData}
-        insumos={insumosList}
-        preSelectedPresentation={scannedPresentation}
-      />
+      {isModalOpen && (
+        <MovimientoModal
+          isOpen={isModalOpen}
+          onClose={() => { setIsModalOpen(false); setScannedPresentation(null); }}
+          onSave={fetchData}
+          insumos={insumosList}
+          preSelectedPresentation={scannedPresentation}
+        />
+      )}
       <QrScanner
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}

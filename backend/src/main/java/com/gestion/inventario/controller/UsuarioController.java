@@ -37,6 +37,7 @@ public class UsuarioController {
     private AuditService auditService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','JEFE','AUXILIAR')")
     public List<Map<String, Object>> listarUsuariosResumen() {
         return usuarioRepository.findAll().stream().map(u -> 
             Map.of(

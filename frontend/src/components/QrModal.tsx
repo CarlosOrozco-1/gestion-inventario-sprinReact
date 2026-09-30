@@ -19,6 +19,15 @@ interface QrModalProps {
 export default function QrModal({ isOpen, item, presentation, onClose }: QrModalProps) {
   const [qrCanvas, setQrCanvas] = useState<HTMLCanvasElement | null>(null);
   const [svgEl, setSvgEl] = useState<SVGSVGElement | null>(null);
+  const [copiado, setCopiado] = useState(false);
+
+  const handleCopiarCodigo = useCallback(() => {
+    const codigo = presentation?.qrCode;
+    if (!codigo) return;
+    navigator.clipboard?.writeText(codigo).catch(() => { });
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  }, [presentation]);
 
   /**
    * Registra en la bitácora que el usuario descargó/imprimió el QR.
@@ -137,6 +146,35 @@ export default function QrModal({ isOpen, item, presentation, onClose }: QrModal
               ref={(node: SVGSVGElement | null) => setSvgEl(node)}
             />
           </div>
+        </div>
+
+        {/* String puro del QR para impresoras externas (solo visible en el
+            modal; NO se incluye en el cartel impreso, que se construye aparte) */}
+        <div className="px-6 pb-4 flex items-center gap-2">
+          <div className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+              Código para impresora externa
+            </p>
+            <p
+              className="text-sm font-mono font-semibold text-slate-800 break-all"
+              title="Escriba este código directamente en la impresora externa para que genere el QR"
+            >
+              {presentation?.qrCode}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleCopiarCodigo}
+            title="Copiar código QR"
+            className="inline-flex items-center justify-center gap-1 border border-slate-300 text-slate-600 hover:bg-slate-50 hover:text-brand-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors shrink-0"
+          >
+            {copiado ? 'Copiado' : (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <rect x="9" y="9" width="11" height="11" rx="2" />
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+              </svg>
+            )}
+          </button>
         </div>
 
         {/* Acciones */}

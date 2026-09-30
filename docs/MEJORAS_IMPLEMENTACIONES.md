@@ -534,5 +534,67 @@ desde `QrModal`) se deja constancia:
 
 ---
 
-## 14. Próximas mejoras / pendientes
+## 14. QR impreso externamente: nomenclatura `SIGES-PRES-{id}` y flujo de etiquetado
+
+**Fecha:** 2026-09-30
+**Naturaleza:** Aclaración de uso del QR en etiquetado físico/impresoras externas.
+
+### Problema detectado en producción
+Un usuario imprimió códigos QR desde una **impresora de etiquetas externa**
+(tipeando el **código interno del insumo**, ej. `1775273783` para Alcohol Etílico)
+y al escanearlos el sistema respondía **404** (`GET /api/presentations/qr/177527378`).
+La causa: el QR del sistema **no contiene el código del insumo**, sino el
+**`qr_code` de la presentación**, generado como `SIGES-PRES-{id}`
+(`ItemService.generarQrCode`). Ante `177527378` el repositorio busca una
+presentación con `qr_code` igual a ese string y no existe ninguna.
+
+### Nomenclatura vigente (única válida)
+```text
+QR válido = SIGES-PRES-{id_presentación}   (ej. SIGES-PRES-2)
+```
+- `{id}` es la clave primaria **inmutable** de la presentación
+  (`presentations.qr_code`, columna `UNIQUE`, formato estable desde la
+  migración `V6__regenerar_qr_code_formato_estable.sql`).
+- El **código del insumo** (`items.code`) **no forma parte del QR** y NO sirve
+  para resolver el endpoint `GET /api/presentations/qr/{qrCode}` (búsqueda por
+  igualdad exacta de `qr_code`).
+
+### Cómo imprimir correctamente desde una impresora externa
+Para etiquetar debe usarse el **string exacto** que expone el sistema:
+1. Abrir el insumo en el **Catálogo → clic en el QR** → `QrModal`.
+2. Usar **"Descargar PNG"** o **"Imprimir cartel"** (imprime el QR con el
+   `qr_code` correcto en su interior, renderizado con `qrcode.react`).
+3. Si se necesita el string puro para una impresora de códigos de barras/
+   etiquetas, escribir **literalmente** `SIGES-PRES-{id}` (el `{id}` puede
+   consultarse en la BD o devolverse por la API; el frontend no lo muestra en
+   claro, solo lo codifica dentro del QR).
+
+### Decisión de diseño validada (2026-09-30)
+Se evaluó aceptar también el **código del insumo** al escanear (para que
+sirviera un QR impreso con el código). **Se decide NO aceptar el código del
+insumo como alias del QR**, por lo siguiente:
+- El QR apunta a una **presentación** específica (el stock y min/max viven en la
+  presentación, no en el insumo). Un insumo puede tener **varias presentaciones**
+  (ej. en la BD actual, Pasta Térmica y Restaurador de Plásticos tienen 2 cada
+  una): el código del insumo es ambiguo (no dice qué tamaño/variante).
+- El motivo original del formato sin el código del insumo fue la **estabilidad**:
+  si el usuario editaba el código de un insumo, los QR ya impresos seguían
+  resolviendo. Ese riesgo **ya no existe**: `items.code` es **inmutable** desde
+  la creación (`ItemService.actualizarItem` no lo modifica y el campo es
+  `readOnly` en `InsumoModal` en modo edición).
+- Mantener un **único formato canónico** (`SIGES-PRES-{id}`) evita doble fuente
+  de verdad y mantiene la validación de stock estricta del proyecto.
+
+**Flujo recomendado:** imprimir siempre desde el sistema (descarga/imprime el
+`QrModal`), para producción usar el PNG/cartel del sistema; NO tipear el código
+del insumo en la impresora externa como reemplazo del QR.
+
+### Archivos involucrados
+- `backend/.../service/ItemService.java` — `generarQrCode` y búsqueda por `qr_code`.
+- `frontend/src/components/QrModal.tsx` — descarga PNG / impresión del QR correcto.
+- Endpoint `GET /api/presentations/qr/{qrCode}`: sin cambios.
+
+---
+
+## 15. Próximas mejoras / pendientes
 - (registrar aquí futuras implementaciones)

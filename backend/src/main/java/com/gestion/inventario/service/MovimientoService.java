@@ -10,6 +10,9 @@ import com.gestion.inventario.repository.MovimientoRepository;
 import com.gestion.inventario.repository.PresentationRepository;
 import com.gestion.inventario.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +21,9 @@ import java.util.List;
 
 @Service
 public class MovimientoService {
+
+    /** Tope del tamaño de página del Kárdex: evita que el cliente pida el histórico entero. */
+    private static final int MAX_SIZE_PAGINA = 100;
 
     @Autowired
     private MovimientoRepository movimientoRepository;
@@ -112,21 +118,41 @@ public class MovimientoService {
     @Transactional(readOnly = true)
     public List<MovimientoResponseDTO> listarMovimientos() {
         // EntityGraph precarga presentation/item/usuario (evita N+1).
-        return movimientoRepository.findAllWithDetailsOrderByCreatedAtDesc().stream().map(mov -> {
-            MovimientoResponseDTO dto = new MovimientoResponseDTO();
-            dto.setId(mov.getId());
-            dto.setType(mov.getType());
-            dto.setQuantity(mov.getQuantity());
-            dto.setDetail(mov.getDetail());
-            dto.setCreatedAt(mov.getCreatedAt());
-            if (mov.getPresentation() != null && mov.getPresentation().getItem() != null) {
-                dto.setItemName(mov.getPresentation().getItem().getName());
-                dto.setPresentationName(mov.getPresentation().getName() + " " + mov.getPresentation().getSize());
-            }
-            if (mov.getUsuario() != null) {
-                dto.setUsuarioName(mov.getUsuario().getName());
-            }
-            return dto;
-        }).toList();
+        return movimientoRepository.findAllWithDetailsOrderByCreatedAtDesc().stream()
+                .map(this::aDTO)
+                .toList();
+    }
+
+    /**
+     * Kárdex paginado. El módulo de Movimientos crece con cada operación, así que
+     * se pagina en el servidor en lugar de enviar el histórico completo.
+     */
+    @Transactional(readOnly = true)
+    public Page<MovimientoResponseDTO> listarMovimientosPaginado(int page, int size) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), clampSize(size));
+        return movimientoRepository.findAllWithDetailsOrderByCreatedAtDesc(pageable)
+                .map(this::aDTO);
+    }
+
+    /** Límite duro del tamaño de página para no permitir que el cliente pida el histórico entero. */
+    private int clampSize(int size) {
+        return Math.min(Math.max(size, 1), MAX_SIZE_PAGINA);
+    }
+
+    private MovimientoResponseDTO aDTO(Movimiento mov) {
+        MovimientoResponseDTO dto = new MovimientoResponseDTO();
+        dto.setId(mov.getId());
+        dto.setType(mov.getType());
+        dto.setQuantity(mov.getQuantity());
+        dto.setDetail(mov.getDetail());
+        dto.setCreatedAt(mov.getCreatedAt());
+        if (mov.getPresentation() != null && mov.getPresentation().getItem() != null) {
+            dto.setItemName(mov.getPresentation().getItem().getName());
+            dto.setPresentationName(mov.getPresentation().getName() + " " + mov.getPresentation().getSize());
+        }
+        if (mov.getUsuario() != null) {
+            dto.setUsuarioName(mov.getUsuario().getName());
+        }
+        return dto;
     }
 }

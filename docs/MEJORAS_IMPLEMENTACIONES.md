@@ -622,8 +622,104 @@ llegaron **con retraso** (Gmail aplica controles antispam) y pueden caer en
 
 ---
 
-## 17. Próximas mejoras / pendientes
+## 18. Paginación unificada en todos los módulos
+
+### Problema
+Con varios registros, las tablas de los módulos **crecían hacia abajo** sin límite: la
+página se volvía larga y el contenido inferior quedaba fuera de vista. Solo
+`Auditoria` estaba paginado y cada módulo resolvía el pie por su cuenta.
+
+### Auditoría previa (volumen real en BD)
+
+| Módulo | Antes | Ahora |
+|---|---|---|
+| Auditoría | servidor, 20/pág (propia) | componente compartido |
+| Dashboard – Alertas | 5/pág (propia) | componente compartido |
+| Kárdex | **sin paginación** | **servidor**, 10/pág |
+| Catálogo (Insumos) | **sin paginación** | cliente, 10/pág |
+| Ajustes | **sin paginación** | cliente, 10/pág |
+| Reportes | **sin paginación** | cliente, 10/pág |
+| Proyecciones | **sin paginación** | cliente, 10/pág (ambas tablas) |
+| Usuarios | **sin paginación** | cliente, 10/pág |
+
+### Componente único
+`frontend/src/components/Paginacion.tsx` es **la única** implementación del pie.
+Cambiar el texto, el tamaño de los botones o cuándo se oculta se hace en ese
+archivo y aplica a todos los módulos, sin editar cada página.
+
+- No renderiza nada con una sola página (evita pies vacíos).
+- Se oculta mientras carga, para que la tabla no cambie de alto.
+- `variant="tarjeta"` para pies que viven dentro de una tarjeta (Dashboard),
+  sin el padding lateral de tabla.
+
+### Hooks
+- `frontend/src/hooks/usePaginacion.ts` — listas acotadas (cliente). Concentra el
+  `slice`, el cálculo de páginas y **el acotado del índice** para que, si un
+  filtro reduce el conjunto, la página actual no quede huérfana.
+- `frontend/src/hooks/usePaginacionServidor.ts` — listas sin límite (Kárdex).
+  Encapsula la lectura de `content` / `totalPages` / `totalElements` del `Page<T>`.
+
+### Backend: por qué Kárdex pagina en servidor
+`inventario_movimientos` suma una fila por cada operación, así que es la única
+tabla que crece sin límite. Se agregó:
+
+- `MovimientoRepository.findAllWithDetailsOrderByCreatedAtDesc(Pageable)` con
+  `countQuery` explícito (con `@Query` + `@EntityGraph` Spring no deriva el
+  count de forma confiable) y orden determinista `createdAt DESC, id DESC` para
+  que una página no repita ni omita filas con el mismo timestamp.
+- `GET /api/movimientos/paginado?page=&size=` → `Page<MovimientoResponseDTO>`.
+- Tope duro de 100 por página en el service (`clampSize`), para que el cliente
+  no pueda pedir el histórico entero.
+
+**`GET /api/movimientos` (sin `/paginado`) se mantiene intacto a propósito:** el
+Dashboard, Reportes y Ajustes calculan totales y agregados sobre **todos** los
+movimientos; paginar ese endpoint rompería las cifras.
+
+### Lo que NO se pagina (a propósito)
+- Los `<select>` de filtro de Reportes y Proyecciones: un desplegable paginado
+  sería peor de usar que uno completo.
+- Los exports a Excel/PDF: siguen enviando el conjunto filtrado **completo**. Un
+  reporte debe abarcar todo lo que el filtro seleccionó, no la página visible.
+- Los KPIs del Dashboard y de Proyecciones (`inversionTotal`, totales): se
+  calculan sobre el conjunto completo.
+
+### Archivos
+`components/Paginacion.tsx`, `hooks/usePaginacion.ts`,
+`hooks/usePaginacionServidor.ts`, `pages/{Insumos,Movimientos,Ajustes,Reportes,Proyecciones,Usuarios,Auditoria,Dashboard}.tsx`,
+`controller/MovimientoController.java`, `service/MovimientoService.java`,
+`repository/MovimientoRepository.java`.
+
+### Tests
+54 frontend (11 archivos) y 22 backend, incluidos los nuevos de `Paginacion`,
+`usePaginacion`, `Movimientos` (verifica que pida `/paginado` y **no** el listado
+completo) y `MovimientoService` (mapeo, tamaño de página, corrección de valores
+inválidos).
+
+### Corrección de permisos
+`Ajustes.tsx` y `Movimientos.tsx` pasaban el arreglo de eventos de tiempo real
+como literal dentro del render, lo que re-suscribía el WebSocket en cada cambio
+de estado. Ahora son constantes a nivel de módulo.
+
+---
+
+## 19. Estrategia de despliegue en producción (documentación)
+
+Nuevo documento `docs/ESTRATEGIA_DESPLIEGUE.md` con el principio de **reconstruir
+solo lo que cambió**, las brechas reales detectadas en `docker-compose.prod.yml`
+(backend sin healthcheck, `depends_on` sin condición, sin `stop_grace_period`,
+túnel con hostname aleatorio) y la recomendación por etapas desde healthcheck
+hasta CI/CD. Complementa a `FLUJO_DESPLIEGUE.md`, que cubre las ramas.
+
+---
+
+## 20. Próximas mejoras / pendientes
 - **Fase 10 — Bodegas por departamento** (pendiente de diseño; ver
   `docs/upgrade-V2-Manejo-de-bodegas.md` y `AGENTS.md` §8). Requiere confirmar las decisiones abiertas
   (stock por bodega vs presentación única, QR, migración de datos).
+- **Agregar healthcheck al backend** y `condition: service_healthy` en
+  `depends_on` del frontend (documentado en `docs/ESTRATEGIA_DESPLIEGUE.md` §2.1).
+  Requiere exponer un endpoint público barato tipo `/api/auth/ping`.
+- **Revisar `stock_reservado`** del motor de préstamos: el diseño dice que la
+  solicitud no reserva stock, pero la aprobación ejecuta
+  `stock_reservado -= cantidad`. Resolver antes de implementar la Fase 10.
 - (registrar aquí futuras implementaciones)

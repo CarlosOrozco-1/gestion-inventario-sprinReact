@@ -60,6 +60,7 @@ gestion-inventario-sprinReact/
 ├── docs/
 │   ├── BITACORA_PROBLEMAS.md
 │   ├── COMO_LEVANTAR_LOS_SERVICIOS.md
+│   ├── ESTRATEGIA_DESPLIEGUE.md
 │   ├── FASES_DESARROLLO.md
 │   ├── MEJORAS_IMPLEMENTACIONES.md
 │   └── upgrade-V2-Manejo-de-bodegas.md
@@ -400,6 +401,7 @@ disponibles según la matriz anterior.
 | `CONTEXTO_AGENTE_DOCUMENTACION.md` | Contexto verificado para el agente que redacta la documentación y el manual de usuario. |
 | `AGENTS.md` | Convenciones del proyecto, reglas de negocio y estado de fases. |
 | `FLUJO_DESPLIEGUE.md` | Flujo de ambientes y ramas (`desa` → `pre` → `pro`). |
+| `docs/ESTRATEGIA_DESPLIEGUE.md` | Mecánica de despliegue en el servidor: qué se reconstruye, healthchecks, CI/CD, migraciones sin downtime y rollback. |
 | `DESPLIEGUE_LOCAL_UBUNTU.md` | Guía de despliegue en el servidor Ubuntu. |
 | `docs/MEJORAS_IMPLEMENTACIONES.md` | Bitácora de mejoras con archivos afectados y comportamiento. |
 | `docs/upgrade-V2-Manejo-de-bodegas.md` | Análisis de impacto y decisiones abiertas del upgrade a inventario por bodegas, incluido el **motor de préstamos entre bodegas** (Fase 10, no implementada). |

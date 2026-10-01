@@ -1,40 +1,69 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../api/axios';
 import MovimientoModal from '../components/MovimientoModal';
+import Paginacion from '../components/Paginacion';
 import QrScanner from '../components/QrScanner';
 import { useToastStore } from '../store/useToastStore';
 import { useRealtimeSync } from '../hooks/useRealtimeSync';
+import { usePaginacionServidor } from '../hooks/usePaginacionServidor';
+
+// El Kárdex se pagina en el servidor: el histórico crece con cada operación y
+// no conviene enviarlo completo al navegador.
+const TAMANIO_PAGINA = 10;
+
+// Constante de módulo: un array literal en el render re-suscribe el WebSocket
+// en cada actualización de estado.
+const EVENTOS_KARDEX = [
+  'MOVIMIENTO_CREADO',
+  'INSUMO_CREADO',
+  'INSUMO_ACTUALIZADO',
+  'INSUMO_INACTIVADO',
+  'INSUMO_REACTIVADO',
+  'PRESENTACION_AGREGADA',
+];
 
 export default function Movimientos() {
-  const [movimientos, setMovimientos] = useState([]);
   const [insumosList, setInsumosList] = useState([]); // Para el modal
-  const [loading, setLoading] = useState(true);
-  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [scannedPresentation, setScannedPresentation] = useState<any>(null);
 
   const showToast = useToastStore((s: any) => s.showToast);
 
-  const fetchData = async (message = null) => {
+  const cargarMovimientos = useCallback(async (pagina: number, size: number) => {
+    const res = await api.get('/movimientos/paginado', { params: { page: pagina, size } });
+    return res.data;
+  }, []);
+
+  const {
+    pagina, totalPaginas, total, elementos: movimientos, cargando: loading, refrescar,
+  } = usePaginacionServidor(cargarMovimientos, TAMANIO_PAGINA);
+
+  // La página actual se lee por ref en los refrescos en vivo para no depender
+  // de que la callback cambie de identidad.
+  const paginaRef = useRef(pagina);
+  paginaRef.current = pagina;
+
+  const fetchInsumos = async () => {
     try {
-      // Cargamos movimientos e insumos en paralelo
-      const [movRes, insumosRes] = await Promise.all([
-        api.get('/movimientos'),
-        api.get('/insumos')
-      ]);
-      
-      setMovimientos(movRes.data);
-      setInsumosList(insumosRes.data);
-      
-      if (message) {
-        showToast(message);
-      }
+      const res = await api.get('/insumos');
+      setInsumosList(res.data);
     } catch (err) {
-      console.error('Error al cargar datos', err);
-    } finally {
-      setLoading(false);
+      console.error('Error al cargar insumos', err);
     }
+  };
+
+  useEffect(() => {
+    refrescar(0);
+    fetchInsumos();
+  }, [refrescar]);
+
+  // Tras registrar un movimiento se vuelve a la primera página: el listado es
+  // descendente por fecha y el movimiento nuevo debe verse de inmediato.
+  const handleSave = (message?: string) => {
+    refrescar(0);
+    fetchInsumos();
+    if (message) showToast(message);
   };
 
   const handleQrScan = async (qrCode: string) => {
@@ -56,21 +85,14 @@ export default function Movimientos() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (isModalOpen && insumosList.length === 0) fetchInsumos();
+  }, [isModalOpen]);
 
   // Refresca el kárdex en vivo: un movimiento nuevo registrado por otro usuario
   // (o un cambio en el catálogo de insumos) se refleja sin recargar la página.
   useRealtimeSync(
-    [
-      'MOVIMIENTO_CREADO',
-      'INSUMO_CREADO',
-      'INSUMO_ACTUALIZADO',
-      'INSUMO_INACTIVADO',
-      'INSUMO_REACTIVADO',
-      'PRESENTACION_AGREGADA',
-    ],
-    () => fetchData()
+    EVENTOS_KARDEX,
+    () => refrescar(paginaRef.current)
   );
 
   const formatDate = (isoString) => {
@@ -94,7 +116,7 @@ export default function Movimientos() {
         <MovimientoModal
           isOpen={isModalOpen}
           onClose={() => { setIsModalOpen(false); setScannedPresentation(null); }}
-          onSave={fetchData}
+          onSave={handleSave}
           insumos={insumosList}
           preSelectedPresentation={scannedPresentation}
         />
@@ -154,7 +176,7 @@ export default function Movimientos() {
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-slate-400">Cargando movimientos...</td>
                 </tr>
-              ) : movimientos.length === 0 ? (
+              ) : total === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-12 text-center text-slate-500">
                     <svg className="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -187,6 +209,13 @@ export default function Movimientos() {
             </tbody>
           </table>
         </div>
+        <Paginacion
+          pagina={pagina}
+          totalPaginas={totalPaginas}
+          total={total}
+          onCambioPagina={refrescar}
+          etiqueta="movimientos"
+        />
       </div>
     </div>
   );

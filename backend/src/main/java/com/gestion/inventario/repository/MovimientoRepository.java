@@ -1,6 +1,8 @@
 package com.gestion.inventario.repository;
 
 import com.gestion.inventario.model.Movimiento;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -19,6 +21,15 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
     @EntityGraph(attributePaths = {"presentation", "presentation.item", "usuario"})
     @Query("SELECT m FROM Movimiento m ORDER BY m.createdAt DESC")
     List<Movimiento> findAllWithDetailsOrderByCreatedAtDesc();
+
+    // Kárdex paginado: el countQuery va explícito porque con @Query + @EntityGraph
+    // Spring no puede derivar el count de forma confiable. El orden es
+    // determinista (createdAt + id) para que una página no repita ni omita
+    // movimientos cuando varias filas comparten timestamp.
+    @EntityGraph(attributePaths = {"presentation", "presentation.item", "usuario"})
+    @Query(value = "SELECT m FROM Movimiento m ORDER BY m.createdAt DESC, m.id DESC",
+           countQuery = "SELECT count(m) FROM Movimiento m")
+    Page<Movimiento> findAllWithDetailsOrderByCreatedAtDesc(Pageable pageable);
 
     // Consumo de una presentación: salidas + ajustes negativos dentro de un período (Fase 10)
     @Query("SELECT m FROM Movimiento m WHERE m.presentation.id = :presentationId AND m.type IN ('SALIDA', 'AJUSTE_NEGATIVO') AND m.createdAt >= :desde")

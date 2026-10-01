@@ -161,3 +161,121 @@ Toda función en la capa Service que afecte inventario (entradas o salidas) **de
 - Agregar una skill nueva = crear `.opencode/skills/<nombre>/SKILL.md` con
   frontmatter (`name`, `description`) y cuerpo en markdown. Tras crearla o
   editar config, **reiniciar opencode** para que la cargue.
+
+---
+
+## 7. Fases completadas
+
+1. **Fase 1: Setup y Modelado de Datos** — Spring Boot + PostgreSQL + Flyway.
+2. **Fase 2: Seguridad y Autenticación** — JWT + BCrypt + roles.
+3. **Fase 3: Módulo Base (Insumos)** — catálogo con materiales y presentaciones.
+4. **Fase 4: Motor Transaccional (Movimientos)** — entradas/salidas/ajustes justificados.
+5. **Fase 5: Frontend y UI** — React + Vite + Tailwind.
+6. **Fase 6: Pruebas y Auditoría** — Vitest/JUnit + bitácora de auditoría.
+7. **Fase 7: Códigos QR** — identificación por presentación (`SIGES-PRES-{id}`).
+8. **Fase 8: Recuperación de contraseña por correo** — SMTP + código de un solo uso.
+9. **Fase 9: Tiempo real (WebSocket)** — refresco en vivo de Auditoría, Catálogo,
+   Kárdex y Ajustes (`useAuditSocket` + `useRealtimeSync`).
+
+---
+
+## 8. Fase 10 (PENDIENTE) — Bodegas / Separation por Departamento
+
+> **Estado:** aprobada en diseño, **no iniciada**. Antes de escribir código,
+> leer `docs/upgrade-V2-Manejo-de-bodegas.md` (análisis de impacto y decisiones abiertas).
+
+### Objetivo
+Gestionar **bodegas independientes** (una por departamento: Soporte, Desarrollo, etc.).
+El **catálogo de materiales sigue siendo general y compartido**; lo que se separa es **a qué
+bodega pertenece cada item/presentación, su stock y sus movimientos**.
+
+Cada bodega tiene sus propios ítems, totales, ingresos y egresos. El usuario **solo ve su
+bodega**: p. ej. `matias@pdh.org.gt` (AUXILIAR, Departamento de Desarrollo) únicamente ve la
+bodega de Desarrollo; el jefe de ese departamento también solo la suya. El ADMIN ve todas.
+
+### Modelo de datos objetivo (propuesta, confirmar antes de migrar)
+- `departamentos` (o `bodegas`): `id`, `name` (único), `descripcion`, `activo`, timestamps.
+- `usuarios.departamento_id` → FK a `departamentos` (un usuario pertenece a una bodega;
+  ADMIN puede quedar sin departamento = vista global).
+- Tabla puente `item_departamentos` (`item_id`, `departamento_id`): quéBodegas tienen cada
+  material. **No** duplicar el catálogo: el item es único, la pertenencia es N:N.
+- `presentations.departamento_id` **o** stock por bodega. ⚠️ **Decisión de diseño abierta:**
+  - *Opción A (recomendada):* mover el stock a una tabla `stock_bodega`
+    (`departamento_id`, `presentation_id`, `stock`, `min_stock`, `max_stock`) con UNIQUE
+    `(departamento_id, presentation_id)`. El `stock` actual de `presentations` pasa a ser
+    el **stock consolidado** (solo lectura) o se elimina.
+  - *Opción B:* poner `departamento_id` en `presentations` (una presentación pertenece a una
+    sola bodega). Más simple, pero **impide que el mismo insumo exista en dos bodegas**.
+- `inventario_movimientos.departamento_id` → bodega del movimiento (obligatorio). El
+  `usuario` sigue viniendo del JWT.
+- **QR:** el `SIGES-PRES-{id}` actual apunta a la presentación global. Con bodegas, el QR
+  debe **resolvers por defecto a la bodega del usuario que escanea**, o incluir el
+  departamento (`SIGES-PRES-{id}-D{depId}`). **Decisión abierta.**
+
+### Reglas de negocio (inviolables)
+1. **Aislamiento:** un usuario sin permiso ve **solo** su bodega. Filtrar en el **backend**
+   (nunca solo ocultando en la UI). ADMIN ve todas o selecciona una.
+2. **Validación de stock por bodega:** la salida se valida contra el stock **de esa bodega**
+   (`Cantidad Solicitada ≤ Stock_Bodega`), nunca contra el consolidado.
+3. **Un movimiento pertenece a una única bodega** y se valida que el usuario pueda operar
+   sobre ella (`403` si no).
+4. **Los ajustes siguen exigiendo justificación ≥ 20 caracteres** y quedan atados a
+   `usuario_id` **y** `departamento_id`.
+5. **La ecuación fundamental pasa a ser por bodega:**
+   `Stock_Bodega = (Σ Entradas_B) − (Σ Salidas_B) + (Σ Ajustes+_B) − (Σ Ajustes−_B)`.
+6. **Transaccionalidad:** crear una fila de stock en la bodega dentro de la misma
+   transacción `@Transactional` del movimiento, con bloqueo pesimista de esa fila.
+7. **Auditoría:** los eventos de movimiento/ajuste deben incluir el departamento en la
+   descripción.
+8. **Préstamos entre bodegas (§9 de `docs/upgrade-V2-Manejo-de-bodegas.md`):**
+   - Un préstamo **nunca** modifica el stock por sí solo: **siempre** genera 2 movimientos
+     (`PRESTAMO_SALIDA` en el origen y `PRESTAMO_ENTRADA` en el destino) dentro de la misma
+     `@Transactional`. La tabla `prestamos` es un **registro de deuda**, no la fuente del stock.
+   - `cantidad_devuelta ≤ cantidad` es **inviolable**; validar en el service con bloqueo
+     pesimista de las filas de `stock_bodega` de **ambas** bodegas.
+   - Bloquear siempre las dos filas en **orden determinista** (`departamento_id` ascendente)
+     para evitar deadlocks en devoluciones cruzadas.
+- El motor de alertas compara `stock_actual_destino` contra el **snapshot**
+      `stock_destino_antes + pendiente`; no rastrea movimientos individuales.
+   - **Acuerdo bilateral obligatorio:** un préstamo exige `SOLICITUD` (bodega destino) +
+     `APROBACION` (bodega origen). La solicitud **nunca** mueve stock ni reserva; la
+     aprobación revalida el stock de origen **dentro de la transacción** (evita la
+     sobre-promesa de varias solicitudes simultáneas: ver `stock_reservado` en §9.11-A).
+   - **Máquina de estados estricta:** `SOLICITUD → ACTIVO → PARCIAL → DEVUELTO`, más
+     `RECHAZADO`, `CANCELADO`, `ANULADO` y `DADA_DE_BAJA`. Toda transición se registra en
+     `prestamos_historial` con usuario, bodega y justificación.
+   - **Dar de baja** (insumo perdido, sin reposición) exige **una firma de cada bodega** +
+     justificación, **no mueve stock** y es terminal.
+   - **Prórroga** de `fecha_limite` requiere acuerdo bilateral y queda en
+     `prestamos_prorogas`; nunca unilateral. **Máximo 3 prórrogas** (configurable en
+     `departamentos.max_prorogas`); al agotarlas se alerta y solo queda devolver o dar de
+     baja, de modo que **ningún préstamo quede flotando**.
+   - **Topes anti-enjuague** (configurables en `departamentos`, validados al **solicitar**
+     y al **aprobar**, contando solo estados `SOLICITUD`/`ACTIVO`/`PARCIAL`):
+     - ≤ **2 préstamos concurrentes de la misma presentación** por bodega destino.
+       Con 3+ la devolucion se vuelve ambigua (§9.11-E). Bloquear con mensaje accionable.
+     - ≤ **5 préstamos concurrentes totales** por bodega destino.
+     - Reservar stock con `stock_reservado`: `disponible = stock - stock_reservado`, con
+       `CHECK (stock_reservado <= stock)` para que **nunca exista monto fantasma**.
+   - **La ecuación fundamental por bodega debe seguir cuadrando despues de cada
+     operacion** de prestamos/devoluciones (test obligatorio).
+
+### Plan de migración (respaldo antes de aplicar)
+- `V9__departamentos_bodegas.sql`: crear tablas + columnas + índices + bridge, **sin**
+  borrar datos. Asignar todos los usuarios/items actuales a una bodega "General" inicial.
+- Derivar `stock_bodega` desde `presentations.stock` en la bodega General.
+- Backfill de `inventario_movimientos.departamento_id` = bodega General.
+- Estrategia de acceso: primero **todo en General**, luego migrar cada departamento.
+- **Respaldo de BD es obligatorio** antes de la primera migración que agregue columnas.
+
+### Alcance esperado (impacto)
+- **Backend:** 2–3 entidades nuevas + repositorios, cambios en `MovimientoService`
+  (validación de stock por bodega), `ItemService` (pertenencia), `Usuario` (FK), filtros en
+  todos los endpoints de lectura (insumos/movimientos/reportes/QR), DTOs y auditoría.
+- **Frontend:** selector de bodega en el header, filtrado de listas, mostrar bodega en
+  movimientos/reportes, ajuste de `MODULE_ACCESS` si un jefe ve solo su bodega.
+- **Migración de datos y coordinación con el usuario** para definir los departamentos.
+- **Tests:** unitarios de aislamiento por bodega y de stock por bodega.
+
+> ⚠️ **Es el cambio más grande del proyecto.** Debe hacerse por fases, con respaldo y
+> validación en `desa`/`pre`, nunca directo en `pro`.

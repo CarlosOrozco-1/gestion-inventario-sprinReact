@@ -534,5 +534,96 @@ desde `QrModal`) se deja constancia:
 
 ---
 
-## 14. Próximas mejoras / pendientes
+## 14. Tiempo real en Catálogo, Kárdex y Ajustes (no solo Auditoría)
+
+**Fecha:** 2026-09-30
+**Naturaleza:** Mejora de consistencia: los módulos se actualizan sin recargar.
+
+### Problema
+El backend ya difundía **todos** los eventos de auditoría por `/ws/auditoria`, pero solo
+la página de **Auditoría** se suscribía. Si un usuario creaba un insumo o registraba un
+movimiento, las demás pantallas seguían mostrando datos viejos hasta recargar manualmente.
+
+### Comportamiento
+1. `useAuditSocket` devuelve ahora `onMessage` **memoizado** (`useMemo`), estable frente a
+   los re-renders, para evitar resuscripciones.
+2. Nuevo hook **`useRealtimeSync(eventTypes, onEvent)`** (`frontend/src/hooks/`): se
+   suscribe al WebSocket y ejecuta `onEvent` (que vuelve a consultar por REST) **solo**
+   cuando llega un `eventType` incluido en la lista.
+3. Suscripciones:
+   - **Insumos**: `INSUMO_CREADO`, `INSUMO_ACTUALIZADO`, `INSUMO_INACTIVADO`,
+     `INSUMO_REACTIVADO`, `PRESENTACION_AGREGADA`, `MOVIMIENTO_CREADO`.
+   - **Movimientos** y **Ajustes**: el mismo conjunto (por `MOVIMIENTO_CREADO` y eventos de
+     insumo, que alteran stock y catálogos derivados).
+
+### Archivos involucrados
+- `frontend/src/hooks/useRealtimeSync.ts` — **nuevo** (hook de suscripción filtrada).
+- `frontend/src/hooks/useRealtimeSync.test.tsx` — **nuevo** (2 tests: filtrado y lista vacía).
+- `frontend/src/hooks/useAuditSocket.ts` — `onMessage` memoizado.
+- `frontend/src/pages/{Insumos,Movimientos,Ajustes}.tsx` — suscripciones.
+
+### Notas
+- Sin cambios en backend: la difusión de eventos ya era total.
+- El canal **no transporta datos de negocio**; cada módulo re-consulta por REST con su JWT.
+
+---
+
+## 15. Permisos de Reportería para JEFE y AUXILIAR
+
+**Fecha:** 2026-09-30
+**Naturaleza:** Corrección de permisos (el módulo era visible pero no cargaba).
+
+### Problema
+`Reportes.tsx` carga en paralelo `GET /movimientos`, `GET /insumos` y `GET /usuarios`
+mediante un `Promise.all`. Pero `UsuarioController` declara
+`@PreAuthorize("hasRole('ADMIN')")` **a nivel de clase**, que restringía **todos** sus
+endpoints, incluido el resumen `GET /api/usuarios`. Para JEFE y AUXILIAR ese request
+devolvía **403**, el `Promise.all` rechazaba y **no se cargaba nada**: la tabla quedaba
+vacía aunque el módulo fuera accesible. Solo ADMIN veía movimientos.
+
+### Solución
+`listarUsuariosResumen()` sobrescribe a nivel de método con
+`@PreAuthorize("hasAnyRole('ADMIN','JEFE','AUXILIAR')")`. El endpoint solo expone
+`{id, name, rol}` (no datos sensibles) y es necesario para el filtro de Usuario, coherente
+con que Reportería está abierto a los tres roles. El CRUD completo
+(`/usuarios/admin`, `.../rol`, `.../status`) **sigue siendo solo ADMIN**.
+
+### Archivos involucrados
+- `backend/src/main/java/com/gestion/inventario/controller/UsuarioController.java`.
+
+### Validación
+Con `apgarcia@pdh.org.gt` (JEFE): `GET /api/usuarios` → 200 y `GET /api/movimientos` → 200.
+
+---
+
+## 16. Recuperación de contraseña: diagnóstico del correo
+
+**Fecha:** 2026-09-30
+**Naturaleza:** Diagnóstico (sin cambios de código).
+
+### Situación
+El flujo de recuperación respondía `200` y mostraba el mensaje genérico, pero el correo no
+llegaba. Configuración verificada como **correcta**: `MAIL_USERNAME`/`MAIL_PASSWORD` en el
+`.env` del servidor, presentes en el contenedor, y la credencial es válida
+(`235 2.7.0 Accepted` en la prueba SMTP). Los tokens se creaban en
+`password_reset_tokens`, y `mailSender.send()` no lanzaba excepción (por eso el endpoint
+respondía 200).
+
+### Diagnóstico
+La entrega es responsabilidad del buzón destino, no del sistema. Los envíos de prueba
+llegaron **con retraso** (Gmail aplica controles antispam) y pueden caer en
+**Spam/Promociones**. Confirmado por el usuario: los correos llegaron.
+
+### Notas
+- `solicitarRecuperacion` usa `ifPresent`: si el correo no está registrado, no envía nada y
+  la respuesta sigue siendo genérica (por diseño, no revela si el correo existe).
+- Posible mejora futura: registrar en logs el envío (destino + resultado) para diagnosticar
+  entregas fallidas sin depender de la bandeja del usuario.
+
+---
+
+## 17. Próximas mejoras / pendientes
+- **Fase 10 — Bodegas por departamento** (pendiente de diseño; ver
+  `docs/upgrade-V2-Manejo-de-bodegas.md` y `AGENTS.md` §8). Requiere confirmar las decisiones abiertas
+  (stock por bodega vs presentación única, QR, migración de datos).
 - (registrar aquí futuras implementaciones)

@@ -1,7 +1,13 @@
 # SIGES — Sistema de Gestión de Inventario de Insumos
 
 > **Documento de contexto técnico** para el equipo de documentación.
-> Versión documentada: **v1.0.0** (rama `pro`).
+> Versión documentada: **v1.0.0** (rama `pro`), con las mejoras posteriores verificadas en
+> `desa`/`deploy-local` (tiempo real en catálogo/kárdex/ajustes, permisos de reportería,
+> credenciales del administrador por `.env`, nomenclatura QR).
+>
+> 📌 **Upgrade V2 (no implementado):** la separación del inventario por bodegas/departamento
+> está analizado en `docs/upgrade-V2-Manejo-de-bodegas.md` y registrado como Fase 10 en
+> `AGENTS.md` §8. Este documento describe el sistema **actual** (stock global).
 
 ---
 
@@ -33,7 +39,8 @@ Es un sistema transaccional: el stock **nunca** se actualiza "a ciegas" con un U
 | Migraciones | Flyway (`V1`…`V8`) |
 | Seguridad | Spring Security + JWT (HS512) + BCrypt |
 | Errores | `@RestControllerAdvice` (`GlobalExceptionHandler`) |
-| Tiempo real | WebSocket (`/ws`) para la página de Auditoría |
+| Tiempo real | WebSocket (`/ws/auditoria`): señales push; el dato se re-consulta por REST |
+| Correo | SMTP (JavaMailSender) para el código de recuperación de contraseña |
 | Precisión numérica | `BigDecimal` / `Integer` (**prohibido** `float`/`double`) |
 
 ### Frontend (React)
@@ -70,8 +77,13 @@ Caddy (reverse proxy / TLS)  ──→  Frontend nginx (puerto 8081)  ── /ap
 
 - Frontend monolito SPA que consume una **API REST JSON** bajo `/api`.
 - Backend **stateless**: la sesión se mantiene por token JWT en `Authorization: Bearer`.
-- Canal **WebSocket** `/ws` para refresco en vivo de la bitácora de auditoría.
+- Canal **WebSocket** `/ws/auditoria` para refresco en vivo. El backend **difunde todos los
+  eventos de auditoría**, no solo los de la bitácora: el frontend se suscribe y re-consulta
+  por REST el módulo afectado (Auditoría, Catálogo, Kárdex, Ajustes), de modo que la
+  seguridad permanece en los endpoints REST.
 - El **QR** se usa para escanear presentaciones: el endpoint devuelve el detalle del insumo (incluye si está `activo`).
+- **Correo:** el código de recuperación de contraseña se envía por SMTP (Gmail, puerto 587 +
+  STARTTLS) con las credenciales `MAIL_USERNAME` / `MAIL_PASSWORD` del `.env`.
 
 ### Convenciones de estado del frontend
 - `useAuthStore`: `user` (id, name, email, rol, nivel), `token`, `isAuthenticated`; métodos `login()` y `logout()` persisten en `localStorage`.
@@ -96,11 +108,26 @@ Rutas protegidas (`frontend/src/App.tsx`). Roles: `ADMIN` (nivel 100), `JEFE` (n
 | `/login`, `/recuperar` | Autenticación y recuperación de contraseña | Público |
 | — | **Mi Perfil** (cambiar contraseña) — modal desde el sidebar | Todos |
 
+> **Permisos de escritura dentro del catálogo:** el menú de Insumos está disponible para
+> ADMIN y JEFE, pero las operaciones de escritura (`POST/PUT /items`,
+> `POST /items/{id}/presentations`) exigen **ADMIN**; activar/inactivar
+> (`PUT /items/{id}/estado`) admite **ADMIN y JEFE**.
+
 ### Detalle del módulo Insumos
 - Cada insumo (material) puede tener **varias presentaciones** (envase, unidad, etc.), con stock, min/max, costo estimado y `qrCode` propio.
 - **Edición de código interno:** el campo `code` es **inmutable** (el backend lo ignora en `actualizarItem`); se muestra de solo lectura en el formulario.
 - **Activar/Inactivar** (`PUT /api/items/{id}/estado`, solo ADMIN/JEFE): un insumo inactivo queda fuera de la lista de vista y **no admite movimientos**; al escanear su QR el sistema avisa "insumo inactivo, consulta con tu superior para su activación".
 - El escaneo de QR captura el evento de auditoría `QR_CONSULTADO`.
+
+### Detalle del módulo Reportes
+- Filtra **en memoria** los movimientos ya cargados por usuario, insumo, tipo y rango de
+  fechas, y exporta el subconjunto filtrado a Excel/PDF (`POST /reportes/excel|pdf` con los
+  ids de movimiento).
+- El filtro de **Usuario** se alimenta de `GET /api/usuarios` (endpoint **resumen**: solo
+  `id`, `name`, `rol`), habilitado para **ADMIN, JEFE y AUXILIAR** porque el módulo es
+  accesible a los tres roles. El CRUD completo sigue en `/usuarios/admin` (solo ADMIN).
+- ⚠️ Esa Endpoint debe ser accesible a los tres roles: si `GET /api/usuarios` devuelve 403,
+  la carga paralela de Reportería falla completa y la tabla queda vacía para JEFE/AUXILIAR.
 
 ### Detalle del módulo Perfil (nuevo en v1.0.0)
 - Al hacer clic en el bloque del usuario (sidebar) se abre el modal **"Mi Perfil"** con los datos de la sesión y la sección **"Cambiar contraseña"**.
@@ -141,6 +168,19 @@ Entidades JPA (paquete `com.gestion.inventario.model`):
 | `V7__auditoria.sql` | Tabla de auditoría |
 | `V8__add_activo_items.sql` | `ALTER TABLE items ADD COLUMN activo BOOLEAN NOT NULL DEFAULT TRUE` |
 
+### Nomenclatura del código QR (regla vigente)
+- Formato canónico: **`SIGES-PRES-{id_presentacion}`** (generado por
+  `ItemService.generarQrCode`; `V6` regeneró los existentes).
+- El **`id` de la presentación es inmutable**, por lo que el QR es estable de por vida y no
+  expone el código interno del material.
+- **El QR apunta a la presentación, no al insumo ni al código del material.** El sistema
+  **no** acepta el código del insumo como alias: 30 insumos tienen una sola presentación,
+  pero hay insumos con varias (p. ej. `1351235815`, `1594312975`), por lo que el código del
+  insumo sería ambiguo.
+- En el modal del QR (`QrModal.tsx`) se muestra el **string** `SIGES-PRES-*` con botón
+  **Copiar**, para generar/etiquetar con impresoras externas (p. ej. Brady M210). El string
+  **no** forma parte del cartel impreso (el `handlePrint` construye la vista aparte).
+
 ---
 
 ## 6. API REST (resumen)
@@ -168,7 +208,12 @@ Base: `/api`. Autenticada salvo las rutas `auth/**` y `/error`.
 | `GET` | `/reportes/excel`, `/reportes/pdf` | Reportes exportables | Todos |
 | `POST` | `/reportes/proyecciones/excel`, `/proyecciones/pdf` | Exportación de proyecciones | — |
 | `GET` | `/auditoria` (+ `/eventos`) | Bitácora páginada + catálogo de eventos | ADMIN |
-| `GET/POST/PUT` | `/usuarios`, `/usuarios/admin`, `/usuarios/admin/{id}`, `.../rol`, `.../status` | CRUD de usuarios | ADMIN |
+| `GET` | `/usuarios` | **Resumen** de usuarios (`id`, `name`, `rol`) para el filtro de Reportería | ADMIN, JEFE, AUXILIAR |
+| `GET/POST/PUT` | `/usuarios/admin`, `/usuarios/admin/{id}`, `.../rol`, `.../status` | CRUD completo de usuarios | ADMIN |
+
+> ⚠️ `UsuarioController` declara `@PreAuthorize("hasRole('ADMIN')")` **a nivel de clase**, que
+> aplica a todos sus endpoints salvo los que lo sobrescriban. `GET /usuarios` lo sobrescribe
+> con `hasAnyRole('ADMIN','JEFE','AUXILIAR')`; el resto mantiene solo ADMIN.
 
 > **Nota exacta de parámetros:** los campos de los DTOs se definen en `com.gestion.inventario.dto` (`LoginRequest`, `MovimientoDTO`, `CambiarPasswordRequest`, `NuevoUsuarioDTO`, `ActualizarUsuarioDTO`, etc.).
 
@@ -235,7 +280,43 @@ Bitácora append-only en `audit_logs`, activada por `AuditService` (código → 
 
 `LOGIN`, `LOGIN_FALLIDO`, `MOVIMIENTO_CREADO`, `USUARIO_CREADO`, `USUARIO_ACTUALIZADO`, `USUARIO_ROL_CAMBIADO`, `USUARIO_ESTADO_CAMBIADO`, `EXPORTACION_PDF`, `EXPORTACION_EXCEL`, `EXPORTACION_PROYECCIONES_PDF`, `EXPORTACION_PROYECCIONES_EXCEL`, `INSUMO_CREADO`, `INSUMO_ACTUALIZADO`, `INSUMO_INACTIVADO`, `INSUMO_REACTIVADO`, `PRESENTACION_AGREGADA`, `QR_DESCARGA`, `QR_IMPRESION`, `QR_CONSULTADO`, `PASSWORD_CAMBIADO`.
 
-La consulta soporta filtros (evento, usuario, rango de fechas) y paginación. Los nuevos eventos se reflejan en vivo vía WebSocket (`/ws`).
+La consulta soporta filtros (evento, usuario, rango de fechas) y paginación. Los nuevos eventos se reflejan en vivo vía WebSocket (`/ws/auditoria`).
+
+### Tiempo real (WebSocket) más allá de Auditoría
+Como el backend difunde **todos** los eventos de auditoría, el frontend puede refrescar
+cualquier módulo sin recargar:
+
+| Hook | Propósito |
+|---|---|
+| `useAuditSocket` | Conexión WebSocket con reconexión automática; expone `onMessage` **memoizado** (estable) para evitar resuscripciones. |
+| `useRealtimeSync(eventTypes, onEvent)` | Suscripción de alto nivel: ejecuta `onEvent` (re-fetch) solo cuando llega un `eventType` de la lista. |
+
+Módulos suscritos: **Auditoría**, **Catálogo** (`INSUMO_CREADO`, `INSUMO_ACTUALIZADO`,
+`INSUMO_INACTIVADO`, `INSUMO_REACTIVADO`, `PRESENTACION_AGREGADA`, `MOVIMIENTO_CREADO`),
+**Kárdex** y **Ajustes** (`MOVIMIENTO_CREADO` y los de insumo).
+
+> El canal **no transporta datos de negocio**, solo un aviso (`id`, `eventType`,
+> `description`, fecha). Cada módulo vuelve a consultar por REST con su JWT, de modo que
+> **nunca se filtran datos por el WebSocket**.
+
+---
+
+## 9.1 Recuperación de contraseña por correo
+
+1. `POST /auth/recuperar` (email) genera un código de 6 dígitos y lo envía por SMTP.
+   **Respuesta genérica**: si el correo no está registrado, no se envía nada y tampoco se
+   revela el motivo (`ifPresent` en `PasswordResetService`).
+2. `POST /auth/verificar-codigo` valida vigencia (10 min), uso único y máximo 5 intentos.
+3. `POST /auth/restablecer` actualiza el hash y marca el token como usado.
+
+**Configuración SMTP** (`application.properties`): `smtp.gmail.com:587` con
+`starttls.enable=true`, `ssl.protocols=TLSv1.2`, credenciales desde `MAIL_USERNAME` /
+`MAIL_PASSWORD` (Gmail exige **contraseña de aplicación**). El remitente
+(`spring.mail.username`) se usa en `helper.setFrom(...)`.
+
+> La entrega puede tardar (Gmail aplica controles antispam) y el correo puede caer en
+> **Spam/Promociones**. Si el endpoint responde `200` pero el correo no llega, el flujo no
+> falló: revisar la carpeta de spam del buzón destino y el servidor de correo receptor.
 
 ---
 
@@ -247,7 +328,9 @@ cp .env.example .env      # editar valores locales
 docker compose up -d --build
 ```
 - App: `http://localhost:8081` | API: `http://localhost:8080/api`
-- Usuario seed: `admin@inventario.com` / `admin123` (en local; **cambiar en producción**).
+- **Credenciales del administrador:** **ya no hay admin hardcodeado**. El `DataSeeder` crea
+  y **sincroniza** el administrador leyendo `ADMIN_EMAIL` / `ADMIN_PASSWORD` del `.env`.
+  Si esas variables no están, **no se crea ningún admin** al arrancar.
 - **Importante:** tras cambiar credenciales en `.env`, usar `docker compose up -d --force-recreate --no-deps backend` (`restart` NO re-lee el `.env`).
 
 ### Producción (VPS)
@@ -286,9 +369,12 @@ docker compose up -d --build
 |---|---|---|
 | `DB_USERNAME` | Usuario de PostgreSQL | `inventario` |
 | `DB_PASSWORD` | Contraseña de PostgreSQL | `inventario` |
-| `MAIL_USERNAME` / `MAIL_PASSWORD` | Correo SMTP del sistema (códigos de recuperación) | carlosorozcok@gmail.com + app password |
-| `JWT_SECRET` | Clave de firma del JWT (HS512) | valor fuerte |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` | Correo SMTP del sistema (códigos de recuperación; Gmail requiere **contraseña de aplicación**) | casilla institucional + app password |
+| `JWT_SECRET` | Clave de firma del JWT (HS512, ≥64 bytes o el login responde 500) | `openssl rand -hex 48` |
+| `CORS_ALLOWED_ORIGINS` | Orígenes permitidos, separados por comas (admiten comodines) | `http://192.168.200.*:*` |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Administrador inicial, sincronizado por el seeder en cada arranque | — |
 | `TZ` | Zona horaria | `America/Guatemala` |
 | `SPRING_PROFILES_ACTIVE` | Perfil Spring (prod) | `prod` |
 
-Ver también `frontend/.env.example` (`VITE_API_URL`).
+Ver también `frontend/.env.example` (`VITE_API_URL`). El `.env` real **solo vive en el
+servidor** (está en `.gitignore`); la plantilla versionada es `.env.example`.

@@ -8,20 +8,32 @@ Sistema web para el control y gestion de inventario de insumos, con soporte para
 
 | Capa | Tecnologia | Version |
 |------|------------|---------|
-| Backend | Spring Boot | 4.1.0 |
+| Backend | Spring Boot | 4.1.x (Java 21) |
 | Persistencia | Spring Data JPA / Hibernate | 7.4.1 |
 | Base de Datos | PostgreSQL | 16 |
-| Seguridad | Spring Security + JWT | - |
-| Build | Gradle | 8.7 |
+| Seguridad | Spring Security + JWT (HS512) + BCrypt | - |
+| Build | Gradle | imagen Docker `gradle:9.5.1-jdk21` |
 | Contenedor | Docker / Docker Compose | - |
-| Lenguaje | Java | 17 |
+| Frontend | React 19 + Vite 8 + Tailwind CSS 4 | - |
+| Tiempo real | WebSocket (`/ws/auditoria`) | - |
+| Pruebas | Vitest + Testing Library (front) / JUnit 5 + Mockito (back) | - |
+| Validacion E2E | Python 3 (solo stdlib) | `scripts/smoke_test_e2e.py` |
+
+> **¿Por que Git reporta Python?** El unico archivo Python del repositorio es
+> `scripts/smoke_test_e2e.py`: un smoke test que recorre los flujos completos de la API
+> (login, usuarios, insumos, motor transaccional, control de acceso y reportes) y reporta
+> PASS/FAIL. Se eligio Python a proposito porque **no requiere instalar dependencias**
+> (usa solo `urllib` de la libreria estandar), asi que corre en cualquier servidor con
+> `python3` instalado. **No es parte del sistema en produccion**: el backend es Java y el
+> frontend es TypeScript/React. Se invoca manualmente o desde la skill
+> `.opencode/skills/validacion-e2e`, nunca por la aplicacion.
 
 ---
 
 ## Estructura del Proyecto
 
 ```
-migracion-springboot-react/
+gestion-inventario-sprinReact/
 ├── backend/                  # API REST - Spring Boot
 │   ├── src/main/java/
 │   │   └── com/gestion/inventario/
@@ -48,11 +60,80 @@ migracion-springboot-react/
 ├── docs/
 │   ├── BITACORA_PROBLEMAS.md
 │   ├── COMO_LEVANTAR_LOS_SERVICIOS.md
-│   └── FASES_DESARROLLO.md
+│   ├── FASES_DESARROLLO.md
+│   ├── MEJORAS_IMPLEMENTACIONES.md
+│   └── upgrade-V2-Manejo-de-bodegas.md
 ├── frontend/                    # React + Vite (+ Dockerfile/nginx.conf)
+├── scripts/                     # Utilidades de operacion y validacion
+│   ├── smoke_test_e2e.py        # Smoke test E2E de la API (Python, solo stdlib)
+│   ├── limpiar_e2e.sql          # Limpieza de los datos que crea el smoke test
+│   └── test_backend.sh          # Tests JUnit/Mockito en Docker
+├── deploy.sh                    # Despliegue a los ambientes del servidor
+├── deploy-local.sh              # Despliegue en el servidor de desarrollo
 ├── docker-compose.yml           # Alias de docker-compose.prod.yml
 └── docker-compose.prod.yml      # Produccion (db + backend + frontend)
 ```
+
+### Estructura del frontend (`frontend/src/`)
+
+```
+src/
+├── main.tsx                     # Punto de entrada (monta React + Router)
+├── App.tsx                      # Rutas y protecciones de la aplicacion
+├── access.ts                    # Matriz de acceso por ruta y rol (MODULE_ACCESS)
+│
+├── api/
+│   └── axios.ts                 # Cliente HTTP: baseURL, interceptor JWT, refresh de sesion
+│
+├── store/                       # Estado global (Zustand)
+│   ├── useAuthStore.ts          # Sesion, usuario, rol, token (persistido)
+│   └── useToastStore.ts         # Notificaciones/toasts
+│
+├── hooks/                       # Lógica reutilizable
+│   ├── useAuditSocket.ts        # Conexion WebSocket a /ws/auditoria
+│   └── useRealtimeSync.ts       # Re-consulta REST al recibir eventos de un tipo
+│
+├── pages/                       # Una pantalla por ruta
+│   ├── Login.tsx                # Inicio de sesion
+│   ├── RecuperarPassword.tsx    # Solicitud y cambio de contraseña (por codigo)
+│   ├── Dashboard.tsx            # KPIs, stock bajo y ultimos movimientos
+│   ├── Insumos.tsx              # Catalogo (items -> presentations) + QR
+│   ├── Movimientos.tsx          # Kárdex: entradas, salidas y filtros
+│   ├── Ajustes.tsx              # Ajustes de inventario con justificacion
+│   ├── Proyecciones.tsx         # Smart Restock (stock minimo sugerido)
+│   ├── Reportes.tsx             # Reportes con exportacion Excel/PDF
+│   ├── Auditoria.tsx            # Bitacora de auditoria (solo ADMIN)
+│   └── Usuarios.tsx             # Gestion de usuarios y roles (solo ADMIN)
+│
+├── components/                  # Componentes de UI reutilizables
+│   ├── Layout.tsx               # Sidebar, header, perfil y menu por rol
+│   ├── ProtectedRoute.tsx       # Ruta que exige sesion
+│   ├── RequireRole.tsx          # Ruta que exige un rol concreto
+│   ├── InsumoModal.tsx          # Alta/edicion de material + presentaciones
+│   ├── UsuarioModal.tsx         # Alta/edicion de usuario y rol
+│   ├── MovimientoModal.tsx      # Entrada / salida de stock
+│   ├── AjusteModal.tsx          # Ajuste con justificacion (>= 20 chars)
+│   ├── ProfileModal.tsx         # Cambio de contraseña del usuario
+│   ├── InsumoCombobox.tsx       # Busqueda/autocompletado de insumos
+│   ├── SearchModal.tsx          # Busqueda global
+│   ├── QrScanner.tsx            # Camara + escaneo de codigos QR
+│   ├── QrModal.tsx              # Resultado del escaneo + accion rapida
+│   ├── ConfirmModal.tsx         # Confirmacion de acciones destructivas
+│   ├── SuccessModal.tsx         # Confirmacion de exito
+│   └── Toast.tsx                # Notificaciones no bloqueantes
+│
+├── utils/
+│   ├── sound.ts                 # Sonido de confirmacion del escaneo QR
+│   └── stockStatus.ts           # Reglas de estado de stock (bajo/optimo/alto)
+│
+└── test/
+    └── setup.ts                 # Configuracion de Vitest + Testing Library
+```
+
+Convenciones:
+- Los tests viajan **junto al componente** que prueban (`*.test.tsx`).
+- Componentes de solo icono llevan `title` (tooltip), y el texto explicativo
+  vive en tooltips, no dentro de los modales (ver `AGENTS.md` seccion 5).
 
 ---
 
@@ -137,6 +218,12 @@ erDiagram
     presentations ||--o{ inventario_requerimientos_anuales : "tiene"
     usuarios ||--o{ password_reset_tokens : "solicita"
 ```
+
+> **Nota sobre nombres de columnas:** `inventario_movimientos.inventario_id` conserva su
+> nombre historico, pero desde la migracion **V3** apunta a `presentations.id` (la
+> entidad Java lo llama `presentation`). Las tablas `inventario_saldos_mensuales` e
+> `inventario_requerimientos_anuales` si siguen apuntando a la tabla legado
+> `inventario_insumos`.
 
 ---
 
@@ -281,21 +368,39 @@ docker compose down
 Matriz de acceso por módulo/URL (fuente: `frontend/src/access.ts`) reforzada en el
 backend con `@PreAuthorize`.
 
-| Modulo | Admin | Jefe | Auxiliar |
+| Módulo | Admin | Jefe | Auxiliar |
 |--------|:-----:|:----:|:--------:|
 | Dashboard | Si | Si | Si |
 | Catálogo de Insumos | Si | Si | No |
 | Movimientos (Kárdex) | Si | Si | Si |
-| Auditoría / Ajustes | Si | Si | No |
+| Ajustes / Auditoría | Si | Si | No |
 | Reportes | Si | Si | Si |
 | Proyecciones (Smart Restock) | Si | Si | No |
 | Gestión de Usuarios | Si | No | No |
+| Bitácora de Auditoría | Si | No | No |
 
 Operaciones que requieren **solo ADMIN** (backend `@PreAuthorize`): crear/editar
-materiales y presentaciones (`POST/PUT /items`, `PUT /presentations`), y todo el
-CRUD de usuarios. Movimientos y reportes están disponibles para los tres roles.
+materiales y agregar presentaciones (`POST/PUT /items`, `POST /items/{id}/presentations`),
+y todo el CRUD de usuarios (`/usuarios/admin`). Activar/inactivar insumos
+(`PUT /items/{id}/estado`) admite ADMIN y JEFE. Movimientos, ajustes y reportes están
+disponibles según la matriz anterior.
 
 > Nota: en la versión distribuida (Spring Boot + React), los módulos de
 > "Eliminar insumo" y "Requerimientos/Saldos" anuales pasaron a un esquema
 > normalizado de **items -> presentations**; el catálogo es gestionado por
 > ADMIN/JEFE y los ajustes quedan restringidos a ADMIN/JEFE.
+
+---
+
+## Documentación
+
+| Documento | Contenido |
+|---|---|
+| `DOCUMENTACION_SISTEMA.md` | Contexto técnico completo (arquitectura, API, modelo de datos, reglas de negocio). |
+| `CONTEXTO_AGENTE_DOCUMENTACION.md` | Contexto verificado para el agente que redacta la documentación y el manual de usuario. |
+| `AGENTS.md` | Convenciones del proyecto, reglas de negocio y estado de fases. |
+| `FLUJO_DESPLIEGUE.md` | Flujo de ambientes y ramas (`desa` → `pre` → `pro`). |
+| `DESPLIEGUE_LOCAL_UBUNTU.md` | Guía de despliegue en el servidor Ubuntu. |
+| `docs/MEJORAS_IMPLEMENTACIONES.md` | Bitácora de mejoras con archivos afectados y comportamiento. |
+| `docs/upgrade-V2-Manejo-de-bodegas.md` | Análisis de impacto y decisiones abiertas del upgrade a inventario por bodegas, incluido el **motor de préstamos entre bodegas** (Fase 10, no implementada). |
+| `database/ER.md` | Diagrama entidad-relación y esquema PostgreSQL. |

@@ -8,7 +8,14 @@ import ConfirmModal from '../components/ConfirmModal';
 import { useToastStore } from '../store/useToastStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useRealtimeSync } from '../hooks/useRealtimeSync';
+import { usePaginacion } from '../hooks/usePaginacion';
+import Paginacion from '../components/Paginacion';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
+
+// El catálogo se pagina en cliente: son decenas de materiales, no miles.
+// Se pagina por MATERIAL (no por presentación) porque cada fila de material
+// despliega sus presentaciones y cortarlas en mitad se leería como dato roto.
+const TAMANIO_PAGINA = 10;
 
 export default function Insumos() {
   const [items, setItems] = useState<any[]>([]);
@@ -122,6 +129,11 @@ export default function Insumos() {
   };
 
   const totalPresentations = items.reduce((acc, it) => acc + it.presentations.length, 0);
+
+  // `items` es el catálogo completo; `visibles` es solo la página actual.
+  const {
+    pagina, totalPaginas, total, visibles: itemsVisibles, setPagina,
+  } = usePaginacion(items, TAMANIO_PAGINA);
 
   return (
     <div className="page-container">
@@ -250,7 +262,7 @@ export default function Insumos() {
                     <p>Cargando catálogo...</p>
                   </td>
                 </tr>
-              ) : items.length === 0 ? (
+              ) : total === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-12 text-center text-slate-500">
                     <svg className="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -261,7 +273,7 @@ export default function Insumos() {
                   </td>
                 </tr>
               ) : (
-                items.map((item) => (
+                itemsVisibles.map((item) => (
                   <Fragment key={item.id}>
                     {/* Fila banner del material */}
                     <tr className="bg-slate-50 border-b border-slate-200">
@@ -368,10 +380,18 @@ export default function Insumos() {
           </table>
         </div>
 
-        {!loading && items.length > 0 && (
+        <Paginacion
+          pagina={pagina}
+          totalPaginas={totalPaginas}
+          total={total}
+          onCambioPagina={setPagina}
+          etiqueta="materiales"
+        />
+
+        {!loading && total > 0 && (
           <div className="bg-slate-50 border-t border-slate-100 p-4 flex items-center justify-between text-sm text-slate-500">
             <span>
-              Mostrando <span className="font-semibold text-slate-700">{items.length}</span> material(es) y{' '}
+              <span className="font-semibold text-slate-700">{total}</span> material(es) y{' '}
               <span className="font-semibold text-slate-700">{totalPresentations}</span> presentación(es) en total.
             </span>
           </div>

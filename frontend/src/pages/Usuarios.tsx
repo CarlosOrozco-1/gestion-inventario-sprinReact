@@ -1,12 +1,20 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import UsuarioModal from '../components/UsuarioModal';
+import Paginacion from '../components/Paginacion';
+import { usePaginacion } from '../hooks/usePaginacion';
+
+const TAMANIO_PAGINA = 10;
 
 export default function Usuarios() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any | null>(null);
+
+  const {
+    pagina, totalPaginas, total, visibles: usuariosVisibles, setPagina,
+  } = usePaginacion(usuarios, TAMANIO_PAGINA);
 
   useEffect(() => {
     fetchUsuarios();
@@ -67,7 +75,7 @@ export default function Usuarios() {
               {loading ? (
                 <tr><td colSpan={5} className="p-8 text-center text-slate-400">Cargando usuarios...</td></tr>
               ) : (
-                usuarios.map((user) => (
+                usuariosVisibles.map((user) => (
                   <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="p-4 font-medium text-slate-900">{user.name}</td>
                     <td className="p-4 text-slate-500">{user.email}</td>
@@ -108,6 +116,13 @@ export default function Usuarios() {
             </tbody>
           </table>
         </div>
+        <Paginacion
+          pagina={pagina}
+          totalPaginas={totalPaginas}
+          total={total}
+          onCambioPagina={setPagina}
+          etiqueta="usuarios"
+        />
       </div>
       
       <UsuarioModal 

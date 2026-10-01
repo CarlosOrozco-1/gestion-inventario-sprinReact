@@ -1,9 +1,25 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import AjusteModal from '../components/AjusteModal';
+import Paginacion from '../components/Paginacion';
 import QrScanner from '../components/QrScanner';
 import { useToastStore } from '../store/useToastStore';
 import { useRealtimeSync } from '../hooks/useRealtimeSync';
+import { usePaginacion } from '../hooks/usePaginacion';
+
+// Los ajustes se filtran en cliente (son un subconjunto de los movimientos) y
+// se paginan en cliente: son menos frecuentes que los movimientos del Kárdex.
+const TAMANIO_PAGINA = 10;
+
+// Constante de módulo: un array literal re-suscribe el WebSocket en cada render.
+const EVENTOS_AJUSTES = [
+  'MOVIMIENTO_CREADO',
+  'INSUMO_CREADO',
+  'INSUMO_ACTUALIZADO',
+  'INSUMO_INACTIVADO',
+  'INSUMO_REACTIVADO',
+  'PRESENTACION_AGREGADA',
+];
 
 export default function Ajustes() {
   const [movimientos, setMovimientos] = useState<any[]>([]);
@@ -63,16 +79,14 @@ export default function Ajustes() {
   // Refresca los ajustes en vivo: un ajuste registrado por otro usuario (o un
   // cambio en el catálogo de insumos) se refleja sin recargar la página.
   useRealtimeSync(
-    [
-      'MOVIMIENTO_CREADO',
-      'INSUMO_CREADO',
-      'INSUMO_ACTUALIZADO',
-      'INSUMO_INACTIVADO',
-      'INSUMO_REACTIVADO',
-      'PRESENTACION_AGREGADA',
-    ],
+    EVENTOS_AJUSTES,
     () => fetchData()
   );
+
+  // `movimientos` ya viene filtrado a solo ajustes; `visibles` es la página actual.
+  const {
+    pagina, totalPaginas, total, visibles: ajustesVisibles, setPagina,
+  } = usePaginacion(movimientos, TAMANIO_PAGINA);
 
   const formatDate = (isoString: string) => {
     return new Date(isoString).toLocaleDateString('es-ES', { 
@@ -143,14 +157,14 @@ export default function Ajustes() {
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-slate-400">Cargando ajustes...</td>
                 </tr>
-              ) : movimientos.length === 0 ? (
+              ) : total === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-12 text-center text-slate-500">
                     <p className="font-medium text-slate-700">No hay ajustes registrados</p>
                   </td>
                 </tr>
               ) : (
-                movimientos.map((mov) => (
+                ajustesVisibles.map((mov) => (
                   <tr key={mov.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="p-4 text-slate-500 whitespace-nowrap">{formatDate(mov.createdAt)}</td>
                     <td className="p-4 font-medium text-slate-900">{mov.itemName}</td>
@@ -172,6 +186,13 @@ export default function Ajustes() {
             </tbody>
           </table>
         </div>
+        <Paginacion
+          pagina={pagina}
+          totalPaginas={totalPaginas}
+          total={total}
+          onCambioPagina={setPagina}
+          etiqueta="ajustes"
+        />
       </div>
     </div>
   );

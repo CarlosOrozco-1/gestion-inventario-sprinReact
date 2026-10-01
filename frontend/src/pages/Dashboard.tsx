@@ -4,6 +4,7 @@ import {
   PieChart, Pie, Cell, Legend
 } from 'recharts';
 import api from '../api/axios';
+import Paginacion from '../components/Paginacion';
 
 // Estado de disponibilidad (semáforo) de un insumo dentro de su rango [min, max].
 // Criterios (regla de negocio, ver AGENTS.md):
@@ -287,28 +288,15 @@ export default function Dashboard() {
           </div>
 
           {totalPaginasAlertas > 1 && (
-            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-xs text-slate-500">
-                Página {paginaAlertasSegura + 1} de {totalPaginasAlertas}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPaginaAlertas(p => Math.max(0, p - 1))}
-                  disabled={paginaAlertasSegura === 0}
-                  title="Ver alertas anteriores"
-                  className="px-3 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-medium text-slate-600 transition-colors"
-                >
-                  Anterior
-                </button>
-                <button
-                  onClick={() => setPaginaAlertas(p => Math.min(totalPaginasAlertas - 1, p + 1))}
-                  disabled={paginaAlertasSegura >= totalPaginasAlertas - 1}
-                  title="Ver alertas siguientes"
-                  className="px-3 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-medium text-slate-600 transition-colors"
-                >
-                  Siguiente
-                </button>
-              </div>
+            <div className="mt-4">
+              <Paginacion
+                pagina={paginaAlertasSegura}
+                totalPaginas={totalPaginasAlertas}
+                total={stockCritico.length}
+                onCambioPagina={setPaginaAlertas}
+                etiqueta="alertas"
+                variant="tarjeta"
+              />
             </div>
           )}
         </div>

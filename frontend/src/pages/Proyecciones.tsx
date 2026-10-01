@@ -3,6 +3,10 @@ import api from "../api/axios";
 import { useAuthStore } from "../store/useAuthStore";
 import { useToastStore } from "../store/useToastStore";
 import { getRol } from "../access";
+import Paginacion from "../components/Paginacion";
+import { usePaginacion } from "../hooks/usePaginacion";
+
+const TAMANIO_PAGINA = 10;
 
 export default function Proyecciones() {
   const { user } = useAuthStore();
@@ -100,6 +104,12 @@ export default function Proyecciones() {
   const totalInsumosUrgentes = proyeccionesData.filter(
     (i) => i.urgency === "Alta",
   ).length;
+
+  // Solo se pagina lo que se VE en tabla. Los exports (PDF/Excel) y los
+  // KPI de arriba (inversionTotal, totalInsumosUrgentes) siguen usando el
+  // conjunto completo: un resumen debe abarcar todo el catálogo, no la página.
+  const proyeccionPag = usePaginacion(proyeccionesData, TAMANIO_PAGINA);
+  const sugerenciasPag = usePaginacion(sugerencias, TAMANIO_PAGINA);
 
   const handleExport = async (format: "pdf" | "excel") => {
     if (proyeccionesData.length === 0) {
@@ -275,7 +285,7 @@ export default function Proyecciones() {
                     Calculando proyecciones...
                   </td>
                 </tr>
-              ) : proyeccionesData.length === 0 ? (
+              ) : proyeccionPag.total === 0 ? (
                 <tr>
                   <td
                     colSpan={7}
@@ -299,7 +309,7 @@ export default function Proyecciones() {
                   </td>
                 </tr>
               ) : (
-                proyeccionesData.map((item) => (
+                proyeccionPag.visibles.map((item) => (
                   <tr
                     key={item.id}
                     className="hover:bg-slate-50/50 transition-colors"
@@ -345,6 +355,13 @@ export default function Proyecciones() {
             </tbody>
           </table>
         </div>
+        <Paginacion
+          pagina={proyeccionPag.pagina}
+          totalPaginas={proyeccionPag.totalPaginas}
+          total={proyeccionPag.total}
+          onCambioPagina={proyeccionPag.setPagina}
+          etiqueta="insumos"
+        />
       </div>
 
       {/* Sugerencias de stock según consumo.
@@ -383,14 +400,14 @@ export default function Proyecciones() {
                     Calculando consumo y niveles óptimos...
                   </td>
                 </tr>
-              ) : sugerencias.length === 0 ? (
+              ) : sugerenciasPag.total === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-12 text-center text-slate-500">
                     No hay insumos registrados.
                   </td>
                 </tr>
               ) : (
-                sugerencias.map((sug) => {
+                sugerenciasPag.visibles.map((sug) => {
                   const cambios = sug.suggestedMinStock && sug.suggestedMaxStock;
                   return (
                     <tr key={sug.id} className="hover:bg-slate-50/50 transition-colors">
@@ -458,6 +475,13 @@ export default function Proyecciones() {
             </tbody>
           </table>
         </div>
+        <Paginacion
+          pagina={sugerenciasPag.pagina}
+          totalPaginas={sugerenciasPag.totalPaginas}
+          total={sugerenciasPag.total}
+          onCambioPagina={sugerenciasPag.setPagina}
+          etiqueta="sugerencias"
+        />
       </div>
     </div>
   );

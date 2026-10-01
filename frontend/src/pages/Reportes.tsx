@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '../api/axios';
+import Paginacion from '../components/Paginacion';
+import { usePaginacion } from '../hooks/usePaginacion';
+
+const TAMANIO_PAGINA = 10;
 
 export default function Reportes() {
   const [movimientos, setMovimientos] = useState<any[]>([]);
@@ -60,6 +64,13 @@ export default function Reportes() {
       return coincideUsuario && coincideInsumo && coincideTipo && coincideFecha;
     });
   }, [movimientos, filtroUsuario, filtroInsumo, filtroTipo, fechaInicio, fechaFin, usuarios, insumos]);
+
+  // Solo se pagina la tabla de resultados. Los <select> de filtro y los exports
+  // (Excel/PDF) siguen usando el conjunto filtrado completo: un reporte debe
+  // incluir todo lo que el filtro seleccionó, no solo la página visible.
+  const {
+    pagina, totalPaginas, total, visibles: movimientosVisibles, setPagina,
+  } = usePaginacion(movimientosFiltrados, TAMANIO_PAGINA);
 
   const formatDate = (isoString: string) => {
     return new Date(isoString).toLocaleDateString('es-ES', { 
@@ -258,10 +269,10 @@ export default function Reportes() {
             <tbody className="divide-y divide-slate-100 text-sm">
               {loading ? (
                 <tr><td colSpan={5} className="p-8 text-center text-slate-400">Cargando datos...</td></tr>
-              ) : movimientosFiltrados.length === 0 ? (
+              ) : total === 0 ? (
                 <tr><td colSpan={5} className="p-12 text-center text-slate-500">No hay movimientos que coincidan con estos filtros.</td></tr>
               ) : (
-                movimientosFiltrados.map((mov) => (
+                movimientosVisibles.map((mov) => (
                   <tr key={mov.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="p-4 text-slate-500 whitespace-nowrap">{formatDate(mov.createdAt)}</td>
                     <td className="p-4 font-medium text-slate-700">{mov.usuarioName}</td>
@@ -280,6 +291,13 @@ export default function Reportes() {
             </tbody>
           </table>
         </div>
+        <Paginacion
+          pagina={pagina}
+          totalPaginas={totalPaginas}
+          total={total}
+          onCambioPagina={setPagina}
+          etiqueta="movimientos"
+        />
       </div>
 
     </div>

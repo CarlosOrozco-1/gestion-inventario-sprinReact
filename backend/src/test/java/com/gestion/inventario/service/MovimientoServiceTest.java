@@ -1,5 +1,6 @@
 package com.gestion.inventario.service;
 
+import com.gestion.inventario.dto.MovimientoResponseDTO;
 import com.gestion.inventario.exception.InsufficientStockException;
 import com.gestion.inventario.model.Item;
 import com.gestion.inventario.model.Movimiento;
@@ -12,10 +13,17 @@ import com.gestion.inventario.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -141,5 +149,76 @@ public class MovimientoServiceTest {
             movimientoService.registrarMovimiento(1L, null, 5, "Justificación suficientemente larga para el ajuste", EMAIL);
         });
         assertEquals("El tipo de movimiento es obligatorio.", exception.getMessage());
+    }
+
+    // --- Paginación del Kárdex ---
+
+    private Movimiento movimientoConDatos(Long id) {
+        Movimiento mov = new Movimiento();
+        mov.setId(id);
+        mov.setType(MovimientoTipo.ENTRADA.name());
+        mov.setQuantity(3);
+        mov.setDetail("Ingreso de prueba");
+        mov.setCreatedAt(LocalDateTime.now());
+        mov.setPresentation(presentationPrueba);
+        mov.setUsuario(usuarioPrueba);
+        return mov;
+    }
+
+    @Test
+    void debeMapearLaPaginaDelKardexConSusDatosDePresentacionYUsuario() {
+        Page<Movimiento> pagina = new PageImpl<>(
+                List.of(movimientoConDatos(7L)), PageRequest.of(0, 10), 35L);
+        when(movimientoRepository.findAllWithDetailsOrderByCreatedAtDesc(any(Pageable.class)))
+                .thenReturn(pagina);
+
+        Page<MovimientoResponseDTO> resultado = movimientoService.listarMovimientosPaginado(0, 10);
+
+        assertEquals(35, resultado.getTotalElements());
+        assertEquals(4, resultado.getTotalPages());
+        assertEquals(1, resultado.getContent().size());
+        MovimientoResponseDTO dto = resultado.getContent().get(0);
+        assertEquals(7L, dto.getId());
+        assertEquals("Gasa E2E", dto.getItemName());
+        assertEquals(usuarioPrueba.getName(), dto.getUsuarioName());
+    }
+
+    @Test
+    void debeRespetarLaPaginaYElTamanoSolicitados() {
+        when(movimientoRepository.findAllWithDetailsOrderByCreatedAtDesc(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(2, 5), 11L));
+
+        Page<MovimientoResponseDTO> resultado = movimientoService.listarMovimientosPaginado(2, 5);
+
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(movimientoRepository).findAllWithDetailsOrderByCreatedAtDesc(captor.capture());
+        assertEquals(2, captor.getValue().getPageNumber());
+        assertEquals(5, captor.getValue().getPageSize());
+        assertEquals(11, resultado.getTotalElements());
+    }
+
+    @Test
+    void debeAcotarElTamanoDePaginaParaNoDevolverElHistoricoEntero() {
+        when(movimientoRepository.findAllWithDetailsOrderByCreatedAtDesc(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 100), 5000L));
+
+        movimientoService.listarMovimientosPaginado(0, 100000);
+
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(movimientoRepository).findAllWithDetailsOrderByCreatedAtDesc(captor.capture());
+        assertEquals(100, captor.getValue().getPageSize());
+    }
+
+    @Test
+    void debeCorregirPaginaNegativaYTamanoInvalido() {
+        when(movimientoRepository.findAllWithDetailsOrderByCreatedAtDesc(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 1), 0L));
+
+        movimientoService.listarMovimientosPaginado(-5, 0);
+
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(movimientoRepository).findAllWithDetailsOrderByCreatedAtDesc(captor.capture());
+        assertEquals(0, captor.getValue().getPageNumber());
+        assertEquals(1, captor.getValue().getPageSize());
     }
 }

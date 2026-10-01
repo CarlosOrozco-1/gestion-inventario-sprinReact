@@ -7,3 +7,7 @@
 # Los Dockerfiles se interpretan linea por linea: CRLF tambien los rompe.
 Dockerfile text eol=lf
 */Dockerfile text eol=lf
+
+# Las unidades systemd del tunel. Un ExecStart con CRLF deja el caracter de
+# retorno pegado a la ruta y systemd no encuentra el binario.
+*.service text eol=lf

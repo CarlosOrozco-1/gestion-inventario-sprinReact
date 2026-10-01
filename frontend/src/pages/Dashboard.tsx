@@ -18,10 +18,15 @@ const disponibilidad = (stock: number, minStock: number, maxStock: number) => {
   return { color: '#f97316', key: 'regular', label: 'Regular' };
 };
 
+// Máximo de alertas de reabastecimiento por página. Acota la altura de la tarjeta
+// para que, con muchas alertas, la página NO se extienda hacia abajo.
+const ALERTAS_POR_PAGINA = 5;
+
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [insumos, setInsumos] = useState<any[]>([]);
   const [movimientos, setMovimientos] = useState<any[]>([]);
+  const [paginaAlertas, setPaginaAlertas] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -52,6 +57,16 @@ export default function Dashboard() {
   // --- CÁLCULO DE KPIs ---
   const totalInsumos = insumos.length;
   const stockCritico = insumos.filter(i => i.stock <= (i.minStock || 5));
+
+  // Paginación de las alertas de reabastecimiento (se calcula en cliente: el
+  // conjunto ya viene completo desde /insumos). `paginaAlertasSegura` acota el
+  // índice por si el total de alertas baja y la página actual queda huérfana.
+  const totalPaginasAlertas = Math.max(1, Math.ceil(stockCritico.length / ALERTAS_POR_PAGINA));
+  const paginaAlertasSegura = Math.min(paginaAlertas, totalPaginasAlertas - 1);
+  const alertasPagina = stockCritico.slice(
+    paginaAlertasSegura * ALERTAS_POR_PAGINA,
+    (paginaAlertasSegura + 1) * ALERTAS_POR_PAGINA
+  );
   
   // Total Entradas y Salidas
   let totalEntradas = 0;
@@ -226,8 +241,24 @@ export default function Dashboard() {
 
         {/* Alertas de Stock */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col">
-          <h3 className="text-lg font-bold text-slate-800 mb-6">Alertas de Reabastecimiento</h3>
-          <div className="flex-1 overflow-y-auto pr-2">
+          <div className="flex items-center justify-between mb-4 gap-2">
+            <h3
+              className="text-lg font-bold text-slate-800"
+              title="Insumos cuyo stock quedó igual o por debajo del mínimo configurado. Requieren reposición."
+            >
+              Alertas de Reabastecimiento
+            </h3>
+            {stockCritico.length > 0 && (
+              <span
+                className="px-2 py-1 rounded-md text-xs font-bold bg-amber-100 text-amber-700 flex-shrink-0"
+                title="Total de insumos bajo el mínimo"
+              >
+                {stockCritico.length}
+              </span>
+            )}
+          </div>
+
+          <div className="flex-1 min-h-0 max-h-72 overflow-y-auto pr-2">
             {stockCritico.length === 0 ? (
               <div className="text-center text-emerald-500 py-10">
                 <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -237,8 +268,8 @@ export default function Dashboard() {
                 <p className="text-sm opacity-80 mt-1">Ningún insumo bajo el límite crítico.</p>
               </div>
             ) : (
-              <ul className="space-y-4">
-                {stockCritico.map(item => (
+              <ul className="space-y-3">
+                {alertasPagina.map(item => (
                   <li key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-amber-50/50 border border-amber-100">
                     <div className="flex items-center gap-3 overflow-hidden">
                       <div className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
@@ -246,7 +277,7 @@ export default function Dashboard() {
                         {item.item}
                       </p>
                     </div>
-                    <span className="text-sm font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded-md">
+                    <span className="text-sm font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded-md flex-shrink-0">
                       {item.stock} uds
                     </span>
                   </li>
@@ -254,6 +285,32 @@ export default function Dashboard() {
               </ul>
             )}
           </div>
+
+          {totalPaginasAlertas > 1 && (
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-xs text-slate-500">
+                Página {paginaAlertasSegura + 1} de {totalPaginasAlertas}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPaginaAlertas(p => Math.max(0, p - 1))}
+                  disabled={paginaAlertasSegura === 0}
+                  title="Ver alertas anteriores"
+                  className="px-3 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-medium text-slate-600 transition-colors"
+                >
+                  Anterior
+                </button>
+                <button
+                  onClick={() => setPaginaAlertas(p => Math.min(totalPaginasAlertas - 1, p + 1))}
+                  disabled={paginaAlertasSegura >= totalPaginasAlertas - 1}
+                  title="Ver alertas siguientes"
+                  className="px-3 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-medium text-slate-600 transition-colors"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

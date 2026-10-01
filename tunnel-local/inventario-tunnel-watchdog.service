@@ -1,0 +1,13 @@
+[Unit]
+Description=Comprueba que el tunel HTTPS siga vivo y avisa si hubo que recrearlo
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/gestioninventario/siges/gestion-inventario-sprinReact/tunnel-local
+
+# notify-url.sh es idempotente y hace las tres cosas que hacen falta aqui:
+#   1. comprueba que la URL responde HTTP 200;
+#   2. si Cloudflare la invalido, reinicia cloudflared y espera una viva;
+#   3. avisa por push SOLO si la URL quedo distinta.
+# Si todo esta bien, no envia nada y no molesta.
+ExecStart=/home/gestioninventario/siges/gestion-inventario-sprinReact/tunnel-local/notify-url.sh

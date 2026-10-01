@@ -1,0 +1,14 @@
+[Unit]
+Description=Revisa periodicamente el tunel HTTPS del inventario
+
+[Timer]
+# Cada 15 minutos. Cloudflare puede dar de baja un quick tunnel en cualquier
+# momento y el contenedor se queda reintentando en silencio, asi que hace falta
+# alguien que lo note. 15 min es un buen balance: un enlace caido se detecta
+# rapido sin generar trafico constante contra ntfy.
+OnBootSec=3min
+OnUnitActiveSec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

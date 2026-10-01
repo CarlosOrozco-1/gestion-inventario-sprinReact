@@ -11,9 +11,9 @@ RemainAfterExit=yes
 WorkingDirectory=/home/gestioninventario/siges/gestion-inventario-sprinReact/tunnel-local
 
 # Levanta el tunel y notifica la URL. notify-url.sh verifica que la URL
-# responda de verdad y, si Cloudflare invalido el quick tunnel anterior,
-# lo reinicia hasta conseguir una viva antes de avisar.
-ExecStart=./boot-notify.sh
+# responda de verdad y, si Cloudflare invalido el quick tunnel anterior, lo
+# reinicia hasta conseguir una viva antes de avisar.
+ExecStart=/home/gestioninventario/siges/gestion-inventario-sprinReact/tunnel-local/boot-notify.sh
 ExecStop=/usr/bin/docker compose down
 
 [Install]

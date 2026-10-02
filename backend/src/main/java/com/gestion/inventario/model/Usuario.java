@@ -1,5 +1,6 @@
 package com.gestion.inventario.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,8 +22,12 @@ public class Usuario {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "password_hash", nullable = false)
-    private String passwordHash;
+// El hash BCrypt NUNCA debe salir por la API. Sin este @JsonIgnore, GET
+// /usuarios/admin lo devolvia en el JSON y cualquier ADMIN autenticado podia
+// leerlo. Sigue siendo leible desde JPA (login, validacion de contrasena).
+@JsonIgnore
+@Column(name = "password_hash", nullable = false)
+private String passwordHash;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rol_id", nullable = false)

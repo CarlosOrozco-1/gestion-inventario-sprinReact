@@ -6,6 +6,7 @@ import com.gestion.inventario.model.Item;
 import com.gestion.inventario.model.Movimiento;
 import com.gestion.inventario.model.MovimientoTipo;
 import com.gestion.inventario.model.Presentation;
+import com.gestion.inventario.model.Rol;
 import com.gestion.inventario.model.Usuario;
 import com.gestion.inventario.repository.MovimientoRepository;
 import com.gestion.inventario.repository.PresentationRepository;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -68,10 +70,25 @@ public class MovimientoServiceTest {
         usuarioPrueba.setId(1L);
         usuarioPrueba.setName("Test User");
         usuarioPrueba.setEmail(EMAIL);
+        // Por defecto el usuario de prueba es JEFE: es el rol mas permisivo entre
+        // los que pueden ajustar (junto a ADMIN), asi que los tests que ya
+        // existian siguen exercising el camino normal de ajustes.
+        usuarioPrueba.setRol(rol("JEFE"));
+    }
+
+    private Rol rol(String nombre) {
+        Rol rol = new Rol();
+        rol.setId(1L);
+        rol.setName(nombre);
+        return rol;
     }
 
     @Test
     void debeLanzarExcepcionCuandoCantidadEsCero() {
+        // El usuario se carga antes que la cantidad (los permisos se validan
+        // primero), asi que hace falta el stub aunque la peticion se rechace.
+        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuarioPrueba));
+
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             movimientoService.registrarMovimiento(1L, MovimientoTipo.ENTRADA, 0, "Test", EMAIL);
         });
@@ -80,6 +97,8 @@ public class MovimientoServiceTest {
 
     @Test
     void debeLanzarExcepcionCuandoCantidadEsNegativa() {
+        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuarioPrueba));
+
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             movimientoService.registrarMovimiento(1L, MovimientoTipo.ENTRADA, -5, "Test", EMAIL);
         });
@@ -135,7 +154,10 @@ public class MovimientoServiceTest {
 
     @Test
     void debeLanzarExcepcionEnAjusteSinJustificacion() {
-        // La justificación se valida ANTES de cargar usuario/presentación (no hace stubs).
+        // El permiso se resuelve antes que la justificacion: el usuario de prueba
+        // es JEFE, asi que pasa el filtro de rol y luego falla la justificacion.
+        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuarioPrueba));
+
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             movimientoService.registrarMovimiento(1L, MovimientoTipo.AJUSTE_NEGATIVO, 5, "Mala", EMAIL);
         });
@@ -149,6 +171,116 @@ public class MovimientoServiceTest {
             movimientoService.registrarMovimiento(1L, null, 5, "Justificación suficientemente larga para el ajuste", EMAIL);
         });
         assertEquals("El tipo de movimiento es obligatorio.", exception.getMessage());
+    }
+
+    // --- Matriz de roles para ajustes (ADMIN y JEFE si; AUXILIAR no) ---
+
+    @Test
+    void auxiliarNoPuedeRegistrarAjustePositivo() {
+        usuarioPrueba.setRol(rol("AUXILIAR"));
+        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuarioPrueba));
+
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class, () ->
+                movimientoService.registrarMovimiento(1L, MovimientoTipo.AJUSTE_POSITIVO, 5,
+                        "Correccion de conteo fisico en bodega", EMAIL));
+
+        assertTrue(ex.getMessage().contains("exclusiva de ADMIN y JEFE"));
+        // Ni el stock ni el movimiento pudieron tocarse.
+        assertEquals(50, presentationPrueba.getStock());
+        verify(presentationRepository, never()).save(any(Presentation.class));
+        verify(movimientoRepository, never()).save(any(Movimiento.class));
+    }
+
+    @Test
+    void auxiliarNoPuedeRegistrarAjusteNegativo() {
+        usuarioPrueba.setRol(rol("AUXILIAR"));
+        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuarioPrueba));
+
+        assertThrows(AccessDeniedException.class, () ->
+                movimientoService.registrarMovimiento(1L, MovimientoTipo.AJUSTE_NEGATIVO, 5,
+                        "Merma reportada por el auxiliar de turno", EMAIL));
+
+        assertEquals(50, presentationPrueba.getStock());
+        verify(presentationRepository, never()).save(any(Presentation.class));
+    }
+
+    @Test
+    void auxiliarSiPuedeRegistrarEntradasYSalidas() {
+        // El ajuste es lo restringido; la operacion diaria sigue abierta para
+        // AUXILIAR. Si esto fallara, el modulo Movimientos se le romperia.
+        usuarioPrueba.setRol(rol("AUXILIAR"));
+        Movimiento movimientoGuardado = new Movimiento();
+        movimientoGuardado.setId(99L);
+        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuarioPrueba));
+        when(presentationRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(presentationPrueba));
+        when(movimientoRepository.save(any(Movimiento.class))).thenReturn(movimientoGuardado);
+
+        movimientoService.registrarMovimiento(1L, MovimientoTipo.ENTRADA, 10, "Compra a proveedor", EMAIL);
+        assertEquals(60, presentationPrueba.getStock());
+
+        movimientoService.registrarMovimiento(1L, MovimientoTipo.SALIDA, 5, "Entrega a solicitud", EMAIL);
+        assertEquals(55, presentationPrueba.getStock());
+
+        verify(movimientoRepository, times(2)).save(any(Movimiento.class));
+    }
+
+    @Test
+    void jefeYAdminSiPuedenRegistrarAjustes() {
+        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuarioPrueba));
+        Movimiento movimientoGuardado = new Movimiento();
+        movimientoGuardado.setId(100L);
+        when(presentationRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(presentationPrueba));
+        when(movimientoRepository.save(any(Movimiento.class))).thenReturn(movimientoGuardado);
+
+        movimientoService.registrarMovimiento(1L, MovimientoTipo.AJUSTE_NEGATIVO, 5,
+                "Merma confirmada en conteo fisico", EMAIL);
+        assertEquals(45, presentationPrueba.getStock());
+
+        usuarioPrueba.setRol(rol("ADMIN"));
+        movimientoService.registrarMovimiento(1L, MovimientoTipo.AJUSTE_POSITIVO, 3,
+                "Ingreso no documentado recovered", EMAIL);
+        assertEquals(48, presentationPrueba.getStock());
+    }
+
+    @Test
+    void usuarioSinRolNoPuedeAjustar() {
+        // Fallar cerrado: si el usuario llega sin rol, el ajuste se rechaza en
+        // lugar de reventar con NullPointerException.
+        usuarioPrueba.setRol(null);
+        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuarioPrueba));
+
+        assertThrows(AccessDeniedException.class, () ->
+                movimientoService.registrarMovimiento(1L, MovimientoTipo.AJUSTE_NEGATIVO, 5,
+                        "Ajuste sin rol asignado en la cuenta", EMAIL));
+    }
+
+    @Test
+    void auxiliarRecibe403AunqueLaPeticionTambienSeaInvalida() {
+        // El permiso se evalua ANTES que la validacion de negocio. Con cantidad 0
+        // y sin justificacion, un AUXILIAR debe recibir 403 y no 400: si devolviera
+        // 400 sabria que su peticion era invalida, y ademas la matriz de permisos
+        // no podria distinguir "rol rechazado" de "datos malos".
+        usuarioPrueba.setRol(rol("AUXILIAR"));
+        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuarioPrueba));
+
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class, () ->
+                movimientoService.registrarMovimiento(1L, MovimientoTipo.AJUSTE_NEGATIVO, 0, "corto", EMAIL));
+
+        assertTrue(ex.getMessage().contains("exclusiva de ADMIN y JEFE"));
+        verify(presentationRepository, never()).findByIdForUpdate(anyLong());
+    }
+
+    @Test
+    void auxiliarConPeticionInvalidaDeMovimientoNormalSiRecibe400() {
+        // Contraparte del anterior: para ENTRADA (permitida a todos) la
+        // validacion de negocio sigue aplicando y devuelve 400, no 403.
+        usuarioPrueba.setRol(rol("AUXILIAR"));
+        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuarioPrueba));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                movimientoService.registrarMovimiento(1L, MovimientoTipo.ENTRADA, 0, "Test", EMAIL));
+
+        assertEquals("La cantidad debe ser mayor a cero.", ex.getMessage());
     }
 
     // --- Paginación del Kárdex ---

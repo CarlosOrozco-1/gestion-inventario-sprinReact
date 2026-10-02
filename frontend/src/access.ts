@@ -4,6 +4,14 @@ export const ROLES = {
   AUXILIAR: "AUXILIAR",
 } as const;
 
+/**
+ * Regla acordada: ADMIN entra a todo; JEFE entra a todo EXCEPTO la gestión de
+ * usuarios; AUXILIAR solo a los módulos de su operación diaria.
+ *
+ * Debe coincidir con los `@PreAuthorize` del backend: si el frontend deja pasar
+ * a alguien que el backend rechaza, el error le llega al usuario como un 403
+ * en medio de la operación y no como un menú que nunca le apareció.
+ */
 export const MODULE_ACCESS: Record<string, string[]> = {
   "/": [ROLES.ADMIN, ROLES.JEFE, ROLES.AUXILIAR],
   "/insumos": [ROLES.ADMIN, ROLES.JEFE],
@@ -12,7 +20,7 @@ export const MODULE_ACCESS: Record<string, string[]> = {
   "/reportes": [ROLES.ADMIN, ROLES.JEFE, ROLES.AUXILIAR],
   "/proyecciones": [ROLES.ADMIN, ROLES.JEFE],
   "/usuarios": [ROLES.ADMIN],
-  "/auditoria": [ROLES.ADMIN],
+  "/auditoria": [ROLES.ADMIN, ROLES.JEFE],
 };
 
 export const hasAccess = (path: string, user: any): boolean => {

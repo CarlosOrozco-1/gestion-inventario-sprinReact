@@ -80,11 +80,25 @@ public class ItemService {
     public Presentation agregarPresentacion(Long itemId, PresentationRequestDTO request) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("Material no encontrado."));
+        validarNombreYSizeUnicos(itemId, request.getName(), request.getSize(), null);
         Presentation presentation = aplicarPresentacion(new Presentation(), request);
         presentation.setItem(item);
         presentation = presentationRepository.save(presentation);
         presentation.setQrCode(generarQrCode(presentation.getId()));
         return presentationRepository.save(presentation);
+    }
+
+    /**
+     * El nombre y el tamaño identifican una presentación dentro de un material
+     * (constraint uq_presentation_item_name_size). Se comprueba antes de escribir
+     * para devolver un 400 legible en vez de dejar que PostgreSQL rechace el
+     * UPDATE y el cliente reciba un 500 sin ningún detalle.
+     */
+    private void validarNombreYSizeUnicos(Long itemId, String nombre, String size, Long excluirId) {
+        presentationRepository.findDuplicada(itemId, nombre, size, excluirId).ifPresent(dup -> {
+            throw new IllegalArgumentException("El material ya tiene una presentación '" + nombre
+                    + "' de tamaño '" + size + "'. El nombre y el tamaño deben ser distintos.");
+        });
     }
 
     private String generarQrCode(Long presentationId) {
@@ -95,6 +109,7 @@ public class ItemService {
     public Presentation actualizarPresentacion(Long id, PresentationRequestDTO request) {
         Presentation presentation = presentationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Presentación no encontrada."));
+        validarNombreYSizeUnicos(presentation.getItem().getId(), request.getName(), request.getSize(), id);
         aplicarPresentacion(presentation, request);
         return presentationRepository.save(presentation);
     }

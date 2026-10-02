@@ -41,10 +41,13 @@ function App() {
               <Route path="/ajustes" element={<Ajustes />} />
               <Route path="/proyecciones" element={<Proyecciones />} />
               <Route path="/insumos" element={<Insumos />} />
+              {/* Auditoría es de solo lectura: entra con la regla "todo excepto
+                  la gestión de usuarios". */}
+              <Route path="/auditoria" element={<Auditoria />} />
             </Route>
+            {/* Gestión de usuarios: exclusiva de ADMIN. */}
             <Route element={<RequireRole roles={[ROLES.ADMIN]} />}>
               <Route path="/usuarios" element={<Usuarios />} />
-              <Route path="/auditoria" element={<Auditoria />} />
             </Route>
           </Route>
         </Route>

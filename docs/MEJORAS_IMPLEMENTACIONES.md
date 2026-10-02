@@ -774,6 +774,88 @@ hasta CI/CD. Complementa a `FLUJO_DESPLIEGUE.md`, que cubre las ramas.
 
 ---
 
+## 21. Matriz de permisos por rol + exportación Excel del catálogo
+
+**Fecha:** 2026-10-02
+**Naturaleza:** Endurecimiento de autorización y nueva funcionalidad de reportes.
+
+### La regla acordada
+
+| Módulo / acción | ADMIN | JEFE | AUXILIAR |
+| --- | :-: | :-: | :-: |
+| Movimientos de entrada/salida | Sí | Sí | Sí |
+| Reportes | Sí | Sí | Sí |
+| Catálogo (crear/editar/activar) | Sí | **Sí (antes No)** | No |
+| Ajustes de stock | Sí | Sí | No |
+| Sugerencias de stock / Aplicar | Sí | **Sí (antes No)** | No |
+| Proyecciones | Sí | Sí | No |
+| Auditoría (solo lectura) | Sí | **Sí (antes No)** | No |
+| **Gestión de usuarios** | **Sí** | **No** | **No** |
+
+JEFE entra a todo **excepto** la gestión de usuarios; AUXILIAR conserva solo su
+operación diaria.
+
+### El hueco que se cerró
+
+`POST /movimientos` es un endpoint único compartido por entradas, salidas y
+ajustes, y estaba abierto a los tres roles. En la UI el módulo `/ajustes` no le
+aparecía al AUXILIAR, pero nada impedía que mandara un `AJUSTE_POSITIVO` por la
+API. La comprobación vive ahora en `MovimientoService`, no en el controller,
+para que ningún camino de entrada la esquive.
+
+El permiso se evalúa **antes** que la validación de negocio, no al revés. Con
+`quantity: 0` y sin justificación, un AUXILIAR recibe **403** y no 400: si
+devolviera 400 sabría que su petición era inválida, y la matriz de permisos no
+podría distinguir "rol rechazado" de "datos malos". Es el orden que hace
+posible medir la autorización sin crear nada.
+
+### Endurecimientos de seguridad
+
+- **`passwordHash` ya no sale por la API.** `GET /usuarios/admin` lo devolvía en
+  el JSON a cualquier ADMIN autenticado. Ahora lleva `@JsonIgnore`; JPA sigue
+  leyéndolo para login y validación.
+- **Los 403 llevan `message`.** Sin `@ExceptionHandler(AccessDeniedException)`, un
+  rechazo de `@PreAuthorize` lo capturaba `ExceptionTranslationFilter` y salía
+  el JSON por defecto de Spring, sin campo `message`. En el frontend todo caía al
+  mismo texto genérico que hacía pensar al usuario que había escrito mal los
+  datos.
+- **Alta de usuario sin rol ya no da 500.** `NuevoUsuarioDTO` es `@Valid` con
+  `@NotBlank`/`@Email`/`@Size(min=8)`, y `UsuarioController` aplica `@Valid`.
+- **Nombre+tamaño repetido en una presentación da 400 legible.** El constraint
+  `uq_presentation_item_name_size` reventaba el INSERT y devolvía 500 opaco; ahora
+  `PresentationRepository.findDuplicada` lo comprueba antes de escribir.
+
+### Exportación Excel del catálogo completo
+
+`GET /api/reportes/catalogo/excel` (ADMIN y JEFE) genera el catálogo entero con
+una fila por presentación: código, material, presentación, tamaño, existencia,
+stock mínimo/máximo, costo estimado, **valor de la existencia**, estado y código
+QR. Incluye los materiales inactivos con su columna de estado, porque si no se
+cuenta comida que ya no se puede mover. El botón **Excel** en el catálogo lo
+descarga con `responseType: blob`, ya que el token viaja en el header
+`Authorization` y un `<a href>` sin token recibiría 403.
+
+Existía el problema de que la tabla está paginada (mejora 18) y nunca mostró el
+total: copiar la pantalla nunca dio el inventario completo para calcular compras.
+
+### Coherencia de permisos en las tres capas
+
+`access.ts` (menú y rutas), `@PreAuthorize` (backend) y los botones de cada
+página se fijaron a la misma tabla. Antes, `Insumos.tsx` leía `user.rol` directo
+mientras el resto del app usaba `getRol(user)`, que tolera rol como texto o como
+`{ name }`: si el usuario venía como objeto, los botones de edición desaparecían
+para un JEFE que sí podía operar.
+
+### Tests
+54 frontend y 35 backend (antes 22). Nuevos: matriz de roles de ajustes
+(AUXILIAR no ajusta pero sí entrada/salida, JEFE y ADMIN sí, usuario sin rol
+denegado), orden permiso→validación, 403 con mensaje, duplicado de presentación
+y regresión del 422 de stock insuficiente. `scripts/test_permisos.sh` exige
+`--confirmar`, y los `PUT` de usuarios apuntan al usuario QA de la corrida, no a
+un usuario real.
+
+---
+
 ## 20. Próximas mejoras / pendientes
 - **Fase 10 — Bodegas por departamento** (pendiente de diseño; ver
   `docs/upgrade-V2-Manejo-de-bodegas.md` y `AGENTS.md` §8). Incluye el **motor de

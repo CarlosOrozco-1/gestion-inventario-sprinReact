@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,15 @@ public class MovimientoService {
 
     /** Tope del tamaño de página del Kárdex: evita que el cliente pida el histórico entero. */
     private static final int MAX_SIZE_PAGINA = 100;
+
+    /** ADMIN y JEFE son los unicos autorizados a justificar y aplicar ajustes de stock. */
+    private boolean esJefeOAdmin(Usuario usuario) {
+        if (usuario.getRol() == null || usuario.getRol().getName() == null) {
+            return false;
+        }
+        String rol = usuario.getRol().getName().toUpperCase();
+        return "ADMIN".equals(rol) || "JEFE".equals(rol);
+    }
 
     @Autowired
     private MovimientoRepository movimientoRepository;
@@ -45,34 +55,49 @@ public class MovimientoService {
     @Transactional
     public Movimiento registrarMovimiento(Long presentationId, MovimientoTipo type, Integer quantity, String detail, String usuarioEmail, String ip) {
 
-        // 1. Validar cantidad y tipo ANTES de tocar cualquier entidad.
+        // 1. El tipo es lo primero: sin el no se puede ni saber si es un ajuste.
         if (type == null) {
             throw new IllegalArgumentException("El tipo de movimiento es obligatorio.");
         }
+
+        // 2. El usuario SIEMPRE viene del email del JWT autenticado (nunca del cliente).
+        Usuario usuario = usuarioRepository.findByEmail(usuarioEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario autenticado no encontrado."));
+
+        // 3. PERMISOS antes que validacion de negocio, y no al reves. Los ajustes
+        //    son exclusivos de ADMIN y JEFE: el modulo /ajustes no le aparece al
+        //    AUXILIAR en la UI, pero /movimientos es un endpoint compartido con
+        //    entradas y salidas, asi que sin esta comprobacion un AUXILIAR podria
+        //    meter un AJUSTE_* por la API. Va en el service y no en el controller
+        //    para que ningun camino de entrada lo esquive.
+        //    Autorizar primero tambien evita darle informacion de negocio ("la
+        //    justificacion es muy corta") a quien no tiene permiso de adjustments.
+        //    Si el usuario viniera sin rol, se deniega: fallar cerrado.
+        if (type.esAjuste() && !esJefeOAdmin(usuario)) {
+            throw new AccessDeniedException("Registrar ajustes es una accion exclusiva de ADMIN y JEFE.");
+        }
+
+        // 4. Validar cantidad ANTES de tocar cualquier entidad.
         if (quantity == null || quantity <= 0) {
             throw new IllegalArgumentException("La cantidad debe ser mayor a cero.");
         }
 
-        // 2. Todo ajuste (positivo o negativo) exige justificación (regla de AGENTS.md).
+        // 5. Todo ajuste (positivo o negativo) exige justificación (regla de AGENTS.md).
         if (type.esAjuste() && (detail == null || detail.trim().length() < 20)) {
             throw new IllegalArgumentException("Los ajustes requieren una justificación (detalle) de al menos 20 caracteres.");
         }
 
-        // 3. El usuario SIEMPRE viene del email del JWT autenticado (nunca del cliente).
-        Usuario usuario = usuarioRepository.findByEmail(usuarioEmail)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario autenticado no encontrado."));
-
-        // 4. Bloqueo pesimista: serializa el acceso a la fila para evitar que dos
+        // 6. Bloqueo pesimista: serializa el acceso a la fila para evitar que dos
         //    operaciones concurrentes lean el mismo stock (lost update).
         Presentation presentation = presentationRepository.findByIdForUpdate(presentationId)
                 .orElseThrow(() -> new IllegalArgumentException("Presentación no encontrada."));
 
-        // 4b. Material inactivo: no se permiten movimientos (eliminación lógica).
+        // 6b. Material inactivo: no se permiten movimientos (eliminación lógica).
         if (presentation.getItem() != null && !Boolean.TRUE.equals(presentation.getItem().getActivo())) {
             throw new IllegalArgumentException("El insumo está inactivo. No se pueden registrar movimientos.");
         }
 
-        // 5. Aplicar reglas de negocio según el tipo de movimiento.
+        // 7. Aplicar reglas de negocio según el tipo de movimiento.
         switch (type) {
             case ENTRADA:
             case AJUSTE_POSITIVO:
@@ -88,7 +113,7 @@ public class MovimientoService {
                 break;
         }
 
-        // 6. Guardar los cambios (Spring Data JPA hace los UPDATE e INSERT por detrás)
+        // 8. Guardar los cambios (Spring Data JPA hace los UPDATE e INSERT por detrás)
         presentationRepository.save(presentation);
 
         Movimiento movimiento = new Movimiento();
@@ -104,7 +129,7 @@ public class MovimientoService {
 
         movimiento = movimientoRepository.save(movimiento);
 
-        // 7. Auditoría: registramos el movimiento en la bitácora
+        // 9. Auditoría: registramos el movimiento en la bitácora
         auditService.registrar(AuditService.MOVIMIENTO_CREADO,
                 type.getEtiqueta() + " de " + quantity + " unidades - "
                         + presentation.getItem().getName() + " (" + presentation.getName() + " "

@@ -50,7 +50,7 @@ public class PresentationController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','JEFE')")
     public Presentation actualizarPresentacion(@PathVariable Long id,
                                                @Valid @RequestBody PresentationRequestDTO request) {
         return itemService.actualizarPresentacion(id, request);

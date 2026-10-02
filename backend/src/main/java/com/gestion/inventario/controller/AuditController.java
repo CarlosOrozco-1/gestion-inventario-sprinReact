@@ -17,7 +17,10 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/auditoria")
-@PreAuthorize("hasRole('ADMIN')")
+// La auditoría es de lectura: JEFE entra con la regla "todo excepto la gestión
+// de usuarios". La escritura de auditoría no la expone nadie, se genera sola
+// desde AuditService.
+@PreAuthorize("hasAnyRole('ADMIN','JEFE')")
 @RequiredArgsConstructor
 public class AuditController {
 

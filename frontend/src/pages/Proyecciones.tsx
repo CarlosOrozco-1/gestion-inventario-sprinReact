@@ -10,7 +10,10 @@ const TAMANIO_PAGINA = 10;
 
 export default function Proyecciones() {
   const { user } = useAuthStore();
-  const esAdmin = getRol(user) === "ADMIN";
+  // Aplicar una sugerencia escribe stock, asi que va a ADMIN y JEFE, no solo
+  // a ADMIN. El backend ya lo permite desde /insumos/sugerencias-stock; esta
+  // bandera es solo la capa de presentacion.
+  const puedeAplicar = getRol(user) === "ADMIN" || getRol(user) === "JEFE";
 
   const [insumos, setInsumos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -375,9 +378,12 @@ export default function Proyecciones() {
               Sugerencias de Stock (Smart Restock)
             </h2>
           </div>
-          {!esAdmin && (
-            <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-500">
-              Solo ADMIN puede aplicar cambios
+          {!puedeAplicar && (
+            <span
+              title="Tu rol no puede modificar existencias. Solo consulta las sugerencias."
+              className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-500"
+            >
+              Solo lectura
             </span>
           )}
         </div>
@@ -452,7 +458,7 @@ export default function Proyecciones() {
                         )}
                       </td>
                       <td className="p-4 text-center">
-                        {esAdmin && cambios && sug.differs ? (
+                        {puedeAplicar && cambios && sug.differs ? (
                           <button
                             onClick={() => aplicarSugerencia(sug)}
                             disabled={aplicandoId === sug.id}
@@ -462,7 +468,7 @@ export default function Proyecciones() {
                           </button>
                         ) : (
                           <span className="text-xs text-slate-400">
-                            {esAdmin && cambios && !sug.differs
+                            {puedeAplicar && cambios && !sug.differs
                               ? "Niveles óptimos"
                               : "—"}
                           </span>

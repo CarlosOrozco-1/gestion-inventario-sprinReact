@@ -44,7 +44,7 @@ public class ItemController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','JEFE')")
     public Item crearItem(@Valid @RequestBody ItemRequestDTO request,
                           Authentication authentication, HttpServletRequest httpRequest) {
         Item item = itemService.crearItem(request);
@@ -56,7 +56,7 @@ public class ItemController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','JEFE')")
     public Item actualizarItem(@PathVariable Long id, @RequestBody ItemRequestDTO request,
                                Authentication authentication, HttpServletRequest httpRequest) {
         Item item = itemService.actualizarItem(id, request);
@@ -85,7 +85,7 @@ public class ItemController {
     }
 
     @PostMapping("/{id}/presentations")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','JEFE')")
     public Presentation agregarPresentacion(@PathVariable Long id,
                                             @Valid @RequestBody PresentationRequestDTO request,
                                             Authentication authentication, HttpServletRequest httpRequest) {

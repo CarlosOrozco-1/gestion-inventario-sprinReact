@@ -741,11 +741,20 @@ aparecía al AUXILIAR, pero nada impedía que mandara un `AJUSTE_POSITIVO` por l
 API. La comprobación vive ahora en `MovimientoService`, no en el controller,
 para que ningún camino de entrada la esquive.
 
-El permiso se evalúa **antes** que la validación de negocio, no al revés. Con
-`quantity: 0` y sin justificación, un AUXILIAR recibe **403** y no 400: si
-devolviera 400 sabría que su petición era inválida, y la matriz de permisos no
-podría distinguir "rol rechazado" de "datos malos". Es el orden que hace
-posible medir la autorización sin crear nada.
+Dentro del service el permiso se evalúa **antes** que la validación de negocio,
+no al revés: un AUXILIAR es rechazado por rol antes de que se revise el stock o
+la justificación, lo que permite distinguir "rol rechazado" de "datos malos".
+
+Ojo con el alcance de esa afirmación: **no aplica a la capa HTTP.** `MovimientoDTO`
+es `@Valid` y `quantity` lleva `@Min(1)`, así que esa validación de Spring corre
+*antes* de entrar al service. En consecuencia, un `quantity: 0` devuelve **400 a
+los tres roles**, nunca 403.
+
+Para medir autorización por HTTP hay que mandar un payload que ya sea válido
+(cantidad >= 1 y, en ajustes, justificación >= 20 caracteres) y que solo sería
+rechazado por el rol: exactamente lo que hace `scripts/test_permisos.sh`. El
+orden "permiso antes que negocio" queda cubierto por los unit tests del service,
+donde el método se invoca directamente.
 
 ### Endurecimientos de seguridad
 

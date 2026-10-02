@@ -17,10 +17,17 @@
 # usuarios qa.* que este script crea, nunca a uno que ya existia.
 # Si vas a copiar la idea, crea tus datos y borralos tu.
 #
-# Los movimientos se miden de forma NO destructiva: se comprueba la
-# autorizacion con una cantidad invalida que el backend rechaza con 400 DESPUES
-# de pasar el filtro de rol, sin crear nada. Un 403 prueba que el rol fue
-# rechazado; un 400 prueba que el rol paso y fallo la validacion.
+# Los movimientos se miden con cantidad VALIDA (1), no con una cantidad
+# invalida. Razon: MovimientoDTO lleva @Min(1) y el controller lo valida con
+# @Valid, asi que una cantidad 0 se rechaza con 400 ANTES de llegar al service y
+# devolveria 400 para los tres roles: no mediria el permiso de nada. Con
+# cantidad valida, ADMIN y JEFE reciben 200 y AUXILIAR recibe 403 en los ajustes.
+# Esto si crea movimientos, pero solo sobre la presentacion QA que crea este
+# script, y la limpieza los borra por presentacion antes de borrar el item.
+#
+# El JSON va COMPLETO en cada probe, no partido en fragments concatenados: un
+# objeto anidado dentro de otro ("{...,{"type":...}}") es JSON invalido y
+# Spring responde 400 antes de llegar al service.
 set -uo pipefail
 
 BASE=http://localhost:8081/api
@@ -84,11 +91,11 @@ QA_QR=$(curl -s --max-time 20 "$BASE/items" -H "Authorization: Bearer $ADMIN_TOK
 ITEM_BODY="{\"code\":$QA_CODE,\"name\":\"$QA_ITEM_NAME\",\"presentations\":[{\"name\":\"UND QA\",\"size\":\"1\",\"minStock\":1,\"maxStock\":10,\"estimatedCost\":1}]}"
 PRES_BODY='{"name":"UND QA","size":"1","minStock":1,"maxStock":10,"estimatedCost":1}'
 # Cantidad 0 => el backend rechaza con 400 DESPUES de validar el rol. Sirve para
-# medir autorizacion sin crear movimientos reales. El JSON es valido a proposito:
-# un JSON roto devolveria 400 en todos los roles y la matriz no distinguiria
-# "rol rechazado" de "payload invalido".
-MOV_ENTRADA_INVALID='{"type":"ENTRADA","quantity":0,"detail":"Prueba de permisos sin efecto en el stock"}'
-MOV_AJUSTE_INVALID='{"type":"AJUSTE_NEGATIVO","quantity":0,"detail":"Justificacion de prueba suficientemente larga"}'
+# medir autorizacion sin crear movimientos reales.
+# El JSON va COMPLETO en cada probe, no partido en fragments concatenados: un
+# objeto anidado dentro de otro ("{...,{"type":...}}") es JSON invalido y
+# Spring responde 400 antes de llegar al service, con lo que la matriz daria 400
+# para los tres roles y no mediria nada.
 
 echo "== Datos del test =="
 echo "  item QA id=$QA_ITEM   presentacion QA id=$QA_PRES"
@@ -161,10 +168,20 @@ probe "PUT  /items/{id}/estado"         PUT  "/items/$QA_ITEM/estado" '{"activo"
 probe "POST /items/{id}/presentations"  POST "/items/$QA_ITEM/presentations" "$PRES_BODY"
 probe "PUT  /presentations/{id}"        PUT  "/presentations/$QA_PRES" "$PRES_BODY"
 echo
-echo "-- MOVIMIENTOS (cantidad 0: mide el rol sin crear nada) --"
-probe "POST /movimientos ENTRADA"        POST "/movimientos" "{\"presentationId\":$QA_PRES,$MOV_ENTRADA_INVALID}"
-probe "POST /movimientos AJUSTE_POS"     POST "/movimientos" "{\"presentationId\":$QA_PRES,\"type\":\"AJUSTE_POSITIVO\",$MOV_AJUSTE_INVALID#}"
-probe "POST /movimientos AJUSTE_NEG"     POST "/movimientos" "{\"presentationId\":$QA_PRES,$MOV_AJUSTE_INVALID}"
+echo "-- MOVIMIENTOS (cantidad valida: mide el permiso de verdad) --"
+# Un ENTRADA o SALIDA debe dar 200 a los tres roles: es la operacion diaria.
+# Un AJUSTE_* debe dar 200 a ADMIN y JEFE y 403 a AUXILIAR.
+probe "POST /movimientos ENTRADA"        POST "/movimientos" "{\"presentationId\":$QA_PRES,\"type\":\"ENTRADA\",\"quantity\":1,\"detail\":\"Prueba de permisos entrada\"}"
+probe "POST /movimientos SALIDA"         POST "/movimientos" "{\"presentationId\":$QA_PRES,\"type\":\"SALIDA\",\"quantity\":1,\"detail\":\"Prueba de permisos salida\"}"
+probe "POST /movimientos AJUSTE_POS"     POST "/movimientos" "{\"presentationId\":$QA_PRES,\"type\":\"AJUSTE_POSITIVO\",\"quantity\":1,\"detail\":\"Justificacion de prueba suficientemente larga\"}"
+probe "POST /movimientos AJUSTE_NEG"     POST "/movimientos" "{\"presentationId\":$QA_PRES,\"type\":\"AJUSTE_NEGATIVO\",\"quantity\":1,\"detail\":\"Justificacion de prueba suficientemente larga\"}"
+# Un ajuste sin justificacion debe dar 400 a los que SI pueden ajustar: el
+# permiso pasa y entonces se exige justificacion (AGENTS.md).
+probe "POST /movimientos AJUSTE sin justif" POST "/movimientos" "{\"presentationId\":$QA_PRES,\"type\":\"AJUSTE_NEGATIVO\",\"quantity\":1,\"detail\":\"corto\"}"
+echo
+echo "-- CATALOGO: duplicado y presentacion inexistente --"
+probe "POST /items codigo duplicado"     POST "/items" "$ITEM_BODY"
+probe "POST /items en item inexistente"  POST "/items/999999/presentations" "$PRES_BODY"
 echo
 echo "-- REPORTES --"
 probe "POST /reportes/excel"            POST "/reportes/excel" '{}'
@@ -190,11 +207,39 @@ probe "PUT  /perfil/cambiar-password"   PUT "/perfil/cambiar-password" '{"curren
 
 echo
 echo "== Limpieza =="
-dbq "DELETE FROM inventario_movimientos WHERE detail LIKE 'Prueba de permisos%' OR detail LIKE 'Justificacion de prueba%';" >/dev/null
-dbq "DELETE FROM presentations WHERE item_id IN (SELECT id FROM items WHERE code=$QA_CODE);" >/dev/null
-dbq "DELETE FROM items WHERE code=$QA_CODE AND name='$QA_ITEM_NAME';" >/dev/null
-dbq "DELETE FROM usuarios WHERE email IN ('$J_EMAIL','$A_EMAIL') OR email LIKE 'qa.%@t.local';" >/dev/null
-dbq "DELETE FROM audit_logs WHERE description LIKE '%$QA_ITEM_NAME%';" >/dev/null
-echo "  item, presentacion, usuarios y bitacora de prueba borrados"
+# db() CORRE la sentencia y falla si psql devuelve error. La version anterior
+# usaba `>/dev/null`, que se tragaba los errores: como la columna de la FK no es
+# presentation_id sino inventario_id, NINGUN borror se ejecutaba y el script
+# reportaba "base limpia" sin haber borrado nada. Ahora un error de limpieza
+# detiene el script.
+db() {
+    local out
+    out=$(dbq "$1" 2>&1) || { echo "  ERROR de limpieza: $out" >&2; LIMPIEZA_FALLO=1; return; }
+    case "$out" in *ERROR*) echo "  ERROR de limpieza: $out" >&2; LIMPIEZA_FALLO=1;; esac
+}
+
+LIMPIEZA_FALLO=0
+
+# La FK de inventario_movimientos hacia presentations se llama inventario_id.
+# El orden importa por las llaves foraneas: primero movimientos, luego
+# presentaciones, luego el item.
+db "DELETE FROM inventario_movimientos WHERE inventario_id IN (SELECT p.id FROM presentations p JOIN items i ON i.id = p.item_id WHERE i.code = $QA_CODE);"
+db "DELETE FROM presentations WHERE item_id IN (SELECT id FROM items WHERE code = $QA_CODE);"
+db "DELETE FROM items WHERE code = $QA_CODE AND name = '$QA_ITEM_NAME';"
+db "DELETE FROM usuarios WHERE email IN ('$J_EMAIL','$A_EMAIL') OR email LIKE 'qa.%@t.local';"
+db "DELETE FROM audit_logs WHERE description LIKE '%$QA_ITEM_NAME%';"
+echo "  item, presentacion, movimientos, usuarios y bitacora de prueba borrados"
+
+# Comprobacion de que no quedaron residuos. Cuenta usuarios qa por prefijo de
+# correo, que es como los crea este script.
+LEFT=$(dbq "SELECT (SELECT count(*) FROM items WHERE code = $QA_CODE)
+  + (SELECT count(*) FROM usuarios WHERE email IN ('$J_EMAIL','$A_EMAIL') OR email LIKE 'qa.%@t.local')
+  + (SELECT count(*) FROM inventario_movimientos WHERE detail LIKE 'Prueba de permisos%' OR detail LIKE 'Justificacion de prueba%');" 2>&1)
+echo "  residuos QA: ${LEFT:-0}"
+if [ "$LIMPIEZA_FALLO" = "1" ] || [ "${LEFT:-0}" != "0" ]; then
+  echo "  FALLO: la limpieza no dejo la base como estaba" >&2
+  exit 1
+fi
+echo "  base limpia"
 echo
 echo "Leyenda: 2xx = permitido | 403 = ROL RECHAZADO | 400 = el rol paso, fallo validacion | 401 = sin token"

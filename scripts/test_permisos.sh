@@ -13,6 +13,8 @@
 # este script, y los borra al terminar. Nunca toca `items[0]` ni ningun
 # material real: una version anterior de este script mutaba el primer item de
 # la lista y dejo el nombre de "Alcohol Etilico" pisado con el nombre de prueba.
+# Tampoco toca usuarios reales: los PUT de /usuarios/admin apuntan a los
+# usuarios qa.* que este script crea, nunca a uno que ya existia.
 # Si vas a copiar la idea, crea tus datos y borralos tu.
 #
 # Los movimientos se miden de forma NO destructiva: se comprueba la
@@ -23,6 +25,22 @@ set -uo pipefail
 
 BASE=http://localhost:8081/api
 APP_DIR=/home/gestioninventario/siges/gestion-inventario-sprinReact
+
+# La matriz borra filas al final. Se exige el flag --confirmar para no depender
+# de que el que lo ejecuta lea la cabecera del script antes de correrlo.
+if [ "${1:-}" != "--confirmar" ]; then
+    cat <<'AVISO'
+Este script ESCRIBE y BORRA filas en la base de datos ($BASE):
+  - crea usuarios qa.jefe@ / qa.auxiliar@ y usuarios qa.<random>@t.local
+  - crea un item y una presentacion con code 9999
+  - al terminar borra esos usuarios, item, presentacion y sus movimientos
+Toca $APP_DIR. Corrialo solo contra un entorno de pruebas.
+AVISO
+    echo "Para ejecutarlo de verdad:"
+    echo "  bash scripts/test_permisos.sh --confirmar"
+    exit 1
+fi
+
 cd "$APP_DIR" || exit 1
 
 ADMIN_EMAIL=$(grep -E '^ADMIN_EMAIL='     .env | cut -d= -f2- | tr -d '"'"'"' \r')
@@ -62,18 +80,21 @@ QA_PRES=$(curl -s --max-time 20 "$BASE/items" -H "Authorization: Bearer $ADMIN_T
           | jq -r ".[] | select(.code == $QA_CODE) | .presentations[0].id" | head -1)
 QA_QR=$(curl -s --max-time 20 "$BASE/items" -H "Authorization: Bearer $ADMIN_TOKEN" \
         | jq -r ".[] | select(.code == $QA_CODE) | .presentations[0].qrCode" | head -1)
-OTHER_USER=$(usuarios | jq -r '.[] | select(.rol.name=="AUXILIAR") | .id' | head -1)
 
 ITEM_BODY="{\"code\":$QA_CODE,\"name\":\"$QA_ITEM_NAME\",\"presentations\":[{\"name\":\"UND QA\",\"size\":\"1\",\"minStock\":1,\"maxStock\":10,\"estimatedCost\":1}]}"
 PRES_BODY='{"name":"UND QA","size":"1","minStock":1,"maxStock":10,"estimatedCost":1}'
 # Cantidad 0 => el backend rechaza con 400 DESPUES de validar el rol. Sirve para
-# medir autorizacion sin crear movimientos reales.
-MOV_INVALID='{"type":"ENTRADA","quantity":0,"detail":"Prueba de permisos sin efecto en el stock"}'
+# medir autorizacion sin crear movimientos reales. El JSON es valido a proposito:
+# un JSON roto devolveria 400 en todos los roles y la matriz no distinguiria
+# "rol rechazado" de "payload invalido".
+MOV_ENTRADA_INVALID='{"type":"ENTRADA","quantity":0,"detail":"Prueba de permisos sin efecto en el stock"}'
+MOV_AJUSTE_INVALID='{"type":"AJUSTE_NEGATIVO","quantity":0,"detail":"Justificacion de prueba suficientemente larga"}'
 
 echo "== Datos del test =="
 echo "  item QA id=$QA_ITEM   presentacion QA id=$QA_PRES"
 
 declare -A TOK
+declare -A QA_ID
 TOK[ADMIN]="$ADMIN_TOKEN"
 for pair in "JEFE:$J_EMAIL" "AUXILIAR:$A_EMAIL"; do
     ROL="${pair%%:*}"; MAIL="${pair##*:}"
@@ -84,11 +105,21 @@ for pair in "JEFE:$J_EMAIL" "AUXILIAR:$A_EMAIL"; do
              -d "{\"name\":\"QA $ROL\",\"email\":\"$MAIL\",\"password\":\"$Q_PASS\",\"rol\":\"$ROL\"}" \
              | jq -r '.id // empty')
     fi
+    # Se guarda el id del usuario QA: los PUT de /usuarios/admin van contra el,
+    # nunca contra un usuario real de la base.
+    QA_ID[$ROL]="$ID"
     [ -n "$ID" ] && curl -s -o /dev/null --max-time 20 -X PUT "$BASE/usuarios/admin/$ID/status" \
         -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"active":true}'
     TOK[$ROL]=$(login "$MAIL" "$Q_PASS")
     [ -z "${TOK[$ROL]}" ] && echo "  AVISO: fallo el login de $ROL"
 done
+
+# Destino de los PUT de la seccion USUARIOS: el jefe QA de esta corrida.
+QA_JEFE_ID="${QA_ID[JEFE]}"
+if [ -z "$QA_JEFE_ID" ]; then
+    echo "FALLO: no se pudo crear el usuario qa.jefe; se aborta antes de tocar /usuarios/admin" >&2
+    exit 1
+fi
 echo "  usuarios qa listos"
 
 echo
@@ -131,9 +162,9 @@ probe "POST /items/{id}/presentations"  POST "/items/$QA_ITEM/presentations" "$P
 probe "PUT  /presentations/{id}"        PUT  "/presentations/$QA_PRES" "$PRES_BODY"
 echo
 echo "-- MOVIMIENTOS (cantidad 0: mide el rol sin crear nada) --"
-probe "POST /movimientos ENTRADA"        POST "/movimientos" "{\"presentationId\":$QA_PRES,$MOV_INVALID:1}"
-probe "POST /movimientos AJUSTE_POS"     POST "/movimientos" "{\"presentationId\":$QA_PRES,\"type\":\"AJUSTE_POSITIVO\",\"quantity\":0,\"detail\":\"Justificacion de prueba suficientemente larga\"}"
-probe "POST /movimientos AJUSTE_NEG"     POST "/movimientos" "{\"presentationId\":$QA_PRES,\"type\":\"AJUSTE_NEGATIVO\",\"quantity\":0,\"detail\":\"Justificacion de prueba suficientemente larga\"}"
+probe "POST /movimientos ENTRADA"        POST "/movimientos" "{\"presentationId\":$QA_PRES,$MOV_ENTRADA_INVALID}"
+probe "POST /movimientos AJUSTE_POS"     POST "/movimientos" "{\"presentationId\":$QA_PRES,\"type\":\"AJUSTE_POSITIVO\",$MOV_AJUSTE_INVALID#}"
+probe "POST /movimientos AJUSTE_NEG"     POST "/movimientos" "{\"presentationId\":$QA_PRES,$MOV_AJUSTE_INVALID}"
 echo
 echo "-- REPORTES --"
 probe "POST /reportes/excel"            POST "/reportes/excel" '{}'
@@ -144,9 +175,12 @@ echo
 echo "-- USUARIOS --"
 probe "GET  /usuarios/admin"            GET "/usuarios/admin"
 probe "POST /usuarios/admin"            POST "/usuarios/admin" "{\"name\":\"QA\",\"email\":\"qa.$RANDOM@t.local\",\"password\":\"$Q_PASS\",\"rol\":\"AUXILIAR\"}"
-probe "PUT  /usuarios/admin/{id}"       PUT  "/usuarios/admin/$OTHER_USER" '{"name":"QA Renombrado"}'
-probe "PUT  /usuarios/admin/{id}/rol"   PUT  "/usuarios/admin/$OTHER_USER/rol" '{"rol":"AUXILIAR"}'
-probe "PUT  /usuarios/admin/{id}/status" PUT "/usuarios/admin/$OTHER_USER/status" '{"active":true}'
+# Los tres PUT apuntan al jefe QA de ESTA corrida, con el mismo nombre, rol y
+# estado que ya tiene: miden que solo ADMIN puede administrar usuarios sin
+# cambiar nada, y en ningun caso tocan a un usuario real.
+probe "PUT  /usuarios/admin/{id}"       PUT  "/usuarios/admin/$QA_JEFE_ID" "{\"name\":\"QA JEFE\",\"email\":\"$J_EMAIL\",\"rol\":\"JEFE\"}"
+probe "PUT  /usuarios/admin/{id}/rol"   PUT  "/usuarios/admin/$QA_JEFE_ID/rol" '{"rol":"JEFE"}'
+probe "PUT  /usuarios/admin/{id}/status" PUT "/usuarios/admin/$QA_JEFE_ID/status" '{"active":true}'
 echo
 echo "-- AUDITORIA / QR / PERFIL --"
 probe "GET  /auditoria"                 GET "/auditoria"

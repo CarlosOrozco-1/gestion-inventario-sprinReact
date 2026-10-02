@@ -8,6 +8,7 @@ import com.gestion.inventario.repository.RolRepository;
 import com.gestion.inventario.repository.UsuarioRepository;
 import com.gestion.inventario.service.AuditService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -54,14 +55,14 @@ public class UsuarioController {
     }
 
     @PostMapping("/admin")
-    public Usuario crearUsuario(@RequestBody NuevoUsuarioDTO dto, Authentication authentication,
+    public Usuario crearUsuario(@Valid @RequestBody NuevoUsuarioDTO dto, Authentication authentication,
                                 HttpServletRequest httpRequest) {
         if (usuarioRepository.findByEmail(dto.getEmail()).isPresent()) {
             throw new IllegalArgumentException("El correo ya está en uso");
         }
 
         Rol rol = rolRepository.findByName(dto.getRol().toUpperCase())
-                .orElseThrow(() -> new IllegalArgumentException("Rol no válido"));
+                .orElseThrow(() -> new IllegalArgumentException("Rol no válido. Use ADMIN, JEFE o AUXILIAR."));
 
         Usuario usuario = new Usuario();
         usuario.setName(dto.getName());

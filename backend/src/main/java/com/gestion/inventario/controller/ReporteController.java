@@ -1,8 +1,11 @@
 package com.gestion.inventario.controller;
 
+import com.gestion.inventario.model.Item;
 import com.gestion.inventario.model.Movimiento;
+import com.gestion.inventario.model.Presentation;
 import com.gestion.inventario.repository.MovimientoRepository;
 import com.gestion.inventario.service.AuditService;
+import com.gestion.inventario.service.ItemService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -27,6 +31,9 @@ public class ReporteController {
 
     @Autowired
     private MovimientoRepository movimientoRepository;
+
+    @Autowired
+    private ItemService itemService;
 
     @Autowired
     private AuditService auditService;
@@ -308,6 +315,101 @@ public class ReporteController {
             return ResponseEntity.ok().headers(responseHeaders).body(outputStream.toByteArray());
         } catch (Exception e) {
             throw new RuntimeException("Error generando PDF de Proyecciones", e);
+        }
+    }
+
+    /**
+     * Exporta el catálogo completo de insumos con sus existencias, una fila por
+     * presentación. Es la única forma de sacar el inventario para compras: el
+     * listado de la UI está paginado, así que copiar la pantalla nunca dio el
+     * total. Trae también el costo estimado y el valor de la existencia, que es
+     * lo que permite decidir a qué productos comprar primero.
+     *
+     * Se exportan TODOS los materiales, incluidos los inactivos, con una columna
+     * que indica el estado: si no se deja claro, se cuentan cosas que ya no se
+     * pueden mover.
+     */
+    @GetMapping("/catalogo/excel")
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMIN','JEFE')")
+    public ResponseEntity<byte[]> exportarCatalogoExcel(Authentication authentication,
+                                                        HttpServletRequest httpRequest) {
+        List<Item> items = itemService.listarItems();
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Catalogo de Insumos");
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            headerStyle.setFillForegroundColor(IndexedColors.PALE_BLUE.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            Font font = workbook.createFont();
+            font.setBold(true);
+            headerStyle.setFont(font);
+
+            CellStyle moneyStyle = workbook.createCellStyle();
+            moneyStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0.00"));
+
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"Código", "Material", "Presentación", "Tamaño", "Existencia",
+                    "Stock mínimo", "Stock máximo", "Costo est.", "Valor existencia", "Estado", "Código QR"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            int rowNum = 1;
+            int totalPresentaciones = 0;
+            for (Item item : items) {
+                for (Presentation pres : item.getPresentations()) {
+                    Row row = sheet.createRow(rowNum++);
+                    totalPresentaciones++;
+
+                    row.createCell(0).setCellValue(String.valueOf(item.getCode()));
+                    row.createCell(1).setCellValue(item.getName());
+                    row.createCell(2).setCellValue(pres.getName() != null ? pres.getName() : "");
+                    row.createCell(3).setCellValue(pres.getSize() != null ? pres.getSize() : "");
+                    row.createCell(4).setCellValue(pres.getStock() != null ? pres.getStock() : 0);
+                    row.createCell(5).setCellValue(pres.getMinStock() != null ? pres.getMinStock() : 0);
+                    row.createCell(6).setCellValue(pres.getMaxStock() != null ? pres.getMaxStock() : 0);
+
+                    BigDecimal costo = pres.getEstimatedCost() != null
+                            ? pres.getEstimatedCost() : BigDecimal.ZERO;
+                    Cell celdaCosto = row.createCell(7);
+                    celdaCosto.setCellValue(costo.doubleValue());
+                    celdaCosto.setCellStyle(moneyStyle);
+
+                    BigDecimal valor = costo.multiply(BigDecimal.valueOf(
+                            pres.getStock() != null ? pres.getStock() : 0));
+                    Cell celdaValor = row.createCell(8);
+                    celdaValor.setCellValue(valor.doubleValue());
+                    celdaValor.setCellStyle(moneyStyle);
+
+                    row.createCell(9).setCellValue(
+                            Boolean.TRUE.equals(item.getActivo()) ? "Activo" : "Inactivo");
+                    row.createCell(10).setCellValue(pres.getQrCode() != null ? pres.getQrCode() : "");
+                }
+            }
+
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+
+            HttpHeaders responseHeaders = new HttpHeaders();
+            responseHeaders.setContentDispositionFormData("attachment", "catalogo_insumos.xlsx");
+            responseHeaders.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+
+            auditService.registrar(AuditService.EXPORTACION_EXCEL,
+                    "Exportación Excel del catálogo: " + items.size() + " materiales y "
+                            + totalPresentaciones + " presentaciones",
+                    "items", null, authentication.getName(), authentication.getName(), httpRequest.getRemoteAddr());
+
+            return ResponseEntity.ok().headers(responseHeaders).body(outputStream.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException("Error generando el Excel del catálogo", e);
         }
     }
 }

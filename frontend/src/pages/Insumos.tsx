@@ -7,6 +7,7 @@ import QrModal from '../components/QrModal';
 import ConfirmModal from '../components/ConfirmModal';
 import { useToastStore } from '../store/useToastStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { getRol } from '../access';
 import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import { usePaginacion } from '../hooks/usePaginacion';
 import Paginacion from '../components/Paginacion';
@@ -28,12 +29,17 @@ export default function Insumos() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [qrModal, setQrModal] = useState(null);
   const [estadoModal, setEstadoModal] = useState(null);
+  const [exportando, setExportando] = useState(false);
 
   const showToast = useToastStore((s: any) => s.showToast);
   const user = useAuthStore((s: any) => s.user);
 
   // Inactivar/activar material es exclusivo de JEFE y ADMIN.
-  const canToggleEstado = !!(user && ['ADMIN', 'JEFE'].includes(user.rol));
+  // Se usa getRol() y no user.rol: segun como se arma el usuario, rol puede venir
+  // como texto plano o como { name }, y leerlo directo dejaba el boton oculto
+  // para un JEFE que si podia operarlo.
+  const puedeEditarCatalogo = ['ADMIN', 'JEFE'].includes(getRol(user));
+  const canToggleEstado = puedeEditarCatalogo;
 
   const fetchItems = async (message = null) => {
     try {
@@ -72,6 +78,36 @@ export default function Insumos() {
 
   const openModal = (mode, item = null, presentation = null) => {
     setModalConfig({ mode, item, presentation });
+  };
+
+  // Descarga el catalogo completo en Excel. Va al backend con responseType blob
+  // porque el token viaja en el header Authorization: un <a href> sin token
+  // recibiria 403. El archivo lo genera el servidor con TODO el catalogo, no lo
+  // que hay en pantalla, porque la tabla esta paginada y nunca showed el total.
+  const exportarExcel = async () => {
+    setExportando(true);
+    try {
+      const response = await api.get('/reportes/catalogo/excel', { responseType: 'blob' });
+
+      const nombre = /filename="?([^";]+)"?/.exec(
+        response.headers['content-disposition'] || ''
+      )?.[1] || 'catalogo_insumos.xlsx';
+
+      const url = URL.createObjectURL(new Blob([response.data]));
+      const enlace = document.createElement('a');
+      enlace.href = url;
+      enlace.download = nombre;
+      document.body.appendChild(enlace);
+      enlace.click();
+      document.body.removeChild(enlace);
+      URL.revokeObjectURL(url);
+
+      showToast('Excel generado');
+    } catch (err: any) {
+      showToast(err?.mensajeUsuario || 'No se pudo generar el Excel.');
+    } finally {
+      setExportando(false);
+    }
   };
 
   const closeModal = () => setModalConfig(null);
@@ -199,6 +235,18 @@ export default function Insumos() {
 
         <div className="flex flex-wrap items-center gap-3">
           <button
+            onClick={exportarExcel}
+            disabled={exportando}
+            title="Descargar todo el catálogo con existencias (incluye los materiales que no están en esta página)"
+            className="inline-flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed text-slate-700 px-4 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            {exportando ? 'Generando...' : 'Excel'}
+          </button>
+
+          <button
             onClick={() => setIsSearchOpen(true)}
             className="inline-flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
           >
@@ -218,15 +266,17 @@ export default function Insumos() {
             Escanear QR
           </button>
 
-          <button
-            onClick={() => openModal('create-item')}
-            className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-brand-500/50"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Nuevo Material
-          </button>
+          {puedeEditarCatalogo && (
+            <button
+              onClick={() => openModal('create-item')}
+              className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-brand-500/50"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Nuevo Material
+            </button>
+          )}
         </div>
       </div>
 
@@ -299,32 +349,34 @@ export default function Insumos() {
                       <td className="p-3" colSpan={3}>
                         <div className="flex items-center justify-end gap-2">
                           {canToggleEstado && (
-                            <button
-                              onClick={() => setEstadoModal({ item, activo: item.activo === false })}
-                              className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-md transition-colors ${
-                                item.activo === false
-                                  ? 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
-                                  : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
-                              }`}
-                            >
-                              {item.activo === false ? 'Activar' : 'Inactivar'}
-                            </button>
+                            <>
+                              <button
+                                onClick={() => setEstadoModal({ item, activo: item.activo === false })}
+                                className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-md transition-colors ${
+                                  item.activo === false
+                                    ? 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
+                                    : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                                }`}
+                              >
+                                {item.activo === false ? 'Activar' : 'Inactivar'}
+                              </button>
+                              <button
+                                onClick={() => openModal('create-presentation', item)}
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 hover:bg-brand-50 px-2 py-1 rounded-md transition-colors"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                + Presentación
+                              </button>
+                              <button
+                                onClick={() => openModal('edit-item', item)}
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-brand-600 hover:bg-brand-50 px-2 py-1 rounded-md transition-colors"
+                              >
+                                Editar material
+                              </button>
+                            </>
                           )}
-                          <button
-                            onClick={() => openModal('create-presentation', item)}
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 hover:bg-brand-50 px-2 py-1 rounded-md transition-colors"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            + Presentación
-                          </button>
-                          <button
-                            onClick={() => openModal('edit-item', item)}
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-brand-600 hover:bg-brand-50 px-2 py-1 rounded-md transition-colors"
-                          >
-                            Editar material
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -360,15 +412,17 @@ export default function Insumos() {
                             )}
                           </td>
                           <td className="p-4 text-center">
-                            <button
-                              onClick={() => openModal('edit-presentation', item, pres)}
-                              className="text-slate-400 hover:text-brand-600 transition-colors p-1"
-                              title="Editar Presentación"
-                            >
-                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
+                            {canToggleEstado && (
+                              <button
+                                onClick={() => openModal('edit-presentation', item, pres)}
+                                className="text-slate-400 hover:text-brand-600 transition-colors p-1"
+                                title="Editar Presentación"
+                              >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))

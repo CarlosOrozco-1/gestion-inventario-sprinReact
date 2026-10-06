@@ -44,6 +44,14 @@ Aplica estas reglas en **todo** cambio de interfaz del frontend.
 - Al colapsar el menú, el contenido debe expandirse (`main.side-collapsed`).
 - Tablas con `overflow-x-auto` (scroll horizontal en pantallas angostas).
 
+## 7. Inactivar / reactivar (catálogo)
+- **No hay borrado físico**: "eliminar" es inactivar (badge + botón Reactivar).
+- **Motivo obligatorio al inactivar**, con las unidades retenidas a la vista y la
+  explicación en tooltip. Se usa `EstadoInsumoModal.tsx` (material y
+  presentación comparten modal). Ver `AGENTS.md` 5.3.
+- Nunca confiar solo en la UI: el backend filtra los inactivos y rechaza sus
+  movimientos.
+
 ## Verificación al terminar
 1. `npm run build` en `frontend/` sin errores.
 2. Revisar con Chromium headless que la app monta (ver `deploy-docker`).

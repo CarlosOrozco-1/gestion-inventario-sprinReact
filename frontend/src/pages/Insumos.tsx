@@ -4,7 +4,7 @@ import InsumoModal from '../components/InsumoModal';
 import QrScanner from '../components/QrScanner';
 import SearchModal from '../components/SearchModal';
 import QrModal from '../components/QrModal';
-import ConfirmModal from '../components/ConfirmModal';
+import EstadoInsumoModal from '../components/EstadoInsumoModal';
 import { useToastStore } from '../store/useToastStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { getRol } from '../access';
@@ -29,7 +29,12 @@ export default function Insumos() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [qrModal, setQrModal] = useState(null);
+  // { tipo: 'insumo'|'presentacion', item, pres?, activo, ... }. `activo` es el
+  // estado ACTUAL: si es true, el modal va a inactivar. Nombrarlo asi evita el
+  // clásico `activo === false` invertido, que terminaba inactivando lo que ya
+  // estaba inactivo.
   const [estadoModal, setEstadoModal] = useState(null);
+  const [guardandoEstado, setGuardandoEstado] = useState(false);
   const [exportando, setExportando] = useState(false);
 
   const showToast = useToastStore((s: any) => s.showToast);
@@ -113,13 +118,34 @@ export default function Insumos() {
 
   const closeModal = () => setModalConfig(null);
 
-  const toggleEstadoInsumo = async (item, activo) => {
+  /**
+   * Inactivar o reactivar un material o una presentación. El motivo viaja al
+   * backend porque queda escrito en la auditoría: al inactivar es obligatorio
+   * (lo valida el modal y tambien ItemService), al reactivar es una nota.
+   */
+  const confirmarCambioEstado = async (motivo: string) => {
+    if (!estadoModal) return;
+    const { tipo, item, pres, activo } = estadoModal;
+    const nuevoActivo = !activo;
+    setGuardandoEstado(true);
     try {
-      await api.put(`/items/${item.id}/estado`, { activo });
-      fetchItems(activo ? 'Material activado' : 'Material inactivado');
+      const url = tipo === 'presentacion' ? `/presentations/${pres.id}/estado` : `/items/${item.id}/estado`;
+      await api.put(url, { activo: nuevoActivo, motivo });
+      const que = tipo === 'presentacion' ? 'Presentación' : 'Material';
+      const nombre = tipo === 'presentacion' ? pres.name : item.name;
+      setEstadoModal(null);
+      fetchItems(`${que} ${nuevoActivo ? 'activado' : 'inactivado'}: ${nombre}`);
     } catch (err) {
-      showToast(err.response?.data?.message || 'Error al cambiar el estado del material.', 'error');
+      showToast(err.response?.data?.message || 'Error al cambiar el estado.', 'error');
+    } finally {
+      setGuardandoEstado(false);
     }
+  };
+
+  /** Abre el modal de estado. `activo` es el estado actual del registro. */
+  const abrirEstado = (tipo, item, pres = null) => {
+    const activo = tipo === 'presentacion' ? pres.activo !== false : item.activo !== false;
+    setEstadoModal({ tipo, item, pres, activo });
   };
 
   // Escanea un QR y abre la edición de la presentación encontrada.
@@ -129,7 +155,9 @@ export default function Insumos() {
       const response = await api.get(`/presentations/qr/${qrCode}`);
       const scanned = response.data; // { id, code, item, presentation, size, ... }
       if (scanned.activo === false) {
-        showToast('Este insumo está inactivo. Consulta con tu superior para su activación.', 'error');
+        // `activo` es el flag efectivo del backend: falso si el material O la
+        // presentación están inactivos, y este dato no distingue cuál.
+        showToast('Este insumo o su presentación están inactivos. Consulta con tu superior para su activación.', 'error');
         return;
       }
       for (const it of items) {
@@ -207,23 +235,31 @@ export default function Insumos() {
         onClose={() => setQrModal(null)}
       />
 
-      {/* Confirmación para inactivar / activar un material (JEFE y ADMIN) */}
-      <ConfirmModal
+      {/* Inactivar / reactivar con motivo obligatorio (JEFE y ADMIN) */}
+      <EstadoInsumoModal
         isOpen={!!estadoModal}
-        title={estadoModal?.activo ? 'Activar material' : 'Inactivar material'}
-        message={
-          estadoModal?.activo
-            ? `Se reactivará "${estadoModal.item?.name}". Volverá a permitir movimientos.\n\n¿Estás seguro?`
-            : `Se inactivará "${estadoModal?.item?.name}".\n\nNo permitirá movimientos ni aparecerá en nuevas operaciones.\n\n¿Estás seguro?`
+        tipo={estadoModal?.tipo || 'insumo'}
+        activo={estadoModal?.activo !== false}
+        etiqueta={
+          estadoModal?.tipo === 'presentacion'
+            ? `${estadoModal?.item?.code} · ${estadoModal?.item?.name} / ${estadoModal?.pres?.name} (${estadoModal?.pres?.size})`
+            : `${estadoModal?.item?.code} · ${estadoModal?.item?.name}`
         }
-        confirmText={estadoModal?.activo ? 'Sí, activar' : 'Sí, inactivar'}
-        tone={estadoModal?.activo ? 'success' : 'danger'}
-        onConfirm={() => {
-          if (estadoModal) {
-            toggleEstadoInsumo(estadoModal.item, estadoModal.activo);
-            setEstadoModal(null);
-          }
-        }}
+        unidades={
+          estadoModal?.tipo === 'presentacion'
+            ? estadoModal?.pres?.stock || 0
+            : (estadoModal?.item?.presentations || []).reduce((acc: number, p: any) => acc + (p.stock || 0), 0)
+        }
+        resumenPresentaciones={
+          estadoModal?.tipo === 'insumo'
+            ? (estadoModal?.item?.presentations || []).map((p: any) => ({
+                nombre: p.name,
+                unidades: p.stock || 0,
+              }))
+            : undefined
+        }
+        cargando={guardandoEstado}
+        onConfirm={confirmarCambioEstado}
         onCancel={() => setEstadoModal(null)}
       />
 
@@ -352,7 +388,12 @@ export default function Insumos() {
                           {canToggleEstado && (
                             <>
                               <button
-                                onClick={() => setEstadoModal({ item, activo: item.activo === false })}
+                                onClick={() => abrirEstado('insumo', item)}
+                                title={
+                                  item.activo === false
+                                    ? 'Reactivar el material: vuelve a admitir movimientos'
+                                    : 'Inactivar el material: deja de admitir movimientos, sin borrar su historial'
+                                }
                                 className={`${btn('fantasma', 'inline')} ${
                                   item.activo === false
                                     ? 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
@@ -394,7 +435,19 @@ export default function Insumos() {
                         <tr key={pres.id} className="hover:bg-slate-50/80 transition-colors group">
                           <td className="p-4 text-slate-300 font-medium">↳</td>
                           <td className="p-4 text-slate-400 text-sm">—</td>
-                          <td className="p-4 text-slate-900 font-semibold">{pres.name}</td>
+                          <td className="p-4 text-slate-900 font-semibold">
+                            <span className="flex items-center gap-2">
+                              {pres.name}
+                              {pres.activo === false && (
+                                <span
+                                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-slate-200 text-slate-600"
+                                  title="Inactiva: no admite movimientos, pero conserva su stock e historial"
+                                >
+                                  Inactiva
+                                </span>
+                              )}
+                            </span>
+                          </td>
                           <td className="p-4 text-slate-600">{pres.size}</td>
                           <td className="p-4 text-right">{stockBadge(pres.stock)}</td>
                           <td className="p-4 text-center text-slate-500 text-sm">
@@ -413,17 +466,36 @@ export default function Insumos() {
                             )}
                           </td>
                           <td className="p-4 text-center">
-                            {canToggleEstado && (
-                              <button
-                                onClick={() => openModal('edit-presentation', item, pres)}
-                                className={iconBtn('marca', 'chico')}
-                                title="Editar Presentación"
-                              >
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              </button>
-                            )}
+                            <div className="flex items-center justify-center gap-2">
+                              {canToggleEstado && (
+                                <button
+                                  onClick={() => abrirEstado('presentacion', item, pres)}
+                                  title={
+                                    pres.activo === false
+                                      ? 'Reactivar la presentación: vuelve a admitir movimientos'
+                                      : 'Inactivar la presentación: deja de admitir movimientos, sin borrar su historial'
+                                  }
+                                  className={`${btn('fantasma', 'inline')} ${
+                                    pres.activo === false
+                                      ? 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
+                                      : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                                  }`}
+                                >
+                                  {pres.activo === false ? 'Activar' : 'Inactivar'}
+                                </button>
+                              )}
+                              {canToggleEstado && (
+                                <button
+                                  onClick={() => openModal('edit-presentation', item, pres)}
+                                  className={iconBtn('marca', 'chico')}
+                                  title="Editar Presentación"
+                                >
+                                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))

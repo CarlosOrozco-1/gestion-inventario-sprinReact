@@ -1,5 +1,6 @@
 package com.gestion.inventario.controller;
 
+import com.gestion.inventario.dto.EstadoRequestDTO;
 import com.gestion.inventario.dto.ItemRequestDTO;
 import com.gestion.inventario.dto.PresentationRequestDTO;
 import com.gestion.inventario.model.Item;
@@ -70,15 +71,33 @@ public class ItemController {
     /**
      * Inactivar / reactivar un material (eliminación lógica). Acción exclusiva
      * de JEFE y ADMIN. Un material inactivo no permite nuevos movimientos.
+     *
+     * Cuerpo: {"activo": false, "motivo": "..."}. El motivo es obligatorio al
+     * inactivar (lo valida ItemService) y queda escrito en la bitácora junto
+     * con el stock que queda retenido, para que la decisión sea trazable.
      */
     @PutMapping("/{id}/estado")
     @PreAuthorize("hasAnyRole('ADMIN','JEFE')")
-    public Item cambiarEstado(@PathVariable Long id, @RequestBody java.util.Map<String, Boolean> body,
+    public Item cambiarEstado(@PathVariable Long id, @RequestBody EstadoRequestDTO body,
                               Authentication authentication, HttpServletRequest httpRequest) {
-        boolean activo = Boolean.TRUE.equals(body.get("activo"));
-        Item item = itemService.cambiarActivoItem(id, activo);
+        boolean activo = Boolean.TRUE.equals(body.getActivo());
+        String motivo = ItemService.validarMotivoInactivacion(activo, body.getMotivo());
+        Item item = itemService.cambiarActivoItem(id, activo, motivo);
+
+        StringBuilder detalle = new StringBuilder()
+                .append(activo ? "Reactivó el insumo " : "Inactivó el insumo ")
+                .append(item.getCode()).append(" · ").append(item.getName());
+        if (!activo) {
+            int unidades = item.getPresentations().stream()
+                    .mapToInt(p -> p.getStock() == null ? 0 : p.getStock()).sum();
+            detalle.append(" · ").append(unidades).append(" uds retenidas");
+        }
+        if (motivo != null) {
+            detalle.append(" · Motivo: ").append(motivo);
+        }
+
         auditService.registrar(activo ? AuditService.INSUMO_REACTIVADO : AuditService.INSUMO_INACTIVADO,
-                (activo ? "Reactivó el insumo " : "Inactivó el insumo ") + item.getCode() + " · " + item.getName(),
+                detalle.toString(),
                 "items", item.getId(), authentication.getName(), authentication.getName(),
                 httpRequest.getRemoteAddr());
         return item;

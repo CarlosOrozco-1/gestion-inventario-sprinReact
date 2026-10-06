@@ -47,6 +47,8 @@ public class AuditService {
     public static final String INSUMO_INACTIVADO = "INSUMO_INACTIVADO";
     public static final String INSUMO_REACTIVADO = "INSUMO_REACTIVADO";
     public static final String PRESENTACION_AGREGADA = "PRESENTACION_AGREGADA";
+    public static final String PRESENTACION_INACTIVADA = "PRESENTACION_INACTIVADA";
+    public static final String PRESENTACION_REACTIVADA = "PRESENTACION_REACTIVADA";
     public static final String QR_DESCARGA = "QR_DESCARGA";
     public static final String QR_IMPRESION = "QR_IMPRESION";
     public static final String QR_CONSULTADO = "QR_CONSULTADO";

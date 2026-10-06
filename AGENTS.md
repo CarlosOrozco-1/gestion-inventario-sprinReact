@@ -230,6 +230,34 @@ import { btn, iconBtn } from '../utils/buttonStyles';
 
 ---
 
+### 5.3 Estados lógicos: inactivar y reactivar (OBLIGATORIO)
+
+No existe borrado físico de insumos ni de presentaciones. "Eliminar" del
+catálogo es **inactivar**: la fila sigue visible con su badge para poder
+reactivarla, conserva su stock y su histórico de movimientos, y desaparece de
+los selects, del QR operativo y de `/api/insumos`.
+
+1. **Motivo obligatorio al inactivar**, en materiales y en presentaciones. Se
+   valida en el backend (`ItemService.validarMotivoInactivacion`, mínimo 10
+   caracteres) y queda escrito en `audit_logs.description`. Al reactivar es
+   una nota opcional.
+2. **El modal debe mostrar las unidades afectadas** y, si son > 0, avisar que
+   quedan retenidas: la explicación va en tooltip, no en párrafo
+   (sección 1 de `.opencode/skills/mejora-ux/SKILL.md`).
+   Componente único: `frontend/src/components/EstadoInsumoModal.tsx`.
+3. **El backend es la barrera, no la UI**: `ItemService.listarVistaInsumos()`
+   filtra inactivos y `MovimientoService` rechaza movimientos hacia un material
+   o una presentación inactiva aunque alguien llame la API directo.
+4. Un material puede tener presentaciones inactivas y seguir activo: el estado
+   vive en los dos niveles (`items.activo` V8, `presentations.activo` V9) y no se
+   propaga de uno al otro.
+5. Solo `ADMIN` y `JEFE` cambian estos estados (`@PreAuthorize`).
+6. Los reportes y el Excel del catálogo exportan **también** los inactivos, con
+   una columna de estado por nivel: es el inventario que se puede dar por
+   perdido, no solo el que se puede mover.
+
+---
+
 ## 6. Testing y Skills del Proyecto
 
 ### Framework de testing
@@ -274,6 +302,9 @@ import { btn, iconBtn } from '../utils/buttonStyles';
 8. **Fase 8: Recuperación de contraseña por correo** — SMTP + código de un solo uso.
 9. **Fase 9: Tiempo real (WebSocket)** — refresco en vivo de Auditoría, Catálogo,
    Kárdex y Ajustes (`useAuditSocket` + `useRealtimeSync`).
+10. **Eliminación lógica de presentaciones y motivo obligatorio** — `presentations.activo`
+    (V9), endpoints de estado de material y presentación con el motivo en la bitácora,
+    y `EstadoInsumoModal` con el detalle de las existencias retenidas (ver 5.3).
 
 ---
 

@@ -1,5 +1,6 @@
 package com.gestion.inventario.controller;
 
+import com.gestion.inventario.dto.EstadoRequestDTO;
 import com.gestion.inventario.dto.InsumoViewDTO;
 import com.gestion.inventario.dto.PresentationRequestDTO;
 import com.gestion.inventario.model.Presentation;
@@ -45,7 +46,11 @@ public class PresentationController {
         dto.setMaxStock(p.getMaxStock());
         dto.setEstimatedCost(p.getEstimatedCost());
         dto.setQrCode(p.getQrCode());
-        dto.setActivo(p.getItem().getActivo());
+        // Flag efectivo: sirve para bloquear la operación, así que es falso
+        // si el material O la presentación están inactivos (el frontend avisa
+        // "insumo o presentación" porque no puede distinguir con este dato).
+        dto.setActivo(Boolean.TRUE.equals(p.getItem().getActivo())
+                && Boolean.TRUE.equals(p.getActivo()));
         return ResponseEntity.ok(dto);
     }
 
@@ -54,6 +59,45 @@ public class PresentationController {
     public Presentation actualizarPresentacion(@PathVariable Long id,
                                                @Valid @RequestBody PresentationRequestDTO request) {
         return itemService.actualizarPresentacion(id, request);
+    }
+
+    /**
+     * Inactivar / reactivar una presentación (eliminación lógica, V9). Cierra
+     * el hueco que quedaba frente a los materiales: una presentación creada
+     * por error (un duplicado, un tamaño mal digitado) se podía renombrar
+     * pero no ocultar, y quedaba con su stock para siempre.
+     *
+     * Cuerpo: {"activo": false, "motivo": "..."}. El motivo es obligatorio al
+     * inactivar y queda en la bitácora junto con las unidades que quedan
+     * retenidas. Exclusivo de JEFE y ADMIN.
+     */
+    @PutMapping("/{id}/estado")
+    @PreAuthorize("hasAnyRole('ADMIN','JEFE')")
+    public Presentation cambiarEstado(@PathVariable Long id,
+                                      @RequestBody EstadoRequestDTO body,
+                                      Authentication authentication,
+                                      HttpServletRequest httpRequest) {
+        boolean activo = Boolean.TRUE.equals(body.getActivo());
+        String motivo = ItemService.validarMotivoInactivacion(activo, body.getMotivo());
+        Presentation p = itemService.cambiarActivoPresentacion(id, activo, motivo);
+
+        String etiqueta = p.getItem().getCode() + " · " + p.getItem().getName()
+                + " / " + p.getName() + " (" + p.getSize() + ")";
+        StringBuilder detalle = new StringBuilder()
+                .append(activo ? "Reactivó la presentación " : "Inactivó la presentación ")
+                .append(etiqueta);
+        if (!activo) {
+            detalle.append(" · ").append(p.getStock() == null ? 0 : p.getStock()).append(" uds retenidas");
+        }
+        if (motivo != null) {
+            detalle.append(" · Motivo: ").append(motivo);
+        }
+
+        auditService.registrar(activo ? AuditService.PRESENTACION_REACTIVADA : AuditService.PRESENTACION_INACTIVADA,
+                detalle.toString(),
+                "presentations", p.getId(), authentication.getName(), authentication.getName(),
+                httpRequest.getRemoteAddr());
+        return p;
     }
 
     /**

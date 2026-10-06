@@ -68,12 +68,62 @@ public class ItemService {
         return itemRepository.save(item);
     }
 
+    /**
+     * Inactivar / reactivar un material (eliminación lógica). El motivo es
+     * obligatorio al inactivar: es lo que queda escrito en la bitácora para
+     * que dentro de un mes se entienda por qué un material dejó de operarse.
+     * Al reactivar el motivo es opcional.
+     */
     @Transactional
-    public Item cambiarActivoItem(Long id, boolean activo) {
+    public Item cambiarActivoItem(Long id, boolean activo, String motivo) {
+        // Se valida acá también (no solo en el controller) para que ningún
+        // llamador futuro pueda inactivar sin justificación.
+        validarMotivoInactivacion(activo, motivo);
         Item item = itemRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Material no encontrado."));
         item.setActivo(activo);
         return itemRepository.save(item);
+    }
+
+    /**
+     * Inactivar / reactivar una presentación (eliminación lógica, V9). Mismo
+     * criterio que el material: conserva stock e histórico y exige motivo
+     * cuando se inactiva.
+     */
+    @Transactional
+    public Presentation cambiarActivoPresentacion(Long id, boolean activo, String motivo) {
+        validarMotivoInactivacion(activo, motivo);
+        Presentation presentation = presentationRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Presentación no encontrada."));
+        presentation.setActivo(activo);
+        return presentationRepository.save(presentation);
+    }
+
+    /**
+     * El motivo es obligatorio al inactivar y se recorta a 500 caracteres
+     * como red de seguridad: audit_logs.description es TEXT, pero la bitácora
+     * se lee en pantalla y un texto infinito la vuelve inútil. El textarea del
+     * frontend limita a 300, así que en la práctica el recorte casi nunca
+     * actúa. Se centraliza aquí para que material y presentación se comporten
+     * igual.
+     *
+     * @return el motivo limpio, o null si no aplica (reactivación sin nota).
+     */
+    public static String validarMotivoInactivacion(boolean activo, String motivo) {
+        if (activo) {
+            // Reactivar no exige justificación: devolver solo lo que venga.
+            return (motivo == null || motivo.isBlank()) ? null : motivo.trim();
+        }
+        if (motivo == null || motivo.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Debes indicar el motivo por el que se inactiva. Quedará registrado en la auditoría.");
+        }
+        String limpio = motivo.trim();
+        if (limpio.length() < 10) {
+            throw new IllegalArgumentException(
+                    "El motivo es muy corto: describe qué pasó (mínimo 10 caracteres).");
+        }
+        return limpio.length() > 500 ? limpio.substring(0, 500) : limpio;
     }
 
     @Transactional
@@ -129,6 +179,11 @@ public class ItemService {
                 continue;
             }
             for (Presentation p : item.getPresentations()) {
+                // Igual que el material: una presentación inactiva (V9) no
+                // aparece en los selects de movimientos ni en el dashboard.
+                if (!Boolean.TRUE.equals(p.getActivo())) {
+                    continue;
+                }
                 InsumoViewDTO dto = new InsumoViewDTO();
                 dto.setId(p.getId());
                 dto.setCode(item.getCode());

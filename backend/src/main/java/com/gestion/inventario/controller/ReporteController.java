@@ -325,9 +325,10 @@ public class ReporteController {
      * total. Trae también el costo estimado y el valor de la existencia, que es
      * lo que permite decidir a qué productos comprar primero.
      *
-     * Se exportan TODOS los materiales, incluidos los inactivos, con una columna
-     * que indica el estado: si no se deja claro, se cuentan cosas que ya no se
-     * pueden mover.
+     * Se exportan TODOS los materiales, incluidos los inactivos, y también las
+     * presentaciones inactivas de un material que sigue activo (V9), con una
+     * columna por nivel que indica el estado: si no se deja claro, se cuentan
+     * cosas que ya no se pueden mover.
      */
     @GetMapping("/catalogo/excel")
     @Transactional(readOnly = true)
@@ -351,7 +352,8 @@ public class ReporteController {
 
             Row headerRow = sheet.createRow(0);
             String[] headers = {"Código", "Material", "Presentación", "Tamaño", "Existencia",
-                    "Stock mínimo", "Stock máximo", "Costo est.", "Valor existencia", "Estado", "Código QR"};
+                    "Stock mínimo", "Stock máximo", "Costo est.", "Valor existencia",
+                    "Estado material", "Estado presentación", "Código QR"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -385,9 +387,15 @@ public class ReporteController {
                     celdaValor.setCellValue(valor.doubleValue());
                     celdaValor.setCellStyle(moneyStyle);
 
+                    // Estado material y de la presentación van en columnas
+                    // separadas: un material puede estar activo con alguna
+                    // presentación inactiva, y esa diferencia decide si esa
+                    // fila se puede mover.
                     row.createCell(9).setCellValue(
                             Boolean.TRUE.equals(item.getActivo()) ? "Activo" : "Inactivo");
-                    row.createCell(10).setCellValue(pres.getQrCode() != null ? pres.getQrCode() : "");
+                    row.createCell(10).setCellValue(
+                            Boolean.TRUE.equals(pres.getActivo()) ? "Activo" : "Inactivo");
+                    row.createCell(11).setCellValue(pres.getQrCode() != null ? pres.getQrCode() : "");
                 }
             }
 

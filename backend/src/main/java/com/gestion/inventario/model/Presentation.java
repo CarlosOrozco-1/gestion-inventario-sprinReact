@@ -54,6 +54,16 @@ public class Presentation {
     @Column(name = "qr_code", unique = true)
     private String qrCode;
 
+    /**
+     * Inactivación lógica (V9). Una presentación mal creada se oculta del
+     * catálogo y de los selects sin perder su stock ni su histórico de
+     * movimientos. Un material puede tener presentaciones inactivas y seguir
+     * activo. Solo ADMIN y JEFE cambian este estado, siempre con motivo, que
+     * queda registrado en la bitácora.
+     */
+    @Column(nullable = false)
+    private Boolean activo = true;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

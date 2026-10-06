@@ -2,8 +2,13 @@
 # TUNEL HTTPS LOCAL (solo rama deploy-local)
 # ============================================================
 # Da acceso HTTPS con certificado de confianza publica a la app
-# que vive en http://192.168.200.23:8081 dentro de la LAN, sin
-# instalar nada en los equipos ni abrir puertos en el router.
+# que corre en el host, sin instalar nada en los equipos ni abrir
+# puertos en el router.
+#
+# La app se alcanza por host.docker.internal y NO por la IP de la LAN:
+# asi el tunel sigue funcionando cuando el DHCP cambia la direccion del
+# servidor (la IP vive en el .env de la raiz como SERVER_IP, y para entrar
+# por SSH se usa el alias "siges" de ~/.ssh/config).
 #
 # POR QUE: el navegador solo habilita la camara (getUserMedia) en
 # un contexto seguro, es decir HTTPS o localhost. Servida por HTTP

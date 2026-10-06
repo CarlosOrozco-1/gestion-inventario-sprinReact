@@ -1,4 +1,4 @@
-# GUÍA DE DESPLIEGUE LOCAL EN SERVIDOR UBUNTU (IP: 192.168.200.23)
+# GUÍA DE DESPLIEGUE LOCAL EN SERVIDOR UBUNTU
 
 Documento de referencia para el despliegue del **Sistema de Gestión de Inventarios** en la infraestructura local (Servidor Ubuntu + Docker + PostgreSQL + Respaldos en NAS).
 
@@ -6,11 +6,42 @@ Documento de referencia para el despliegue del **Sistema de Gestión de Inventar
 
 ## 📌 Datos de la Red y Servidor Local
 
-* **IP del Servidor Ubuntu:** `192.168.200.23`
-* **URL de Acceso a la App:** `http://192.168.200.23:8081`
-* **API REST Backend:** `http://192.168.200.23:8080/api`
+La IP del servidor **no está escrita en este documento**: la entrega el DHCP y
+cambia. Vive en el `.env` de la raíz del proyecto y para entrar por SSH se usa
+el alias `siges` de `~/.ssh/config`. Esas son las únicas dos cosas que hay que
+editar cuando el router cambie la dirección.
+
+* **IP del Servidor Ubuntu:** `SERVER_IP` en el `.env` (ver con `hostname -I`)
+* **URL de Acceso a la App:** `http://$SERVER_IP:$APP_PUERTO` (`APP_PUERTO`, por defecto `8081`)
+* **API REST Backend:** `http://$SERVER_IP:$API_PUERTO/api` (`API_PUERTO`, por defecto `8080`)
+* **Acceso SSH:** `ssh siges` (sin escribir la IP; `HostName` en `~/.ssh/config`)
 * **Base de Datos (PostgreSQL):** Puerto `5432`
 * **Ruta de la NAS de Respaldos:** `//unasserver.edph.local/compartido`
+
+> ⚠️ **El CORS no se rompe con el cambio de IP.** Usa el comodín
+> `http://192.168.200.*:*`, que ya cubre cualquier dirección de la LAN. Por eso
+> en `CORS_ALLOWED_ORIGINS` **no** se escribe `${SERVER_IP}`: el comodín es más
+> simple y no depende de que Compose interpole la variable.
+
+---
+
+## 🔄 Cuando el DHCP cambia la IP del servidor
+
+Son tres lugares, y ninguno está en el código:
+
+```bash
+# 1. La IP que imprimen los scripts y usa la documentación:
+sed -i "s|^SERVER_IP=.*|SERVER_IP=$(hostname -I | awk '{print $1}')|" .env
+
+# 2. El alias de SSH (en el equipo desde el que te conectas):
+#    ~/.ssh/config -> Host siges -> HostName <ip-nueva>
+
+# 3. Reiniciar para que el backend y el túnel vuelvan a leer la configuración:
+./deploy.sh
+```
+
+El túnel de Cloudflare **no se rompe**: apunta a `host.docker.internal`, no a la
+IP, por diseño.
 
 ---
 
@@ -86,7 +117,7 @@ docker compose logs -f backend
 ```
 
 > **Verificación:** Abrir en el navegador de cualquier equipo en la red local:
-> 👉 **`http://192.168.200.23:8081`**
+> 👉 **`http://<SERVER_IP>:8081`** (el valor de `SERVER_IP` en el `.env`)
 
 ---
 
@@ -181,7 +212,7 @@ Agregar la línea:
 
 ### ¿Por qué es necesario?
 
-El navegador solo habilita la cámara (`getUserMedia`) en un **contexto seguro**: HTTPS o `localhost`. Al entrar por `http://192.168.200.23:8081` no existe `navigator.mediaDevices` y el escáner QR falla con `Camera streaming not supported by the browser`. No es un bug: es el modelo de seguridad del navegador.
+El navegador solo habilita la cámara (`getUserMedia`) en un **contexto seguro**: HTTPS o `localhost`. Al entrar por `http://<SERVER_IP>:8081` no existe `navigator.mediaDevices` y el escáner QR falla con `Camera streaming not supported by the browser`. No es un bug: es el modelo de seguridad del navegador. Cambiar la IP no lo arregla: por HTTP en una IP de red **nunca** habrá cámara; la única salida es el túnel HTTPS (o `localhost` en el mismo equipo).
 
 El túnel da una URL HTTPS con certificado público **sin instalar nada en los equipos y sin abrir puertos en el router**. Los usuarios (PC y celulares) abren la URL y la cámara funciona.
 

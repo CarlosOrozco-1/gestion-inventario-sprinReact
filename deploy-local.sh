@@ -47,8 +47,25 @@ fi
 
 echo ""
 echo ">> Despliegue Local Exitoso!"
-echo ">> Acceso a la Aplicación: http://192.168.200.23:8081"
-echo ">> Acceso a la API Backend: http://192.168.200.23:8080/api"
+
+# La IP del servidor la entrega el DHCP, asi que no esta escrita aqui: vive en
+# el .env (SERVER_IP). Imprimir una IP fija hacia que el router la cambie otra
+# vez es lo que hace que este mensaje mienta, asi que si falta se avisa en vez
+# de adivinar. Se lee con grep/cut igual que JWT_SECRET, sin ejecutar el .env.
+leer_env() { grep -E "^$1=" .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' | sed 's/^["'\'']//; s/["'\'']$//'; }
+
+SERVER_IP=$(leer_env SERVER_IP)
+APP_PUERTO=$(leer_env APP_PUERTO); APP_PUERTO=${APP_PUERTO:-8081}
+API_PUERTO=$(leer_env API_PUERTO); API_PUERTO=${API_PUERTO:-8080}
+
+if [ -n "$SERVER_IP" ] && [ "$SERVER_IP" != "cambia_esto" ]; then
+    echo ">> Acceso a la Aplicación: http://$SERVER_IP:$APP_PUERTO"
+    echo ">> Acceso a la API Backend: http://$SERVER_IP:$API_PUERTO/api"
+else
+    echo ">> AVISO: el .env no define SERVER_IP, asi que no se imprimen las URLs de red."
+    echo ">>   Agrega SERVER_IP=<ip-actual-del-servidor> al .env (ip a)."
+    echo ">>   Se la ip del servidor con:  hostname -I"
+fi
 if [ -d tunnel-local ] && [ -f tunnel-local/.env ]; then
     echo ">> Camara QR (requiere HTTPS): ver la URL notificada o ejecuta:"
     echo ">>   cd tunnel-local && ./get-url.sh"

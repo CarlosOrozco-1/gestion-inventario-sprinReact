@@ -78,13 +78,13 @@ def main():
     check("login admin devuelve rol ADMIN", admin["user"]["rol"] == "ADMIN")
 
     print("\n[2] Gestión de usuarios")
-    jefe = request("POST", "/usuarios/admin", admin_tok, {"name": "Jefa E2E", "email": f"jefe-e2e-{SUF}@inventario.com", "password": "123456", "rol": "JEFE"}, 200)
-    aux = request("POST", "/usuarios/admin", admin_tok, {"name": "Aux E2E", "email": f"aux-e2e-{SUF}@inventario.com", "password": "123456", "rol": "AUXILIAR"}, 200)
+    jefe = request("POST", "/usuarios/admin", admin_tok, {"name": "Jefa E2E", "email": f"jefe-e2e-{SUF}@inventario.com", "password": "E2eClave2026", "rol": "JEFE"}, 200)
+    aux = request("POST", "/usuarios/admin", admin_tok, {"name": "Aux E2E", "email": f"aux-e2e-{SUF}@inventario.com", "password": "E2eClave2026", "rol": "AUXILIAR"}, 200)
     jefe_id, aux_id = jefe["id"], aux["id"]
     check("se crearon jefe y auxiliar", jefe["rol"]["name"] == "JEFE" and aux["rol"]["name"] == "AUXILIAR")
 
-    jefe_login = request("POST", "/auth/login", body={"email": f"jefe-e2e-{SUF}@inventario.com", "password": "123456"})
-    aux_login = request("POST", "/auth/login", body={"email": f"aux-e2e-{SUF}@inventario.com", "password": "123456"})
+    jefe_login = request("POST", "/auth/login", body={"email": f"jefe-e2e-{SUF}@inventario.com", "password": "E2eClave2026"})
+    aux_login = request("POST", "/auth/login", body={"email": f"aux-e2e-{SUF}@inventario.com", "password": "E2eClave2026"})
     jefe_tok, aux_tok = jefe_login["token"], aux_login["token"]
 
     # Update name/email (corrección de nombre tipo "Maria" -> "Marhia")
@@ -136,6 +136,65 @@ def main():
     check("búsqueda por QR devuelve la presentación", byqr and byqr["id"] == a_id and byqr["presentation"] == "Caja")
     # QR inexistente -> 404
     request("GET", "/presentations/qr/NO-EXISTE-999", admin_tok, expect=404)
+
+    print("\n[3.2] Estados lógicos: motivo obligatorio y aislamiento (V8 + V9)")
+    # El motivo es obligatorio al inactivar: sin él y con él muy corto, 400.
+    request("PUT", f"/presentations/{b_id}/estado", admin_tok, {"activo": False}, 400)
+    request("PUT", f"/presentations/{b_id}/estado", admin_tok, {"activo": False, "motivo": "dup"}, 400)
+    # AUXILIAR no cambia estados aunque mande motivo valido.
+    request("PUT", f"/presentations/{b_id}/estado", aux_tok,
+            {"activo": False, "motivo": "Intento sin permiso E2E"}, 403)
+    # Inactivar con motivo valido
+    MOTIVO_PRES = f"Presentacion duplicada por error de captura E2E {SUF}"
+    pres_off = request("PUT", f"/presentations/{b_id}/estado", admin_tok,
+                       {"activo": False, "motivo": MOTIVO_PRES})
+    check("presentacion inactivada con motivo", pres_off and pres_off["activo"] is False)
+    # La presentacion inactiva desaparece de /insumos, pero no del catalogo
+    ins = request("GET", "/insumos", admin_tok)
+    check("la presentacion inactiva sale de /insumos", not any(x["id"] == b_id for x in ins))
+    catalogo = request("GET", "/items", admin_tok)
+    item_b_cat = next((x for x in catalogo if x["id"] == b_item_id), None)
+    check("la presentacion inactiva sigue en el catalogo con su estado",
+          item_b_cat is not None and any(p["id"] == b_id and p["activo"] is False
+                                         for p in item_b_cat["presentations"]))
+    # El QR de una presentacion inactiva responde con el flag efectivo en false
+    pres_b_cat = next(p for p in item_b_cat["presentations"] if p["id"] == b_id)
+    byqr_off = request("GET", f"/presentations/qr/{pres_b_cat['qrCode']}", admin_tok)
+    check("el QR de la presentacion inactiva avisa activo=false", byqr_off and byqr_off["activo"] is False)
+    # No se puede mover stock de una presentacion inactiva
+    request("POST", "/movimientos", jefe_tok,
+            {"presentationId": b_id, "type": "ENTRADA", "quantity": 5, "detail": "Entrada E2E"}, 400)
+    # Reactivar: el motivo es opcional
+    pres_on = request("PUT", f"/presentations/{b_id}/estado", admin_tok, {"activo": True})
+    check("presentacion reactivada sin motivo", pres_on and pres_on["activo"] is True)
+    ins = request("GET", "/insumos", admin_tok)
+    check("la presentacion reactivada vuelve a /insumos", any(x["id"] == b_id for x in ins))
+
+    # El mismo criterio aplica al material (V8) y ahora exige motivo
+    request("PUT", f"/items/{b_item_id}/estado", admin_tok, {"activo": False}, 400)
+    request("PUT", f"/items/{b_item_id}/estado", aux_tok,
+            {"activo": False, "motivo": "Intento sin permiso E2E"}, 403)
+    MOTIVO_ITEM = f"Material retirado del inventario E2E {SUF}"
+    item_off = request("PUT", f"/items/{b_item_id}/estado", admin_tok,
+                       {"activo": False, "motivo": MOTIVO_ITEM})
+    check("material inactivado con motivo", item_off and item_off["activo"] is False)
+    ins = request("GET", "/insumos", admin_tok)
+    check("el material inactivo y sus presentaciones salen de /insumos",
+          not any(x["id"] in (b_id, b_item_id) for x in ins))
+    # No se puede mover stock de un material inactivo
+    request("POST", "/movimientos", jefe_tok,
+            {"presentationId": b_id, "type": "ENTRADA", "quantity": 5, "detail": "Entrada E2E"}, 400)
+    # Reactivar el material devuelve sus presentaciones activas
+    request("PUT", f"/items/{b_item_id}/estado", admin_tok, {"activo": True})
+    ins = request("GET", "/insumos", admin_tok)
+    check("el material reactivado vuelve con sus presentaciones", any(x["id"] == b_id for x in ins))
+
+    # La bitacora guardo el motivo de cada inactivacion
+    aud = request("GET", "/auditoria?size=50", admin_tok)
+    filas = aud.get("content", []) if isinstance(aud, dict) else []
+    descripciones = " | ".join(str(f.get("description", "")) for f in filas)
+    check("la auditoria registra el motivo de la presentacion inactivada", MOTIVO_PRES in descripciones)
+    check("la auditoria registra el motivo del material inactivado", MOTIVO_ITEM in descripciones)
 
     print("\n[4] Motor transaccional (movimientos)")
     m1 = request("POST", "/movimientos", jefe_tok, {"presentationId": a_id, "type": "ENTRADA", "quantity": 20, "detail": "Compra E2E"})

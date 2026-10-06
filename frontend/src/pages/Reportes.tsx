@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import api from '../api/axios';
 import Paginacion from '../components/Paginacion';
 import { usePaginacion } from '../hooks/usePaginacion';
+import { btn } from '../utils/buttonStyles';
 
 const TAMANIO_PAGINA = 10;
 
@@ -150,7 +151,7 @@ export default function Reportes() {
         <div className="flex items-center gap-3">
           <button 
             onClick={handleExportPdf}
-            className="inline-flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-rose-500/50"
+            className={btn('peligro', 'barra')}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -160,7 +161,7 @@ export default function Reportes() {
           
           <button 
             onClick={handleExportExcel}
-            className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-emerald-500/50"
+            className={btn('exito', 'barra')}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import ConfirmModal from './ConfirmModal';
+import { btn, iconBtn } from '../utils/buttonStyles';
 
 const MODES = {
   'create-item': {
@@ -178,7 +179,8 @@ export default function InsumoModal({ isOpen, onClose, onSave, modalConfig, item
           <h2 className="text-xl font-bold text-slate-800">{title}</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+            title="Cerrar"
+            className={iconBtn('neutro', 'chico')}
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -271,7 +273,7 @@ export default function InsumoModal({ isOpen, onClose, onSave, modalConfig, item
                           setCodeTouched(false);
                         }}
                         title="Generar otro código"
-                        className="shrink-0 inline-flex items-center justify-center px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border border-slate-200 transition-colors"
+                        className={`${btn('neutro', 'fila')} shrink-0`}
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -384,14 +386,14 @@ export default function InsumoModal({ isOpen, onClose, onSave, modalConfig, item
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors"
+              className={btn('neutro', 'modal')}
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading || (mode === 'create-item' && isCodeTaken)}
-              className="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg transition-colors shadow-sm focus:ring-2 focus:ring-brand-500/50 disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
+              className={btn('primario', 'modal')}
             >
               {loading && (
                 <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">

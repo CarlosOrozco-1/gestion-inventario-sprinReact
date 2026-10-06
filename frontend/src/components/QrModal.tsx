@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
 import api from '../api/axios';
+import { btn, iconBtn } from '../utils/buttonStyles';
 
 interface QrModalProps {
   isOpen: boolean;
@@ -110,8 +111,8 @@ export default function QrModal({ isOpen, item, presentation, onClose }: QrModal
           <h2 className="text-xl font-bold text-slate-800">Código QR</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 transition-colors p-1"
-            aria-label="Cerrar"
+            className={iconBtn('neutro', 'chico')}
+            title="Cerrar" aria-label="Cerrar"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -166,7 +167,7 @@ export default function QrModal({ isOpen, item, presentation, onClose }: QrModal
             type="button"
             onClick={handleCopiarCodigo}
             title="Copiar código QR"
-            className="inline-flex items-center justify-center gap-1 border border-slate-300 text-slate-600 hover:bg-slate-50 hover:text-brand-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors shrink-0"
+            className={`${btn('contorno', 'fila')} shrink-0`}
           >
             {copiado ? 'Copiado' : (
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -181,7 +182,7 @@ export default function QrModal({ isOpen, item, presentation, onClose }: QrModal
         <div className="px-6 pb-6 flex flex-col gap-2">
           <button
             onClick={handleDownloadPng}
-            className="w-full inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
+            className={btn('primario', 'bloque')}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -190,7 +191,7 @@ export default function QrModal({ isOpen, item, presentation, onClose }: QrModal
           </button>
           <button
             onClick={handlePrint}
-            className="w-full inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-lg font-medium transition-colors"
+            className={btn('oscuro', 'bloque')}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2h2z" />
@@ -199,7 +200,7 @@ export default function QrModal({ isOpen, item, presentation, onClose }: QrModal
           </button>
           <button
             onClick={onClose}
-            className="w-full inline-flex items-center justify-center px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors"
+            className={btn('neutro', 'bloque')}
           >
             Cerrar
           </button>

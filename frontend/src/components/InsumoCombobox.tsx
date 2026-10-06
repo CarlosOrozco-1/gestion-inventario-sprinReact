@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { iconBtn } from '../utils/buttonStyles';
 
 /**
  * Combobox de selección de insumo con búsqueda incremental.
@@ -178,7 +179,7 @@ export default function InsumoCombobox({
             type="button"
             onClick={handleClear}
             title="Limpiar"
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors"
+            className={`${iconBtn('neutro', 'chico')} absolute right-2 top-1/2 -translate-y-1/2`}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

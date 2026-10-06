@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
+import { btn, iconBtn } from '../utils/buttonStyles';
 
 interface UsuarioModalProps {
   isOpen: boolean;
@@ -72,9 +73,10 @@ export default function UsuarioModal({ isOpen, onClose, onSuccess, usuario }: Us
               {isEditing ? 'Actualiza los datos o cambia el rol del usuario' : 'Crear credenciales de acceso al sistema'}
             </p>
           </div>
-          <button 
+          <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+            title="Cerrar"
+            className={iconBtn('neutro', 'grande', true)}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -148,14 +150,14 @@ export default function UsuarioModal({ isOpen, onClose, onSuccess, usuario }: Us
             <button 
               type="button" 
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl font-semibold transition-colors"
+              className={`${btn('neutro', 'modal')} flex-1`}
             >
               Cancelar
             </button>
             <button 
               type="submit" 
               disabled={loading}
-              className="flex-1 px-4 py-2.5 text-white bg-brand-600 hover:bg-brand-700 rounded-xl font-semibold transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
+              className={`${btn('primario', 'modal')} flex-1`}
             >
               {loading ? 'Guardando...' : isEditing ? 'Guardar Cambios' : 'Crear Usuario'}
             </button>

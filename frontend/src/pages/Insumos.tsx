@@ -12,6 +12,7 @@ import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import { usePaginacion } from '../hooks/usePaginacion';
 import Paginacion from '../components/Paginacion';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
+import { btn, iconBtn } from '../utils/buttonStyles';
 
 // El catálogo se pagina en cliente: son decenas de materiales, no miles.
 // Se pagina por MATERIAL (no por presentación) porque cada fila de material
@@ -238,7 +239,7 @@ export default function Insumos() {
             onClick={exportarExcel}
             disabled={exportando}
             title="Descargar todo el catálogo con existencias (incluye los materiales que no están en esta página)"
-            className="inline-flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed text-slate-700 px-4 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
+            className={btn('exito', 'barra')}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -248,7 +249,7 @@ export default function Insumos() {
 
           <button
             onClick={() => setIsSearchOpen(true)}
-            className="inline-flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
+            className={btn('neutro', 'barra')}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -258,7 +259,7 @@ export default function Insumos() {
 
           <button
             onClick={() => setIsScannerOpen(true)}
-            className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-brand-500/50"
+            className={btn('primario', 'barra')}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m4-14a6 6 0 00-8 8m8-8a6 6 0 010 8m-8-8a6 6 0 000 8" />
@@ -269,7 +270,7 @@ export default function Insumos() {
           {puedeEditarCatalogo && (
             <button
               onClick={() => openModal('create-item')}
-              className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-brand-500/50"
+              className={btn('primario', 'barra')}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -352,7 +353,7 @@ export default function Insumos() {
                             <>
                               <button
                                 onClick={() => setEstadoModal({ item, activo: item.activo === false })}
-                                className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-md transition-colors ${
+                                className={`${btn('fantasma', 'inline')} ${
                                   item.activo === false
                                     ? 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
                                     : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
@@ -362,7 +363,7 @@ export default function Insumos() {
                               </button>
                               <button
                                 onClick={() => openModal('create-presentation', item)}
-                                className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 hover:bg-brand-50 px-2 py-1 rounded-md transition-colors"
+                                className={btn('fantasma', 'inline')}
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -371,7 +372,7 @@ export default function Insumos() {
                               </button>
                               <button
                                 onClick={() => openModal('edit-item', item)}
-                                className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-brand-600 hover:bg-brand-50 px-2 py-1 rounded-md transition-colors"
+                                className={btn('fantasma', 'inline')}
                               >
                                 Editar material
                               </button>
@@ -415,7 +416,7 @@ export default function Insumos() {
                             {canToggleEstado && (
                               <button
                                 onClick={() => openModal('edit-presentation', item, pres)}
-                                className="text-slate-400 hover:text-brand-600 transition-colors p-1"
+                                className={iconBtn('marca', 'chico')}
                                 title="Editar Presentación"
                               >
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -1,3 +1,4 @@
+import { btn } from '../utils/buttonStyles';
 interface SuccessModalProps {
   isOpen: boolean;
   title: string;
@@ -40,7 +41,7 @@ export default function SuccessModal({
         <div className="px-6 pb-6">
           <button
             onClick={onClose}
-            className="w-full px-4 py-2.5 text-white font-semibold rounded-lg bg-brand-600 hover:bg-brand-700 transition-colors shadow-sm focus:ring-2 focus:ring-brand-500/40 focus:outline-none"
+            className={btn('primario', 'bloque')}
           >
             {buttonText}
           </button>

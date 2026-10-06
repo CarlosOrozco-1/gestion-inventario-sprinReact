@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { iconBtn } from '../utils/buttonStyles';
 
 /**
  * Modal de búsqueda del catálogo.
@@ -66,8 +67,8 @@ export default function SearchModal({ isOpen, items, onClose, onSelectItem, onSe
           <h2 className="text-xl font-bold text-slate-800">Buscar insumo</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 transition-colors p-1"
-            aria-label="Cerrar búsqueda"
+            className={iconBtn('neutro', 'chico')}
+            title="Cerrar búsqueda" aria-label="Cerrar búsqueda"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import QrScannerLib from 'qr-scanner';
 import { playQrSuccess } from '../utils/sound';
+import { btn, iconBtn } from '../utils/buttonStyles';
 
 interface QrScannerProps {
   isOpen: boolean;
@@ -144,8 +145,8 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
           <h3 className="text-lg font-semibold text-slate-800">Escanear Código QR</h3>
           <button
             onClick={handleClose}
-            className="text-slate-400 hover:text-slate-600 transition-colors p-1"
-            aria-label="Cerrar escáner"
+            className={iconBtn('neutro', 'chico')}
+            title="Cerrar escáner" aria-label="Cerrar escáner"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -206,7 +207,7 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
                 <button
                   type="submit"
                   disabled={!manualCode.trim()}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                  className={btn('primario', 'bloque')}
                 >
                   Consultar
                 </button>
@@ -215,7 +216,7 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
               <button
                 onClick={() => setManualMode(true)}
                 title="Escribe el código del insumo en lugar de usar la cámara."
-                className="w-full text-sm font-medium text-brand-600 hover:text-brand-700 transition-colors"
+                className={btn('fantasma', 'bloque')}
               >
                 Ingresar código
               </button>
@@ -223,7 +224,7 @@ export default function QrScanner({ isOpen, onScan, onClose }: QrScannerProps) {
 
             <button
               onClick={handleClose}
-              className="w-full inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-lg font-medium transition-colors"
+              className={btn('neutro', 'bloque')}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

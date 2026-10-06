@@ -1,3 +1,4 @@
+import { btn } from '../utils/buttonStyles';
 /**
  * Pie de paginación único para todo el sistema.
  *
@@ -61,7 +62,7 @@ export default function Paginacion({
           onClick={() => onCambioPagina(pagina - 1)}
           disabled={pagina === 0}
           title="Ver página anterior"
-          className="px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-medium text-slate-600 transition-colors"
+          className={btn('neutro', 'fila')}
         >
           Anterior
         </button>
@@ -69,7 +70,7 @@ export default function Paginacion({
           onClick={() => onCambioPagina(pagina + 1)}
           disabled={pagina >= totalPaginas - 1}
           title="Ver página siguiente"
-          className="px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-medium text-slate-600 transition-colors"
+          className={btn('neutro', 'fila')}
         >
           Siguiente
         </button>

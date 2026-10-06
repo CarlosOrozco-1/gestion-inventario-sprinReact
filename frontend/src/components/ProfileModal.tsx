@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import ConfirmModal from './ConfirmModal';
 import { useAuthStore } from '../store/useAuthStore';
+import { btn, iconBtn } from '../utils/buttonStyles';
 
 interface Props {
   isOpen: boolean;
@@ -101,7 +102,7 @@ export default function ProfileModal({ isOpen, onClose, user }: Props) {
             </div>
             <h2 className="text-xl font-bold text-slate-800">Mi Perfil</h2>
           </div>
-          <button onClick={handleClose} title="Cerrar" className="text-slate-400 hover:text-slate-600 transition-colors p-1">
+          <button onClick={handleClose} title="Cerrar" className={iconBtn('neutro', 'chico')}>
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -152,14 +153,14 @@ export default function ProfileModal({ isOpen, onClose, user }: Props) {
               <button
                 type="button"
                 onClick={handleClose}
-                className="px-5 py-2 text-slate-600 font-medium border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors"
+                className={btn('contorno', 'modal')}
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="px-5 py-2 text-white font-semibold rounded-lg bg-brand-600 hover:bg-brand-700 transition-colors shadow-sm focus:ring-2 focus:ring-brand-500/40 disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
+                className={btn('primario', 'modal')}
               >
                 {loading && (
                   <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">

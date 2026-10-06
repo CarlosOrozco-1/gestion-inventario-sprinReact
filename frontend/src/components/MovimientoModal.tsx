@@ -3,6 +3,7 @@ import api from '../api/axios';
 import ConfirmModal from './ConfirmModal';
 import InsumoCombobox from './InsumoCombobox';
 import { getStockInfo } from '../utils/stockStatus';
+import { btn, iconBtn } from '../utils/buttonStyles';
 
 interface Props {
   isOpen: boolean;
@@ -120,7 +121,7 @@ export default function MovimientoModal({ isOpen, onClose, onSave, insumos, preS
             </div>
             <h2 className="text-xl font-bold text-slate-800">Registrar Movimiento</h2>
           </div>
-          <button onClick={onClose} title="Cerrar" className="text-slate-400 hover:text-slate-600 transition-colors p-1">
+          <button onClick={onClose} title="Cerrar" className={iconBtn('neutro', 'chico')}>
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -274,16 +275,14 @@ export default function MovimientoModal({ isOpen, onClose, onSave, insumos, preS
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2 text-slate-600 font-medium border border-slate-200 hover:bg-white rounded-lg transition-colors"
+              className={btn('contorno', 'modal')}
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className={`px-5 py-2 text-white font-semibold rounded-lg transition-colors shadow-sm focus:ring-2 focus:ring-offset-1 disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2 ${
-                isSalida ? 'bg-rose-600 hover:bg-rose-700 focus:ring-rose-500' : 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500'
-              }`}
+              className={btn(isSalida ? 'peligro' : 'exito', 'modal')}
             >
               {loading && (
                 <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">

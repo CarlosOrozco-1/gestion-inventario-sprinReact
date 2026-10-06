@@ -3,6 +3,7 @@ import api from '../api/axios';
 import ConfirmModal from './ConfirmModal';
 import InsumoCombobox from './InsumoCombobox';
 import { getStockInfo } from '../utils/stockStatus';
+import { btn, iconBtn } from '../utils/buttonStyles';
 
 interface Props {
   isOpen: boolean;
@@ -126,7 +127,7 @@ export default function AjusteModal({ isOpen, onClose, onSave, insumos, preSelec
               i
             </span>
           </div>
-          <button onClick={onClose} title="Cerrar" className="text-slate-400 hover:text-slate-600 transition-colors p-1">
+          <button onClick={onClose} title="Cerrar" className={iconBtn('neutro', 'chico')}>
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -288,14 +289,14 @@ export default function AjusteModal({ isOpen, onClose, onSave, insumos, preSelec
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2 text-slate-600 font-medium border border-slate-200 hover:bg-white rounded-lg transition-colors"
+              className={btn('contorno', 'modal')}
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-colors shadow-sm focus:ring-2 focus:ring-amber-500/50 disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
+              className={btn('aviso', 'modal')}
             >
               {loading && (
                 <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">

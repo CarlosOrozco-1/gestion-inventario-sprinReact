@@ -165,6 +165,10 @@ echo "-- ESCRITURA DEL CATALOGO --"
 probe "POST /items"                     POST "/items" "$ITEM_BODY"
 probe "PUT  /items/{id}"                PUT  "/items/$QA_ITEM" "$ITEM_BODY"
 probe "PUT  /items/{id}/estado"         PUT  "/items/$QA_ITEM/estado" '{"activo":true}'
+probe "PUT  /presentations/{id}/estado" PUT  "/presentations/$QA_PRES/estado" '{"activo":true}'
+# Inactivar exige motivo: sin el debe dar 400 a quien SÍ tiene permiso (el
+# permiso pasa y entonces se exige justificación, igual que el ajuste).
+probe "PUT  /presentations/{id}/estado sin motivo" PUT "/presentations/$QA_PRES/estado" '{"activo":false}'
 probe "POST /items/{id}/presentations"  POST "/items/$QA_ITEM/presentations" "$PRES_BODY"
 probe "PUT  /presentations/{id}"        PUT  "/presentations/$QA_PRES" "$PRES_BODY"
 echo

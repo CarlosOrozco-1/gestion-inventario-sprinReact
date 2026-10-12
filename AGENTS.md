@@ -130,6 +130,104 @@ Toda función en la capa Service que afecte inventario (entradas o salidas) **de
    **comentario en el código** (junto a la lógica, p. ej. en el service del
    backend). Solo lo útil para el usuario final va como tooltip breve.
 
+### 5.1 Estándar de botones (OBLIGATORIO)
+
+> **Regla de oro: el color y el tamaño se eligen por la FUNCIÓN del botón, no
+> por el módulo donde vive.** La misma acción se ve idéntica en toda la app.
+
+#### Por función
+
+| Función | Fondo | Tailwind |
+|---|---|---|
+| **Principal** (la acción más importante de la pantalla): crear, guardar, confirmar, aplicar, continuar | Azul de marca | `bg-brand-600 hover:bg-brand-700` |
+| **Éxito / Exportar Excel / Entrada** | Verde | `bg-emerald-600 hover:bg-emerald-700` |
+| **Peligro / Exportar PDF / Salida / Eliminar** | Rojo | `bg-rose-600 hover:bg-rose-700` |
+| **Advertencia / Ajuste de stock** | Ámbar | `bg-amber-600 hover:bg-amber-700` |
+| **Secundario** (acción disponible pero no principal): limpiar, cancelar, generar código, abrir la búsqueda | Gris claro | `bg-slate-100 hover:bg-slate-200` |
+| **Fantasma** (texto, sin fondo): enlaces, acciones de fila | Texto azul + fondo al hover | `text-brand-600 hover:bg-brand-50` |
+
+> **Una sola acción azul por barra.** Si en la misma pantalla hay dos botones que
+> compiten (p. ej. "Buscar" y "Nuevo"), el principal es azul y el otro pasa a
+> gris. Nunca dos azules idénticos lado a lado.
+>
+> **Exportar a Excel SIEMPRE verde** (`emerald-600`) y **Exportar a PDF SIEMPRE
+> rojo** (`rose-600`), en Reportes, Proyecciones, Insumos y donde aparezca.
+> No importa el módulo.
+
+#### Tamaño (obligatorio según la ubicación)
+
+| Contexto | Padding | Uso |
+|---|---|---|
+| Barra de acciones de la página | `px-5 py-2.5` | Botones principales de pantalla |
+| Pie de modal | `px-5 py-2.5` | Guardar / Cancelar |
+| Acción dentro de una fila de tabla | `px-3 py-1.5 text-xs` | Editar, Suspender, Aplicar |
+| Acción inline ligera | `px-2 py-1 text-xs` | Editar presentación, Activar |
+
+#### Reglas fijas (no negociables)
+
+- **`rounded-lg` en todos los botones.** Nada de `rounded-xl` ni `rounded-md`
+  (salvo segmentados de tipo Entrada/Salida y chips).
+- **`font-medium` en todos los botones** de página y modal.
+- **Foco visible siempre:** `focus:ring-2 focus:ring-<color>-500/50`. Nunca
+  `focus:outline-none` sin anillo.
+- **Deshabilitado siempre:** `disabled:opacity-60 disabled:cursor-not-allowed`.
+- **`shadow-sm` en botones sólidos.**
+- **FAMILIA DE COLOR ÚNICA:** peligro = `rose`, **nunca `red`**. Éxito = `emerald`,
+  **nunca `green`**. En el proyecto no se mezclan `red-*` con `rose-*` para el
+  mismo significado.
+- **Botón de solo icono → `title` obligatorio** (regla 3 de esta sección).
+
+### 5.2 Fuente única de estilos de botón
+
+> **Los colores y tamaños de la tabla de 5.1 ya NO se escriben a mano en los
+> componentes.** Viven todos en un solo archivo:
+> **`frontend/src/utils/buttonStyles.ts`** (`TONOS`, `TAMANOS`, `btn()`, `iconBtn()`).
+
+```tsx
+import { btn, iconBtn } from '../utils/buttonStyles';
+
+// Botón de la barra de acciones
+<button className={btn('exito', 'barra')}>Exportar Excel</button>
+<button className={btn('peligro', 'barra')}>Exportar PDF</button>
+<button className={btn('primario', 'barra')}>Nuevo material</button>
+
+// Botón de pie de modal (+ una clase extra si hace falta)
+<button className={`${btn('primario', 'modal')} flex-1`}>Guardar</button>
+
+// Acción dentro de una fila de tabla
+<button className={btn('fantasma', 'fila')}>Editar</button>
+
+// Botón de solo icono: `title` es obligatorio (regla 3)
+<button className={iconBtn('neutro', 'chico')} title="Cerrar" aria-label="Cerrar">
+```
+
+**Tonos:** `primario` `exito` `peligro` `aviso` `neutro` `contorno` `oscuro` `fantasma`
+**Tamaños:** `barra` `modal` `bloque` `fila` `inline` `pantalla`
+
+#### Cómo aplicarlo
+
+1. Para cambiar el aspecto de **todos** los botones de la app: editar **solo**
+   `frontend/src/utils/buttonStyles.ts`. No se tocan los `.tsx`.
+2. Para un botón nuevo: llamar a `btn(tono, tamaño)` o `iconBtn(...)`. **Nunca**
+   escribir `bg-brand-600`, `px-5 py-2.5`, `rounded-lg`, `shadow-sm`, etc. en un
+   `<button>`.
+3. Solo se aceptan clases **de layout** pegadas al resultado
+   (`flex-1`, `w-full`, `shrink-0`, `mr-2`), nunca de color, borde ni padding.
+4. Si se requiere un tono que no existe, **no se crea**: primero se documenta la
+   regla de negocio en 5.1 y se agrega el tono al archivo.
+5. Test del contrato: `frontend/src/utils/buttonStyles.test.ts`. Si se edita
+   `buttonStyles.ts`, sus asserts son la red de seguridad del resto de la app.
+
+#### Excepciones (fuera de la fuente única)
+
+- **Segmentados** Entrada/Salida y chips de filtro (tienen su propio estado activo).
+- **Chrome del shell**: barra lateral de `Layout`, `Toast` y las tarjetas de
+  resultado de `SearchModal` (son contenedores navegables, no acciones).
+- **Pantalla de acceso** (`Login`, `RecuperarPassword`): el CTA degradado con
+  `py-3` es intencional; solo aplica la parte de `focus:ring-2` y `title`.
+- **Enlaces de texto** (`Reportes`, `ProfileModal`) y la **miniatura de QR** de
+  `Insumos`: no son botones de acción, no llevan el estilo de botón.
+
 ---
 
 ## 6. Testing y Skills del Proyecto

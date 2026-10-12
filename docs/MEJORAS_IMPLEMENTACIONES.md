@@ -534,69 +534,7 @@ desde `QrModal`) se deja constancia:
 
 ---
 
-## 14. QR impreso externamente: nomenclatura `SIGES-PRES-{id}` y flujo de etiquetado
-
-**Fecha:** 2026-09-30
-**Naturaleza:** Aclaración de uso del QR en etiquetado físico/impresoras externas.
-
-### Problema detectado en producción
-Un usuario imprimió códigos QR desde una **impresora de etiquetas externa**
-(tipeando el **código interno del insumo**, ej. `1775273783` para Alcohol Etílico)
-y al escanearlos el sistema respondía **404** (`GET /api/presentations/qr/177527378`).
-La causa: el QR del sistema **no contiene el código del insumo**, sino el
-**`qr_code` de la presentación**, generado como `SIGES-PRES-{id}`
-(`ItemService.generarQrCode`). Ante `177527378` el repositorio busca una
-presentación con `qr_code` igual a ese string y no existe ninguna.
-
-### Nomenclatura vigente (única válida)
-```text
-QR válido = SIGES-PRES-{id_presentación}   (ej. SIGES-PRES-2)
-```
-- `{id}` es la clave primaria **inmutable** de la presentación
-  (`presentations.qr_code`, columna `UNIQUE`, formato estable desde la
-  migración `V6__regenerar_qr_code_formato_estable.sql`).
-- El **código del insumo** (`items.code`) **no forma parte del QR** y NO sirve
-  para resolver el endpoint `GET /api/presentations/qr/{qrCode}` (búsqueda por
-  igualdad exacta de `qr_code`).
-
-### Cómo imprimir correctamente desde una impresora externa
-Para etiquetar debe usarse el **string exacto** que expone el sistema:
-1. Abrir el insumo en el **Catálogo → clic en el QR** → `QrModal`.
-2. Usar **"Descargar PNG"** o **"Imprimir cartel"** (imprime el QR con el
-   `qr_code` correcto en su interior, renderizado con `qrcode.react`).
-3. Si se necesita el string puro para una impresora de códigos de barras/
-   etiquetas, escribir **literalmente** `SIGES-PRES-{id}` (el `{id}` puede
-   consultarse en la BD o devolverse por la API; el frontend no lo muestra en
-   claro, solo lo codifica dentro del QR).
-
-### Decisión de diseño validada (2026-09-30)
-Se evaluó aceptar también el **código del insumo** al escanear (para que
-sirviera un QR impreso con el código). **Se decide NO aceptar el código del
-insumo como alias del QR**, por lo siguiente:
-- El QR apunta a una **presentación** específica (el stock y min/max viven en la
-  presentación, no en el insumo). Un insumo puede tener **varias presentaciones**
-  (ej. en la BD actual, Pasta Térmica y Restaurador de Plásticos tienen 2 cada
-  una): el código del insumo es ambiguo (no dice qué tamaño/variante).
-- El motivo original del formato sin el código del insumo fue la **estabilidad**:
-  si el usuario editaba el código de un insumo, los QR ya impresos seguían
-  resolviendo. Ese riesgo **ya no existe**: `items.code` es **inmutable** desde
-  la creación (`ItemService.actualizarItem` no lo modifica y el campo es
-  `readOnly` en `InsumoModal` en modo edición).
-- Mantener un **único formato canónico** (`SIGES-PRES-{id}`) evita doble fuente
-  de verdad y mantiene la validación de stock estricta del proyecto.
-
-**Flujo recomendado:** imprimir siempre desde el sistema (descarga/imprime el
-`QrModal`), para producción usar el PNG/cartel del sistema; NO tipear el código
-del insumo en la impresora externa como reemplazo del QR.
-
-### Archivos involucrados
-- `backend/.../service/ItemService.java` — `generarQrCode` y búsqueda por `qr_code`.
-- `frontend/src/components/QrModal.tsx` — descarga PNG / impresión del QR correcto.
-- Endpoint `GET /api/presentations/qr/{qrCode}`: sin cambios.
-
----
-
-## 15. Tiempo real en Catálogo, Kárdex y Ajustes (no solo Auditoría)
+## 14. Tiempo real en Catálogo, Kárdex y Ajustes (no solo Auditoría)
 
 **Fecha:** 2026-09-30
 **Naturaleza:** Mejora de consistencia: los módulos se actualizan sin recargar.
@@ -630,7 +568,7 @@ movimiento, las demás pantallas seguían mostrando datos viejos hasta recargar 
 
 ---
 
-## 16. Permisos de Reportería para JEFE y AUXILIAR
+## 15. Permisos de Reportería para JEFE y AUXILIAR
 
 **Fecha:** 2026-09-30
 **Naturaleza:** Corrección de permisos (el módulo era visible pero no cargaba).
@@ -658,7 +596,7 @@ Con `apgarcia@pdh.org.gt` (JEFE): `GET /api/usuarios` → 200 y `GET /api/movimi
 
 ---
 
-## 17. Recuperación de contraseña: diagnóstico del correo
+## 16. Recuperación de contraseña: diagnóstico del correo
 
 **Fecha:** 2026-09-30
 **Naturaleza:** Diagnóstico (sin cambios de código).
@@ -803,11 +741,20 @@ aparecía al AUXILIAR, pero nada impedía que mandara un `AJUSTE_POSITIVO` por l
 API. La comprobación vive ahora en `MovimientoService`, no en el controller,
 para que ningún camino de entrada la esquive.
 
-El permiso se evalúa **antes** que la validación de negocio, no al revés. Con
-`quantity: 0` y sin justificación, un AUXILIAR recibe **403** y no 400: si
-devolviera 400 sabría que su petición era inválida, y la matriz de permisos no
-podría distinguir "rol rechazado" de "datos malos". Es el orden que hace
-posible medir la autorización sin crear nada.
+Dentro del service el permiso se evalúa **antes** que la validación de negocio,
+no al revés: un AUXILIAR es rechazado por rol antes de que se revise el stock o
+la justificación, lo que permite distinguir "rol rechazado" de "datos malos".
+
+Ojo con el alcance de esa afirmación: **no aplica a la capa HTTP.** `MovimientoDTO`
+es `@Valid` y `quantity` lleva `@Min(1)`, así que esa validación de Spring corre
+*antes* de entrar al service. En consecuencia, un `quantity: 0` devuelve **400 a
+los tres roles**, nunca 403.
+
+Para medir autorización por HTTP hay que mandar un payload que ya sea válido
+(cantidad >= 1 y, en ajustes, justificación >= 20 caracteres) y que solo sería
+rechazado por el rol: exactamente lo que hace `scripts/test_permisos.sh`. El
+orden "permiso antes que negocio" queda cubierto por los unit tests del service,
+donde el método se invoca directamente.
 
 ### Endurecimientos de seguridad
 
@@ -858,8 +805,8 @@ un usuario real.
 
 ## 20. Próximas mejoras / pendientes
 - **Fase 10 — Bodegas por departamento** (pendiente de diseño; ver
-  `docs/upgrade-V2-Manejo-de-bodegas.md` y `AGENTS.md` §8). Incluye el **motor de
-  préstamos entre bodegas** (acuerdo bilateral, topes por item/total/prórrogas).
+  `docs/upgrade-V2-Manejo-de-bodegas.md` y `AGENTS.md` §8). Requiere confirmar las decisiones abiertas
+  (stock por bodega vs presentación única, QR, migración de datos).
 - **Agregar healthcheck al backend** y `condition: service_healthy` en
   `depends_on` del frontend (documentado en `docs/ESTRATEGIA_DESPLIEGUE.md` §2.1).
   Requiere exponer un endpoint público barato tipo `/api/auth/ping`.

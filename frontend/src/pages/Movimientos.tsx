@@ -6,6 +6,7 @@ import QrScanner from '../components/QrScanner';
 import { useToastStore } from '../store/useToastStore';
 import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import { usePaginacionServidor } from '../hooks/usePaginacionServidor';
+import { btn } from '../utils/buttonStyles';
 
 // El Kárdex se pagina en el servidor: el histórico crece con cada operación y
 // no conviene enviarlo completo al navegador.
@@ -137,7 +138,7 @@ export default function Movimientos() {
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setIsScannerOpen(true)}
-            className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-brand-500/50"
+            className={btn('primario', 'barra')}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m4-14a6 6 0 00-8 8m8-8a6 6 0 010 8m-8-8a6 6 0 000 8" />
@@ -147,7 +148,7 @@ export default function Movimientos() {
 
           <button 
             onClick={() => { setScannedPresentation(null); setIsModalOpen(true); }}
-            className="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-slate-500/50"
+            className={btn('oscuro', 'barra')}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />

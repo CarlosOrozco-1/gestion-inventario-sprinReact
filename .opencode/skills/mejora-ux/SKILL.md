@@ -26,10 +26,18 @@ Aplica estas reglas en **todo** cambio de interfaz del frontend.
   **breve transición de carga** (overlay "Escaneo exitoso / Cargando datos...").
 - Reutilizar `QrScanner.tsx`; no duplicar lógica de cámara.
 
-## 5. Diseño de botones de acción principal
-- Acción principal = fondo `brand-600`, texto blanco, `px-5 py-2.5 rounded-lg`.
-- Acciones secundarias = fondo blanco/borde (ojo: "Escanear QR" es brand).
+## 5. Botones: usar la fuente única (NO clases a mano)
+- Todo botón sale de **`frontend/src/utils/buttonStyles.ts`**:
+  `btn(tono, tamaño)` y `iconBtn(tono, tamaño, conFondoHover?)`.
+  Nunca escribir `bg-brand-600`, `px-5 py-2.5`, `rounded-lg`, `shadow-sm`… en un
+  `<button>`.
+- Cambiar el aspecto de todos los botones = editar **solo** ese archivo.
+- Acción principal = `btn('primario', 'barra')`; Excel = `btn('exito', 'barra')`;
+  PDF = `btn('peligro', 'barra')`; buscar/limpiar/cancelar = `btn('neutro', …)`;
+  acciones de fila = `btn('fantasma', 'fila')`.
 - Botones equivalentes entre módulos deben ser **visualmente idénticos**.
+- Botón de solo icono siempre con `title`.
+- Detalle completo de tonos/tamaños/excepciones: **AGENTS.md secciones 5.1 y 5.2**.
 
 ## 6. Responsive / espacio
 - Contenedor de páginas: clase `page-container` (NO `max-w-7xl mx-auto`).

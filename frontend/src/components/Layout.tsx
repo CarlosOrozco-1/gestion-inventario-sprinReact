@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { hasAccess } from '../access';
 import Toast from './Toast';
 import ProfileModal from './ProfileModal';
+import { iconBtn } from '../utils/buttonStyles';
 
 // Versión del sistema (se muestra en el pie del menú lateral).
 const APP_VERSION = '1.0.0';
@@ -106,9 +107,10 @@ export default function Layout() {
       
       {/* Mobile Top Header (Solo Móvil) */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 z-30 flex items-center px-4 shadow-sm">
-        <button 
+        <button
           onClick={() => setIsMobileMenuOpen(true)}
-          className="p-2 -ml-2 text-slate-600 hover:text-brand-600 hover:bg-slate-50 rounded-lg transition-colors"
+          title="Abrir menú"
+          className={`${iconBtn('marca', 'grande', true)} -ml-2`}
         >
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -169,8 +171,9 @@ export default function Layout() {
             </button>
 
             {/* Botón cerrar sidebar (Solo Móvil) */}
-            <button 
+            <button
               onClick={() => setIsMobileMenuOpen(false)}
+              title="Cerrar menú"
               className="lg:hidden p-1 text-slate-400 hover:text-white transition-colors"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -1,3 +1,5 @@
+import { btn, type Tono } from '../utils/buttonStyles';
+
 interface ConfirmModalProps {
   isOpen: boolean;
   title: string;
@@ -21,11 +23,12 @@ export default function ConfirmModal({
 }: ConfirmModalProps) {
   if (!isOpen) return null;
 
+  // El color del boton sale de la fuente unica; aqui solo se traduce el tono.
   const toneStyles = {
-    danger: { btn: 'bg-rose-600 hover:bg-rose-700 focus:ring-rose-500', icon: 'bg-rose-100 text-rose-600' },
-    success: { btn: 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500', icon: 'bg-emerald-100 text-emerald-600' },
-    warning: { btn: 'bg-amber-600 hover:bg-amber-700 focus:ring-amber-500', icon: 'bg-amber-100 text-amber-600' },
-  }[tone];
+    danger: { tono: 'peligro', icon: 'bg-rose-100 text-rose-600' },
+    success: { tono: 'exito', icon: 'bg-emerald-100 text-emerald-600' },
+    warning: { tono: 'aviso', icon: 'bg-amber-100 text-amber-600' },
+  }[tone] as { tono: Tono; icon: string };
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
@@ -52,13 +55,13 @@ export default function ConfirmModal({
         <div className="px-6 pb-6 flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2.5 text-slate-600 font-medium border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors"
+            className={`${btn('contorno', 'modal')} flex-1`}
           >
             {cancelText}
           </button>
           <button
             onClick={onConfirm}
-            className={`flex-1 px-4 py-2.5 text-white font-semibold rounded-lg transition-colors shadow-sm focus:ring-2 focus:ring-offset-1 ${toneStyles.btn}`}
+            className={`${btn(toneStyles.tono, 'modal')} flex-1`}
           >
             {confirmText}
           </button>

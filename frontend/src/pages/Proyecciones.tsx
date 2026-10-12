@@ -1,3 +1,4 @@
+import { btn } from '../utils/buttonStyles';
 import { useState, useEffect, useMemo } from "react";
 import api from "../api/axios";
 import { useAuthStore } from "../store/useAuthStore";
@@ -164,7 +165,7 @@ export default function Proyecciones() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => handleExport("pdf")}
-            className="inline-flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-rose-500/50"
+            className={btn('peligro', 'barra')}
           >
             <svg
               className="w-5 h-5"
@@ -184,7 +185,7 @@ export default function Proyecciones() {
 
           <button
             onClick={() => handleExport("excel")}
-            className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-emerald-500/50"
+            className={btn('exito', 'barra')}
           >
             <svg
               className="w-5 h-5"
@@ -462,7 +463,7 @@ export default function Proyecciones() {
                           <button
                             onClick={() => aplicarSugerencia(sug)}
                             disabled={aplicandoId === sug.id}
-                            className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                            className={btn('primario', 'fila')}
                           >
                             {aplicandoId === sug.id ? "Aplicando..." : "Aplicar"}
                           </button>

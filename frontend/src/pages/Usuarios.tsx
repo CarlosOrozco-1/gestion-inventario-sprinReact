@@ -3,6 +3,7 @@ import api from '../api/axios';
 import UsuarioModal from '../components/UsuarioModal';
 import Paginacion from '../components/Paginacion';
 import { usePaginacion } from '../hooks/usePaginacion';
+import { btn } from '../utils/buttonStyles';
 
 const TAMANIO_PAGINA = 10;
 
@@ -50,7 +51,7 @@ export default function Usuarios() {
         </div>
         <button 
           onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
-          className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-brand-500/50"
+          className={btn('primario', 'barra')}
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -97,13 +98,13 @@ export default function Usuarios() {
                     <td className="p-4 text-right whitespace-nowrap">
                       <button 
                         onClick={() => { setEditingUser(user); setIsModalOpen(true); }}
-                        className="text-xs font-bold px-3 py-1.5 rounded-lg text-brand-600 hover:bg-brand-50 transition-colors mr-2"
+                        className={`${btn('fantasma', 'fila')} mr-2`}
                       >
                         Editar
                       </button>
                       <button 
                         onClick={() => toggleStatus(user.id, user.active)}
-                        className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
+                        className={`${btn('fantasma', 'fila')} ${
                           user.active ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
                         }`}
                       >

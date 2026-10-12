@@ -218,7 +218,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => navigate("/recuperar")}
-                    className="text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors focus:outline-none"
+                    className="text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/50 rounded-sm"
                   >
                     ¿Olvidaste tu contraseña?
                   </button>
@@ -253,7 +253,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-brand-600 transition-colors focus:outline-none"
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-brand-600 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/50 rounded-sm"
                     tabIndex={-1}
                   >
                     {showPassword ? (

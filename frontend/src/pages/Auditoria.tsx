@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../api/axios';
 import { useAuditSocket } from '../hooks/useAuditSocket';
 import Paginacion from '../components/Paginacion';
+import { btn } from '../utils/buttonStyles';
 
 const PAGE_SIZE = 20;
 
@@ -137,13 +138,13 @@ export default function Auditoria() {
           <div className="flex items-end gap-2">
             <button
               onClick={aplicarFiltros}
-              className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-lg font-medium transition-colors shadow-sm focus:ring-2 focus:ring-brand-500/50"
+              className={btn('primario', 'barra')}
             >
               Buscar
             </button>
             <button
               onClick={limpiarFiltros}
-              className="inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg font-medium transition-colors"
+              className={btn('neutro', 'barra')}
             >
               Limpiar
             </button>

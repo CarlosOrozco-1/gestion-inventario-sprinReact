@@ -167,3 +167,30 @@ Ambos apuntan a `cc0426b` (anterior a Fase 9). Falta promover la versión actual
       denegado" sobre archivos existentes, por un sandbox de `codex`); al
       formatear se resuelve, pero conviene revisar si algún archivo quedó
       inconsistente tras el clon nuevo.
+
+## 9. Validación de seguridad del sitio web
+
+Basado en lo existente: JWT stateless, BCrypt, CORS por patrones, validación con Bean Validation, @RestControllerAdvice, @Transactional, separación de .env (no versionado), HTTPS detrás de Caddy. Usar las skills existentes: deploy-docker, validacion-e2e y seguir estándares del stack.
+
+### Pre-despliegue (local/CI)
+- [ ] Ejecutar tests backend (scripts/test_backend.sh) y frontend (npm test) verdes.
+- [ ] Build frontend (npm run build) sin warnings críticos.
+- [ ] Revisar dependencias: npm audit --production (frontend) y análisis con herramientas disponibles. Registrar hallazgos.
+- [ ] Confirmar .env no está versionado (.gitignore). Verificar secrets no hardcodeados (grep ADMIN_EMAIL/PASSWORD fuera de .env.example; revisar JwtUtil, DataSeeder).
+- [ ] Validar configuración de seguridad: revisar rutas permitidas en SecurityConfig, que /api/auth/** y /ws/** sean las únicas públicas según necesidad; plantear endurecer /ws/auditoria.
+
+### Despliegue/Runtime
+- [ ] Verificar que la app solo escucha por 8080 interno (nginx/Caddy). No exponer 8080/5432 públicamente.
+- [ ] Comprobar headers de seguridad en producción (CSP, HSTS, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, X-Frame-Options). Si falta, documentar propuestas sin romper QR/WS.
+- [ ] CORS: validar allowedOriginPatterns incluye solo dominios autorizados.
+- [ ] Tokens: JWT con expiración, uso de Bearer, logout efectivo. Revisar rotación si hay cambios de secret.
+- [ ] Rate limiting/brute force para /api/auth/login (evaluar si aplicar). Registrar decisión.
+- [ ] SSL/TLS válido (Caddy automático). Forzar HTTPS.
+
+### Validación funcional y evidencias
+- [ ] Smoke test E2E (skill validacion-e2e) contra entorno objetivo.
+- [ ] Verificación post-deploy (scripts/verify_*.sh) si aplica.
+- [ ] Revisar logs de backend (errores 401/403 esperados, sin stacktraces en respuestas).
+- [ ] Registrar checklist ejecutado con fecha/resultado.
+
+Referencias: AGENTS.md, FLUJO_DESPLIEGUE.md, docs/SEGURIDAD_CHECKLIST.md (a crear), skills/deploy-docker, skills/validacion-e2e.

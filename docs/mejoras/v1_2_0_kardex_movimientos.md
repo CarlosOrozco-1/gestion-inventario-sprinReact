@@ -63,3 +63,13 @@ Mover toda la trazabilidad con saldo acumulado a este módulo y renombrarlo a **
 - **Mantener rutas por compatibilidad** (`/movimientos`, `/reportes`) para evitar romper enlaces existentes (como el botón "Ver trazabilidad" y favoritos).
 - **Separación clara**: Movimientos = registro (acción). Kárdex = consulta/trazabilidad (lectura con saldo).
 - **Reutilización**: Se reutiliza `MovimientoModal` (ya acepta props/preselección), backend existente y cálculo de saldo ya implementado.
+
+
+## Cambios aplicados (v1.2.0)
+- Menú: "Movimientos" (antes Kárdex) apunta a `/movimientos`. "Kárdex" apunta a `/reportes`.
+- `/movimientos`: convertido a módulo de registro con cards (Entrada, Salida, Ajuste con validación de permisos, Ver Kárdex, Escanear QR). Historial removido.
+- `/reportes`: renombrado a Kárdex, trazabilidad por producto como principal.
+- `/insumos`: "Ver trazabilidad" apunta a `/reportes`.
+- AJUSTES: se accede desde `/movimientos` (card Ajuste). Se mantiene ruta `/ajustes` activa; se puede ocultar del menú si se desea (comentado en Layout).
+- QR: añadido como card en Movimientos.
+- Últimos movimientos: opcional. Si se añade, usar tarjeta compacta con límite 5 y sin paginación para evitar ensuciar la vista.

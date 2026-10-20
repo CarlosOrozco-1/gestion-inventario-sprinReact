@@ -53,7 +53,15 @@ public class MovimientoController {
     @PreAuthorize("hasAnyRole('ADMIN','JEFE','AUXILIAR')")
     public ResponseEntity<Page<com.gestion.inventario.dto.MovimientoResponseDTO>> listarMovimientosPaginado(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) Long presentationId,
+            @RequestParam(required = false) Long itemId) {
+        if (presentationId != null) {
+            return ResponseEntity.ok(movimientoService.listarMovimientosPaginadoPorPresentacion(presentationId, page, size));
+        }
+        if (itemId != null) {
+            return ResponseEntity.ok(movimientoService.listarMovimientosPaginadoPorItem(itemId, page, size));
+        }
         return ResponseEntity.ok(movimientoService.listarMovimientosPaginado(page, size));
     }
 }

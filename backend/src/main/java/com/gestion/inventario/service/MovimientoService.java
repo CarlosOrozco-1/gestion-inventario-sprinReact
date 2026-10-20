@@ -18,7 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class MovimientoService {
@@ -165,6 +167,43 @@ public class MovimientoService {
                 .map(this::aDTO);
     }
 
+    /**
+     * Kárdex paginado filtrado por presentación. Calcula saldo acumulado (balanceAfter).
+     */
+    @Transactional(readOnly = true)
+    public Page<MovimientoResponseDTO> listarMovimientosPaginadoPorPresentacion(Long presentationId, int page, int size) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), clampSize(size));
+        Page<Movimiento> pageMov = movimientoRepository.findByPresentationIdWithDetailsOrderByCreatedAtDesc(presentationId, pageable);
+
+        // Calcular saldo acumulado ascendente para esta presentación
+        List<Movimiento> asc = movimientoRepository.findAllByPresentationIdOrderByCreatedAtAsc(presentationId);
+        Map<Long, Integer> saldoPorId = new HashMap<>();
+        int saldo = 0;
+        for (Movimiento m : asc) {
+            switch (m.getType()) {
+                case "ENTRADA", "AJUSTE_POSITIVO" -> saldo += m.getQuantity();
+                case "SALIDA", "AJUSTE_NEGATIVO" -> saldo -= m.getQuantity();
+            }
+            saldoPorId.put(m.getId(), saldo);
+        }
+
+        return pageMov.map(mov -> {
+            MovimientoResponseDTO dto = aDTO(mov);
+            dto.setBalanceAfter(saldoPorId.getOrDefault(mov.getId(), null));
+            return dto;
+        });
+    }
+
+    /**
+     * Kárdex paginado filtrado por item (todas sus presentaciones).
+     */
+    @Transactional(readOnly = true)
+    public Page<MovimientoResponseDTO> listarMovimientosPaginadoPorItem(Long itemId, int page, int size) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), clampSize(size));
+        return movimientoRepository.findByItemIdWithDetailsOrderByCreatedAtDesc(itemId, pageable)
+                .map(this::aDTO);
+    }
+
     /** Límite duro del tamaño de página para no permitir que el cliente pida el histórico entero. */
     private int clampSize(int size) {
         return Math.min(Math.max(size, 1), MAX_SIZE_PAGINA);
@@ -177,9 +216,13 @@ public class MovimientoService {
         dto.setQuantity(mov.getQuantity());
         dto.setDetail(mov.getDetail());
         dto.setCreatedAt(mov.getCreatedAt());
-        if (mov.getPresentation() != null && mov.getPresentation().getItem() != null) {
-            dto.setItemName(mov.getPresentation().getItem().getName());
-            dto.setPresentationName(mov.getPresentation().getName() + " " + mov.getPresentation().getSize());
+        if (mov.getPresentation() != null) {
+            dto.setPresentationId(mov.getPresentation().getId());
+            if (mov.getPresentation().getItem() != null) {
+                dto.setItemId(mov.getPresentation().getItem().getId());
+                dto.setItemName(mov.getPresentation().getItem().getName());
+                dto.setPresentationName(mov.getPresentation().getName() + " " + mov.getPresentation().getSize());
+            }
         }
         if (mov.getUsuario() != null) {
             dto.setUsuarioName(mov.getUsuario().getName());

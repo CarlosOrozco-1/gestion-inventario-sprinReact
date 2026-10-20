@@ -31,14 +31,25 @@ export default function Movimientos() {
 
   const showToast = useToastStore((s: any) => s.showToast);
 
+  const [filtroProducto, setFiltroProducto] = useState<{ presentationId: number | null; itemId: number | null; label: string } | null>(null);
+  const [itemSeleccionado, setItemSeleccionado] = useState<any>(null);
+  const [presentacionSeleccionada, setPresentacionSeleccionada] = useState<any>(null);
+  const [stockActual, setStockActual] = useState<number | null>(null);
+
   const cargarMovimientos = useCallback(async (pagina: number, size: number) => {
-    const res = await api.get('/movimientos/paginado', { params: { page: pagina, size } });
+    const params: any = { page: pagina, size };
+    if (filtroProducto?.presentationId) {
+      params.presentationId = filtroProducto.presentationId;
+    } else if (filtroProducto?.itemId) {
+      params.itemId = filtroProducto.itemId;
+    }
+    const res = await api.get('/movimientos/paginado', { params });
     return res.data;
-  }, []);
+  }, [filtroProducto]);
 
   const {
     pagina, totalPaginas, total, elementos: movimientos, cargando: loading, refrescar,
-  } = usePaginacionServidor(cargarMovimientos, TAMANIO_PAGINA);
+  }: any = usePaginacionServidor(cargarMovimientos, TAMANIO_PAGINA);
 
   // La página actual se lee por ref en los refrescos en vivo para no depender
   // de que la callback cambie de identidad.
@@ -57,7 +68,7 @@ export default function Movimientos() {
   useEffect(() => {
     refrescar(0);
     fetchInsumos();
-  }, [refrescar]);
+  }, [refrescar, filtroProducto]);
 
   // Tras registrar un movimiento se vuelve a la primera página: el listado es
   // descendente por fecha y el movimiento nuevo debe verse de inmediato.
@@ -66,6 +77,40 @@ export default function Movimientos() {
     fetchInsumos();
     if (message) showToast(message);
   };
+
+  // Cargar filtro desde URL (ej. desde Insumos: /movimientos?presentationId=123)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const presentationId = params.get('presentationId');
+    const itemId = params.get('itemId');
+    if (presentationId) {
+      api.get(`/presentations/${presentationId}`).then((res) => {
+        const pres = res.data;
+        setPresentacionSeleccionada(pres);
+        setItemSeleccionado(pres.item || null);
+        setStockActual(pres.stock ?? null);
+        setFiltroProducto({
+          presentationId: Number(presentationId),
+          itemId: pres.item?.id || null,
+          label: `${pres.item?.name || ''} - ${pres.name} ${pres.size || ''}`.trim(),
+        });
+      }).catch(() => {});
+    } else if (itemId) {
+      api.get('/items').then((res) => {
+        const items = res.data || [];
+        const found = items.find((i: any) => i.id === Number(itemId));
+        if (found) {
+          setItemSeleccionado(found);
+          setFiltroProducto({
+            presentationId: null,
+            itemId: Number(itemId),
+            label: found.name,
+          });
+        }
+      }).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleQrScan = async (qrCode: string) => {
     setIsScannerOpen(false);
@@ -135,10 +180,18 @@ export default function Movimientos() {
           <p className="text-slate-500 mt-1">Registra e inspecciona el flujo de entradas y salidas.</p>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {filtroProducto && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-brand-50 border border-brand-200 rounded-lg">
+              <span className="text-sm text-brand-700 font-medium">Trazabilidad: {filtroProducto.label}</span>
+              {stockActual !== null && <span className="text-xs text-brand-600">Stock actual: {stockActual}</span>}
+              <button onClick={() => { setFiltroProducto(null); setItemSeleccionado(null); setPresentacionSeleccionada(null); setStockActual(null); window.history.replaceState({}, '', '/movimientos'); }} className="text-brand-600 hover:text-brand-800 text-xs ml-2">Limpiar</button>
+            </div>
+          )}
           <button 
             onClick={() => setIsScannerOpen(true)}
-            className={btn('primario', 'barra')}
+            title="Escanear código QR"
+            className={btn('neutro', 'barra')}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m4-14a6 6 0 00-8 8m8-8a6 6 0 010 8m-8-8a6 6 0 000 8" />
@@ -168,6 +221,7 @@ export default function Movimientos() {
                 <th className="p-4 font-semibold">Insumo</th>
                 <th className="p-4 font-semibold text-center">Tipo</th>
                 <th className="p-4 font-semibold text-right">Cantidad</th>
+                {filtroProducto && <th className="p-4 font-semibold text-right">Saldo después</th>}
                 <th className="p-4 font-semibold">Usuario</th>
                 <th className="p-4 font-semibold">Justificación</th>
               </tr>
@@ -200,6 +254,7 @@ export default function Movimientos() {
                       </span>
                     </td>
                     <td className="p-4 text-right font-bold text-slate-700">{mov.quantity}</td>
+                    {filtroProducto && <td className="p-4 text-right text-sm text-slate-700">{mov.balanceAfter !== null && mov.balanceAfter !== undefined ? mov.balanceAfter : '-'}</td>}
                     <td className="p-4 text-slate-600 text-xs">{mov.usuarioName}</td>
                     <td className="p-4 text-slate-500 italic max-w-xs truncate" title={mov.detail}>
                       {mov.detail || '-'}

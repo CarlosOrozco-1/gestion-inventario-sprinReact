@@ -33,7 +33,7 @@ export default function Auditoria() {
     setLoading(true);
     setError('');
     try {
-      const params: any = { page: pagina, size: PAGE_SIZE };
+      const params: any = { page: pagina, size: pageSize };
       if (filtroEvento) params.evento = filtroEvento;
       if (filtroUsuario.trim()) params.usuario = filtroUsuario.trim();
       if (filtroDesde) params.desde = filtroDesde;

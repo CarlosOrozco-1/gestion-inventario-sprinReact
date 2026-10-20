@@ -194,3 +194,26 @@ Basado en lo existente: JWT stateless, BCrypt, CORS por patrones, validación co
 - [ ] Registrar checklist ejecutado con fecha/resultado.
 
 Referencias: AGENTS.md, FLUJO_DESPLIEGUE.md, docs/SEGURIDAD_CHECKLIST.md (a crear), skills/deploy-docker, skills/validacion-e2e.
+
+## 10. Mejoras al Kárdex / Trazabilidad por producto
+
+**Objetivo:** Unificar trazabilidad en un solo módulo (evitar adivinar entre Insumos/Reportes). Poder filtrar por insumo/presentación y ver saldo por movimiento.
+
+### Backend
+- [ ] **Filtro por producto:** agregar filtro `presentationId` y/o `itemId` a `/api/movimientos/paginado` (y mantener `/api/movimientos` completo para agregados).
+- [ ] **Saldo acumulado (running balance):** calcular el saldo después de cada movimiento en el listado filtrado. Definir orden cronológico ascendente para el cálculo (o recalcular por historial completo) y exponerlo en `MovimientoResponseDTO` (ej. `balanceAfter`).
+- [ ] **Permisos:** asegurar que AUXILIAR pueda filtrar y ver trazabilidad por producto (actualmente `/movimientos` ya es accesible).
+- [ ] **Rendimiento:** para filtro por presentación, usar consulta con `EntityGraph` + paginación en servidor.
+
+### Frontend
+- [ ] **Buscador/filtro en Kárdex:** selector de insumo/presentación (o buscador con autocompletado). Al filtrar, mostrar solo movimientos de ese producto.
+- [ ] **Columna "Saldo después":** añadir columna con el saldo acumulado tras cada movimiento.
+- [ ] **Acceso desde Insumos:** botón/acción "Ver trazabilidad" en fila de presentación que abra Kárdex con el filtro pre-cargado (por `presentationId`).
+- [ ] **UX clara:** mostrar stock actual del producto filtrado y resumen (entradas/salidas/ajustes neto).
+- [ ] **Permisos UI:** asegurar que AUXILIAR vea el módulo con estas capacidades.
+
+### Validación
+- [ ] Probar con movimientos existentes (ENTRADA/SALIDA/AJUSTE_POSITIVO/AJUSTE_NEGATIVO).
+- [ ] Verificar que el saldo cuadra con el stock actual en `presentations.stock`.
+- [ ] Probar inactivos (no deben permitir movimientos, pero deben conservar trazabilidad histórica).
+

@@ -497,9 +497,9 @@ export default function Insumos() {
                               )}
                               <button
                                 onClick={() => {
-                                  window.location.href = `/movimientos?presentationId=${pres.id}`;
+                                  window.location.href = `/reportes?presentationId=${pres.id}`;
                                 }}
-                                title="Ver trazabilidad de esta presentación"
+                                title="Ver trazabilidad en Kárdex"
                                 className={iconBtn('neutro', 'chico')}
                               >
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

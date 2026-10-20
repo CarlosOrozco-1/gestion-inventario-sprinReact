@@ -137,14 +137,14 @@ export default function Reportes() {
     <div className="page-container animate-in fade-in duration-300">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Reportería</h1>
-          <p className="text-slate-500 mt-1">Filtra, exporta y consulta trazabilidad por producto.</p>
+          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Kárdex</h1>
+          <p className="text-slate-500 mt-1">Trazabilidad por producto con saldo acumulado.</p>
         </div>
       </div>
 
       <div className="flex items-center gap-2 mb-6">
-        <button onClick={() => setTab('reportes')} className={`${btn(tab === 'reportes' ? 'primario' : 'neutro', 'barra')}`}>Reportes dinámicos</button>
         <button onClick={() => setTab('trazabilidad')} className={`${btn(tab === 'trazabilidad' ? 'primario' : 'neutro', 'barra')}`}>Trazabilidad por producto</button>
+        <button onClick={() => setTab('reportes')} className={`${btn(tab === 'reportes' ? 'primario' : 'neutro', 'barra')}`}>Histórico global con filtros</button>
       </div>
 
       {tab === 'reportes' && (

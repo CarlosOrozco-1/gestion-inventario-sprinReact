@@ -193,7 +193,7 @@ Basado en lo existente: JWT stateless, BCrypt, CORS por patrones, validación co
 - [ ] Revisar logs de backend (errores 401/403 esperados, sin stacktraces en respuestas).
 - [ ] Registrar checklist ejecutado con fecha/resultado.
 
-Referencias: AGENTS.md, FLUJO_DESPLIEGUE.md, docs/SEGURIDAD_CHECKLIST.md (a crear), skills/deploy-docker, skills/validacion-e2e.
+Referencias: AGENTS.md, docs/despliegue/flujo_despliegue.md, docs/SEGURIDAD_CHECKLIST.md (a crear), skills/deploy-docker, skills/validacion-e2e.
 
 ## 10. Mejoras al Kárdex / Trazabilidad por producto
 

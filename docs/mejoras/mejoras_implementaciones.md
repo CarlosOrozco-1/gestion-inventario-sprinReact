@@ -770,7 +770,7 @@ Nuevo documento `docs/ESTRATEGIA_DESPLIEGUE.md` con el principio de **reconstrui
 solo lo que cambió**, las brechas reales detectadas en `docker-compose.prod.yml`
 (backend sin healthcheck, `depends_on` sin condición, sin `stop_grace_period`,
 túnel con hostname aleatorio) y la recomendación por etapas desde healthcheck
-hasta CI/CD. Complementa a `FLUJO_DESPLIEGUE.md`, que cubre las ramas.
+hasta CI/CD. Complementa a `docs/despliegue/flujo_despliegue.md`, que cubre las ramas.
 
 ---
 

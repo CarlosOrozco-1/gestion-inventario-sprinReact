@@ -92,7 +92,7 @@
 
 ## 4. Referencias
 - `AGENTS.md` – reglas de negocio, transaccionalidad, validaciones
-- `FLUJO_DESPLIEGUE.md` – desa→pre→pro, rollback
+- `docs/despliegue/flujo_despliegue.md` – desa→pre→pro, rollback
 - `docs/generales/pendientes.md` – seguimiento de deuda
 - `.opencode/skills/deploy-docker` – despliegue/validación
 - `.opencode/skills/validacion-e2e` – smoke test E2E

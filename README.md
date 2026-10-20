@@ -397,8 +397,8 @@ disponibles según la matriz anterior.
 
 | Documento | Contenido |
 |---|---|
-| `DOCUMENTACION_SISTEMA.md` | Contexto técnico completo (arquitectura, API, modelo de datos, reglas de negocio). |
-| `CONTEXTO_AGENTE_DOCUMENTACION.md` | Contexto verificado para el agente que redacta la documentación y el manual de usuario. |
+| `docs/generales/documentacion_sistema.md` | Contexto técnico completo (arquitectura, API, modelo de datos, reglas de negocio). |
+| `docs/generales/contexto_agente_documentacion.md` | Contexto verificado para el agente que redacta la documentación y el manual de usuario. |
 | `AGENTS.md` | Convenciones del proyecto, reglas de negocio y estado de fases. |
 | `FLUJO_DESPLIEGUE.md` | Flujo de ambientes y ramas (`desa` → `pre` → `pro`). |
 | `docs/ESTRATEGIA_DESPLIEGUE.md` | Mecánica de despliegue en el servidor: qué se reconstruye, healthchecks, CI/CD, migraciones sin downtime y rollback. |

@@ -209,7 +209,7 @@ Crear usuario (correo, nombre, contraseña inicial, **rol**), editar datos, **ca
 
 ---
 
-## 9. Ramas y flujo de despliegue (ver `FLUJO_DESPLIEGUE.md`)
+## 9. Ramas y flujo de despliegue (ver `docs/despliegue/flujo_despliegue.md`)
 
 - `desa` (desarrollo) → `pre` (pruebas) → `pro` (producción). Código siempre avanza hacia adelante.
 - Existe además `deploy-local` para validaciones continuas en el servidor local.
@@ -225,7 +225,7 @@ Crear usuario (correo, nombre, contraseña inicial, **rol**), editar datos, **ca
    presentación), kárdex (entrada/salida), ajustes con justificación, reportería + exports,
    auditoría, gestión de usuarios, mi perfil. Capturas/lugares exactos puede sacarlos de
    `frontend/src/pages/*.tsx`.
-2. **Documentación técnica:** actualizar/alinear con `DOCUMENTACION_SISTEMA.md` (arquitectura,
+2. **Documentación técnica:** actualizar/alinear con `docs/generales/documentacion_sistema.md` (arquitectura,
    API REST, modelo de datos, reglas de negocio, auditoría, despliegue, variables). Si un
    endpoint cambió (p. ej. `/usuarios` resumen para los tres roles), reflejarlo.
 3. **No inventar:** toda afirmación debe ser verificable contra el código citado. Si algo no

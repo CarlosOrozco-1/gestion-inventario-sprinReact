@@ -101,110 +101,50 @@ public class DataSeeder implements CommandLineRunner {
 
         Usuario admin = usuarioRepository.findAll().stream().findFirst().orElse(null);
 
-        Item item1 = new Item();
-        item1.setName("Aire Comprimido");
-        item1.setCode(1001);
-        item1 = itemRepository.save(item1);
+        String[][] items = {
+            {"Aire Comprimido", "20 Onzas"}, {"Guantes Nitrilo", "100 unidades"}, {"Alcohol Isopropílico", "1 Litro"},
+            {"Trapos Industriales", "25 unidades"}, {"Desengrasante", "1 Galón"}, {"Lubricante Multiuso", "400 ml"},
+            {"Cinta de Aislamiento", "Rollo"}, {"Gafas de Seguridad", "Par"}, {"Mascarillas N95", "Caja 20"},
+            {"Jeringas", "Paquete 100"}, {"Guantes Látex", "Caja 100"}, {"Cloro", "1 Galón"},
+            {"Detergente Neutro", "5 Litros"}, {"Cepillos", "Unidad"}, {"Esponjas", "Paquete 10"},
+            {"Cinta Adhesiva", "Rollo"}, {"Brochas", "Unidad"}, {"Thinner", "1 Galón"},
+            {"Filtros de Aire", "Unidad"}, {"Grasa Industrial", "Tubo 500g"}, {"Algodón", "Kilo"},
+            {"Gasolina Blanca", "Galón"}, {"Líquido Refrigerante", "Galón"}, {"Silicona", "Tubo"},
+            {"Toallas Absorbentes", "Rollo 200"}
+        };
 
-        Presentation p1 = new Presentation();
-        p1.setItem(item1);
-        p1.setName("Envase");
-        p1.setSize("20 Onzas");
-        p1.setStock(150);
-        p1.setMinStock(20);
-        p1.setMaxStock(200);
-        p1.setActivo(true);
-        p1.setQrCode("SIGES-PRES-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
-        p1 = presentationRepository.save(p1);
-        p1.setQrCode("SIGES-PRES-" + p1.getId());
-        presentationRepository.save(p1);
+        for (int i = 0; i < items.length; i++) {
+            String nombre = items[i][0];
+            String size = items[i][1];
+            int code = 1001 + i;
+            Item item = new Item();
+            item.setName(nombre);
+            item.setCode(code);
+            item = itemRepository.save(item);
 
-        Item item2 = new Item();
-        item2.setName("Guantes Nitrilo");
-        item2.setCode(1002);
-        item2 = itemRepository.save(item2);
+            Presentation p = new Presentation();
+            p.setItem(item);
+            p.setName("Presentación");
+            p.setSize(size);
+            p.setStock(50 + (i * 3));
+            p.setMinStock(5 + i);
+            p.setMaxStock(150 + (i * 5));
+            p.setActivo(true);
+            p.setQrCode("SIGES-PRES-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+            p = presentationRepository.save(p);
+            p.setQrCode("SIGES-PRES-" + p.getId());
+            presentationRepository.save(p);
 
-        Presentation p2 = new Presentation();
-        p2.setItem(item2);
-        p2.setName("Caja");
-        p2.setSize("100 unidades");
-        p2.setStock(80);
-        p2.setMinStock(25);
-        p2.setMaxStock(150);
-        p2.setActivo(true);
-        p2.setQrCode("SIGES-PRES-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
-        p2 = presentationRepository.save(p2);
-        p2.setQrCode("SIGES-PRES-" + p2.getId());
-        presentationRepository.save(p2);
-
-        Item item3 = new Item();
-        item3.setName("Alcohol Isopropílico");
-        item3.setCode(1003);
-        item3 = itemRepository.save(item3);
-
-        Presentation p3 = new Presentation();
-        p3.setItem(item3);
-        p3.setName("Botella");
-        p3.setSize("1 Litro");
-        p3.setStock(60);
-        p3.setMinStock(15);
-        p3.setMaxStock(100);
-        p3.setActivo(true);
-        p3.setQrCode("SIGES-PRES-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
-        p3 = presentationRepository.save(p3);
-        p3.setQrCode("SIGES-PRES-" + p3.getId());
-        presentationRepository.save(p3);
-
-        Item item4 = new Item();
-        item4.setName("Trapos Industriales");
-        item4.setCode(1004);
-        item4 = itemRepository.save(item4);
-
-        Presentation p4 = new Presentation();
-        p4.setItem(item4);
-        p4.setName("Paquete");
-        p4.setSize("25 unidades");
-        p4.setStock(40);
-        p4.setMinStock(10);
-        p4.setMaxStock(80);
-        p4.setActivo(true);
-        p4.setQrCode("SIGES-PRES-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
-        p4 = presentationRepository.save(p4);
-        p4.setQrCode("SIGES-PRES-" + p4.getId());
-        presentationRepository.save(p4);
-
-        Item item5 = new Item();
-        item5.setName("Desengrasante");
-        item5.setCode(1005);
-        item5 = itemRepository.save(item5);
-
-        Presentation p5 = new Presentation();
-        p5.setItem(item5);
-        p5.setName("Galón");
-        p5.setSize("1 Galón");
-        p5.setStock(35);
-        p5.setMinStock(8);
-        p5.setMaxStock(60);
-        p5.setActivo(true);
-        p5.setQrCode("SIGES-PRES-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
-        p5 = presentationRepository.save(p5);
-        p5.setQrCode("SIGES-PRES-" + p5.getId());
-        presentationRepository.save(p5);
-
-        crearMovimiento(p1, MovimientoTipo.ENTRADA, 200, "Ingreso inicial de stock", admin);
-        crearMovimiento(p1, MovimientoTipo.SALIDA, 30, "Consumo para mantenimiento preventivo", admin);
-        crearMovimiento(p1, MovimientoTipo.SALIDA, 20, "Salida a taller mecánico", admin);
-        crearMovimiento(p2, MovimientoTipo.ENTRADA, 100, "Compra mensual guantes nitrilo", admin);
-        crearMovimiento(p2, MovimientoTipo.SALIDA, 20, "Entrega a cuadrilla de trabajo", admin);
-        crearMovimiento(p3, MovimientoTipo.ENTRADA, 80, "Compra de insumos de limpieza", admin);
-        crearMovimiento(p3, MovimientoTipo.SALIDA, 15, "Uso en área de producción", admin);
-        crearMovimiento(p4, MovimientoTipo.ENTRADA, 50, "Ingreso de trapos industriales", admin);
-        crearMovimiento(p4, MovimientoTipo.SALIDA, 10, "Uso diario taller", admin);
-        crearMovimiento(p5, MovimientoTipo.ENTRADA, 40, "Compra de desengrasante", admin);
-        crearMovimiento(p5, MovimientoTipo.SALIDA, 5, "Aplicación en equipos", admin);
-        crearMovimiento(p1, MovimientoTipo.AJUSTE_POSITIVO, 5, "Conteo físico ajustado por sobrante en inventario tras revisión", admin);
-        crearMovimiento(p3, MovimientoTipo.AJUSTE_NEGATIVO, 3, "Merma por derrame justificado y documentado en acta", admin);
-        crearMovimiento(p2, MovimientoTipo.AJUSTE_POSITIVO, 2, "Corrección por diferencia de conteo físico", admin);
+            if (admin != null) {
+                crearMovimiento(p, MovimientoTipo.ENTRADA, 120, "Ingreso inicial - " + nombre, admin);
+                crearMovimiento(p, MovimientoTipo.ENTRADA, 40, "Reposición - " + nombre, admin);
+                crearMovimiento(p, MovimientoTipo.SALIDA, 15, "Consumo operativo - " + nombre, admin);
+                crearMovimiento(p, MovimientoTipo.SALIDA, 10, "Salida a taller - " + nombre, admin);
+                if (i % 3 == 0) crearMovimiento(p, MovimientoTipo.SALIDA, 5, "Entrega interna - " + nombre, admin);
+                if (i % 4 == 0) crearMovimiento(p, MovimientoTipo.AJUSTE_POSITIVO, 3, "Ajuste positivo por conteo - " + nombre, admin);
+                if (i % 5 == 0) crearMovimiento(p, MovimientoTipo.AJUSTE_NEGATIVO, 2, "Merma justificada - " + nombre, admin);
+            }
+        }
     }
 
     private void crearMovimiento(Presentation presentation, MovimientoTipo tipo, Integer cantidad, String detalle, Usuario usuario) {

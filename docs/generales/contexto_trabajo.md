@@ -5,7 +5,7 @@
 > Este documento existe porque las sesiones de trabajo se van a perder con el
 > formateo de la máquina. Resume qué es el sistema, qué se hizo, qué decisiones
 > no se deben romper y cómo levantar, probar y desplegar. Los pendientes
-> accionables están en [`docs/PENDIENTES.md`](PENDIENTES.md).
+> accionables están en [`docs/generales/pendientes.md`](PENDIENTES.md).
 
 ---
 
@@ -221,7 +221,7 @@ tras un `pg_dump`.
 
 - `AGENTS.md` — reglas del proyecto (§1 stack, §5 UI/UX incl. §5.3 estados
   lógicos, §7 fases completadas, §8 Fase 10).
-- `docs/PENDIENTES.md` — pendientes accionables.
+- `docs/generales/pendientes.md` — pendientes accionables.
 - `docs/upgrade-V2-Manejo-de-bodegas.md` — diseño de la Fase 10.
 - `backend/src/main/resources/db/migration/V9__add_activo_presentations.sql`.
 - `backend/src/main/java/com/gestion/inventario/service/ItemService.java`
@@ -260,6 +260,6 @@ tras un `pg_dump`.
 1. Clonar el repo y hacer `checkout desa`.
 2. Rehacer el entorno: `.env` (copiando los secretos respaldados) y
    `~/.ssh/config` (alias `siges`).
-3. Leer `docs/PENDIENTES.md`.
+3. Leer `docs/generales/pendientes.md`.
 4. Desplegar en el servidor y verificar `V9`, frontend y túnel.
 5. Seguir con `/ws/auditoria`, BOM UTF-8 y la Fase 10 de bodegas.

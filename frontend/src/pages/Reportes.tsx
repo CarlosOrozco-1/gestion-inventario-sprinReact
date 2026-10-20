@@ -269,7 +269,7 @@ export default function Reportes() {
                   if (!trazaPresentationId) { alert('Selecciona una presentación'); return; }
                   setTrazaCargando(true);
                   try {
-                    const res = await api.get('/movimientos/paginado', { params: { page: trazaPagina, size: 20, presentationId: trazaPresentationId } });
+                    const res = await api.get('/movimientos/paginado', { params: { page: trazaPagina, size: trazaSize, presentationId: trazaPresentationId } });
                     setTrazaMovimientos(res.data.content || []);
                     setTrazaTotalPaginas(res.data.totalPages || 0);
                     try {
@@ -318,11 +318,19 @@ export default function Reportes() {
                 </tbody>
               </table>
             </div>
-            {trazaTotalPaginas > 1 && (
-              <div className="p-4 border-t border-slate-100 flex items-center gap-2">
-                <button onClick={() => { setTrazaPagina(p => Math.max(0,p-1)); }} disabled={trazaPagina === 0} className="px-3 py-1 text-sm">Anterior</button>
-                <span className="px-3 text-sm">Página {trazaPagina+1} de {trazaTotalPaginas}</span>
-                <button onClick={() => { setTrazaPagina(p => Math.min(trazaTotalPaginas-1,p+1)); }} disabled={trazaPagina >= trazaTotalPaginas-1} className="px-3 py-1 text-sm">Siguiente</button>
+            {(trazaTotalPaginas > 1 || trazaTotal > 0) && (
+              <div className="p-4 border-t border-slate-100">
+                <Paginacion
+                  pagina={trazaPagina}
+                  totalPaginas={trazaTotalPaginas}
+                  total={trazaTotal}
+                  onCambioPagina={(p) => setTrazaPagina(p)}
+                  onCambioTamanio={(sz) => { setTrazaSize(sz); setTrazaPagina(0); buscarTraza(); }}
+                  tamanioPagina={trazaSize}
+                  tamanios={[10,20,50]}
+                  etiqueta="movimientos"
+                  variant="tarjeta"
+                />
               </div>
             )}
           </div>

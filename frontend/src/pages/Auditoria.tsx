@@ -4,7 +4,7 @@ import { useAuditSocket } from '../hooks/useAuditSocket';
 import Paginacion from '../components/Paginacion';
 import { btn } from '../utils/buttonStyles';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZES = [10, 20, 50];
 
 const badgeFor = (eventType: string) => {
   if (eventType === 'LOGIN') return 'bg-sky-100 text-sky-700 border-sky-200';
@@ -43,13 +43,14 @@ export default function Auditoria() {
       setTotalPages(response.data.totalPages || 0);
       setTotalElements(response.data.totalElements || 0);
       setPage(pagina);
+      if (size) setPageSize(size);
     } catch (err) {
       console.error('Error cargando auditoría', err);
       setError('No se pudo cargar la bitácora de auditoría.');
     } finally {
       setLoading(false);
     }
-  }, [filtroEvento, filtroUsuario, filtroDesde, filtroHasta]);
+  }, [filtroEvento, filtroUsuario, filtroDesde, filtroHasta, pageSize]);
 
   const aplicarFiltros = () => fetchLogs(0);
 
@@ -207,7 +208,10 @@ export default function Auditoria() {
             pagina={page}
             totalPaginas={totalPages}
             total={totalElements}
-            onCambioPagina={fetchLogs}
+            onCambioPagina={(p) => fetchLogs(p)}
+            onCambioTamanio={(s) => fetchLogs(0, s)}
+            tamanioPagina={pageSize}
+            tamanios={PAGE_SIZES}
             etiqueta="eventos"
           />
         )}

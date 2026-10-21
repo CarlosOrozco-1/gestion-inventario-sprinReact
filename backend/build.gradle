@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.gestion.inventario'
-version = '0.0.1-SNAPSHOT'
+version = '1.2.0'
 
 // Java version constraint removed to allow compiling with host's JDK 25
 

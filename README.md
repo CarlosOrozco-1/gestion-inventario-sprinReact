@@ -2,6 +2,8 @@
 
 Sistema web para el control y gestion de inventario de insumos, con soporte para multiples usuarios y roles (Administrador, Jefe, Auxiliar). Permite registrar entradas, salidas, ajustes y correcciones con validaciones estrictas de stock.
 
+**Versión actual:** 1.2.0 (`VERSION`)
+
 ---
 
 ## Stack Tecnologico

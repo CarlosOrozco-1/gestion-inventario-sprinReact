@@ -1,6 +1,6 @@
 # Checklist de Seguridad - SIGES
 
-**Última actualización:** 2026-10-12  
+**Última actualización:** 2026-10-12
 **Objetivo:** Verificar la seguridad del sitio web aplicando estándares mínimos y reutilizando las skills disponibles (`deploy-docker`, `validacion-e2e`).
 
 > **Nota:** Este checklist se apoya en el estado actual del proyecto (JWT stateless + BCrypt, CORS por patrones, Bean Validation, `@RestControllerAdvice`, `@Transactional`, separación de `.env`, HTTPS detrás de Caddy, WebSocket en `/ws/**`).

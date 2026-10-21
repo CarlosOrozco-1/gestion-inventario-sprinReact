@@ -400,9 +400,9 @@ disponibles según la matriz anterior.
 | `docs/generales/documentacion_sistema.md` | Contexto técnico completo (arquitectura, API, modelo de datos, reglas de negocio). |
 | `docs/generales/contexto_agente_documentacion.md` | Contexto verificado para el agente que redacta la documentación y el manual de usuario. |
 | `AGENTS.md` | Convenciones del proyecto, reglas de negocio y estado de fases. |
-| `FLUJO_DESPLIEGUE.md` | Flujo de ambientes y ramas (`desa` → `pre` → `pro`). |
-| `docs/ESTRATEGIA_DESPLIEGUE.md` | Mecánica de despliegue en el servidor: qué se reconstruye, healthchecks, CI/CD, migraciones sin downtime y rollback. |
-| `DESPLIEGUE_LOCAL_UBUNTU.md` | Guía de despliegue en el servidor Ubuntu. |
-| `docs/MEJORAS_IMPLEMENTACIONES.md` | Bitácora de mejoras con archivos afectados y comportamiento. |
-| `docs/upgrade-V2-Manejo-de-bodegas.md` | Análisis de impacto y decisiones abiertas del upgrade a inventario por bodegas, incluido el **motor de préstamos entre bodegas** (Fase 10, no implementada). |
+| `docs/despliegue/flujo_despliegue.md` | Flujo de ambientes y ramas (`desa` → `pre` → `pro`). |
+| `docs/despliegue/estrategia_despliegue.md` | Mecánica de despliegue en servidor: healthchecks, migraciones y rollback. |
+| `docs/despliegue/como_levantar_los_servicios.md` | Requisitos y comandos para levantar la aplicación localmente. |
+| `docs/mejoras/mejoras_implementaciones.md` | Bitácora de mejoras con archivos afectados y comportamiento. |
+| `docs/inventario/upgrade_v2_manejo_de_bodegas.md` | Análisis de impacto y decisiones abiertas del upgrade a inventario por bodegas, incluido el **motor de préstamos entre bodegas** (Fase 10, no implementada). |
 | `database/ER.md` | Diagrama entidad-relación y esquema PostgreSQL. |

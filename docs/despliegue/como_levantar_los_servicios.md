@@ -77,6 +77,29 @@ docker compose -f docker-compose.prod.yml logs -f backend
 > 💡 Si ya tienes PostgreSQL del sistema usando el puerto 5432, cambia el
 > puerto mapeado en `docker-compose.prod.yml` (ej. `"5433:5432"`).
 
+### Poblar la base local con datos de demostración
+
+El seeder siempre conserva la creación de roles y el ADMIN configurado. Los datos
+sintéticos del catálogo, costos y movimientos requieren activación explícita; por
+defecto están desactivados y no se agregan al arrancar normalmente.
+
+Desde la raíz del proyecto, para completar la base PostgreSQL **local** del Compose:
+
+```bash
+APP_SEED_DEMO_DATA=true docker compose -f docker-compose.yml up -d --build backend
+```
+
+El proceso agrega lo que falte, conserva los stocks y movimientos existentes, y
+omite presentaciones que ya tengan historial. Los costos incluidos son valores
+ficticios de prueba; reemplázalos por costos reales antes de usar esos datos como
+inventario operativo. Al terminar, deja apagada la opción en el contenedor:
+
+```bash
+APP_SEED_DEMO_DATA=false docker compose -f docker-compose.yml up -d backend
+```
+
+**No actives esta opción en `desa`, `pre` ni `pro` del servidor.**
+
 ---
 
 ## 4. Modo desarrollo del frontend (opcional, hot-reload)
@@ -96,14 +119,12 @@ npm run dev
 
 ---
 
-## 5. Credenciales por defecto
+## 5. Administrador inicial
 
-| Rol | Email | Contraseña |
-| --- | ----- | ---------- |
-| Administrador | `admin@inventario.com` | `admin123` |
-
-> El seeder crea el admin al primer arranque. En producción cambia la contraseña
-> y usa cuentas reales (la recuperación de contraseña envía el código al correo).
+El seeder no contiene una contraseña predeterminada. Crea o sincroniza el ADMIN
+solo cuando `ADMIN_EMAIL` y `ADMIN_PASSWORD` están configurados en `.env`; no
+compartas ese archivo ni agregues sus valores a Git. Si faltan, el backend lo
+indica en el log y no crea credenciales débiles automáticamente.
 
 ---
 

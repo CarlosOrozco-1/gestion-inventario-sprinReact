@@ -18,6 +18,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:postgresql://db:5432/inventario
+      APP_SEED_DEMO_DATA: ${APP_SEED_DEMO_DATA:-false}
       JWT_SECRET: ${JWT_SECRET}
       TZ: ${TZ:-America/Guatemala}
       JAVA_TOOL_OPTIONS: -Xmx384m -Duser.timezone=${TZ:-America/Guatemala}

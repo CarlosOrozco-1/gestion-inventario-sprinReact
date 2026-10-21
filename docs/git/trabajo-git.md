@@ -23,7 +23,7 @@ completas.** Nunca se mergea hacia `backup`; se usa `git branch -f`.
 |---|---|---|
 | `deploy-local` | Remoto (upstream) | **NO es para producción.** Configuración específica del entorno local (túnel Cloudflare, `deploy-local.sh`, `tunnel-local/`, ajustes de `.env` para uso local). Contiene infraestructura/local, **no** lógica de negocio. |
 
-**Regla de protección:** **NUNCA** hacer merge de `deploy-local` hacia `desa`, `pre` o `pro`. Si por error intentas hacerlo, **NO LO PERMITAS**. Las ramas de servidor (`desa/pre/pro`) solo deben recibir cambios de aplicación desde `desa` (y en cascada). 
+**Regla de protección:** **NUNCA** hacer merge de `deploy-local` hacia `desa`, `pre` o `pro`. Si por error intentas hacerlo, **NO LO PERMITAS**. Las ramas de servidor (`desa/pre/pro`) solo deben recibir cambios de aplicación desde `desa` (y en cascada).
 
 **Cómo detectar un merge accidental:**
 
@@ -33,11 +33,42 @@ completas.** Nunca se mergea hacia `backup`; se usa `git branch -f`.
   ```bash
   # Ver qué archivos únicos tiene deploy-local vs desa
   git diff --name-only origin/desa..origin/deploy-local | grep -E 'tunnel-local/|deploy-local\.sh|DESPLIEGUE_LOCAL_UBUNTU\.md'
-  
+
   # Si devuelve resultados, ESTÁS POR MERGEAR CONFIG LOCAL. Deténlo.
   ```
 
 - **Si detectas intento de merge desde `deploy-local` hacia `desa/pre/pro`:** cancélalo, aísla los cambios con `git cherry-pick` solo de los archivos de aplicación que realmente necesites (nunca todo el diff).
+
+## Actualizar `deploy-local` desde `desa` sin reemplazar su infraestructura
+
+`deploy-local` puede recibir lógica de aplicación probada en `desa`, pero no una
+copia completa de su árbol: conserva sus scripts, túnel y configuración local.
+La integración se hace en una rama temporal basada en el remoto de destino.
+
+1. **Exigir un worktree limpio** y guardar/confirmar primero el trabajo de `desa`.
+   No cambiar de rama con cambios sin commit ni aplicarles un stash sin autorización.
+2. Actualizar referencias y crear la integración desde el destino:
+   ```bash
+   git fetch origin
+   git switch --create integracion-deploy-local origin/deploy-local
+   ```
+3. Revisar la divergencia y el conjunto de archivos antes de copiar código:
+   ```bash
+   git merge-base origin/deploy-local origin/desa
+   git diff --name-status origin/deploy-local...origin/desa
+   git diff --name-status origin/desa...origin/deploy-local
+   ```
+4. Portar **solo commits o hunks de aplicación necesarios** desde `desa`.
+   Cherry-pick únicamente commits que no reemplacen configuración local. Si un
+   archivo mezcla lógica y entorno —por ejemplo CORS, `SecurityConfig`,
+   `application-prod.properties`, `.env.example` o Compose— resolverlo por hunks
+   y preservar los valores/nombres propios del servidor local.
+5. Verificar que siguen presentes `deploy-local.sh`, `tunnel-local/` y
+   `DESPLIEGUE_LOCAL_UBUNTU.md`; revisar `.env`/secretos, los puertos, CORS y el
+   túnel. Ejecutar tests y build, y revisar todo el diff de la rama temporal.
+6. Solo tras validación explícita, actualizar/pushear `deploy-local`. No promover
+   esa rama a `desa`, `pre` ni `pro`. Si algo falla, descartar únicamente la rama
+   temporal y conservar intactos los destinos.
 
 ## Flujo por cada integración de código ajeno
 

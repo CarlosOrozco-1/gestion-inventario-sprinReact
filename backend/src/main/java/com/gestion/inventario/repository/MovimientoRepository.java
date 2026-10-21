@@ -15,6 +15,7 @@ import java.util.List;
 @Repository
 public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
     List<Movimiento> findByPresentationId(Long presentationId);
+    long countByPresentationId(Long presentationId);
 
     // Historial completo de una presentación para cálculo de saldo acumulado
     @EntityGraph(attributePaths = {"presentation", "presentation.item", "usuario"})

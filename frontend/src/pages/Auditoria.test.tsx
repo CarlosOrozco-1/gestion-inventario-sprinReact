@@ -18,8 +18,8 @@ function responderPagina() {
           createdAt: '2026-09-01T10:00:00',
         },
       ],
-      totalPages: 1,
-      totalElements: 1,
+      totalPages: 3,
+      totalElements: 25,
       number: 0,
       size: 20,
     },
@@ -44,7 +44,22 @@ describe('Auditoria (bitácora del sistema)', () => {
 
     expect(await screen.findByText('Inicio de sesión exitoso')).toBeInTheDocument();
     expect(screen.getByText('admin@inventario.com')).toBeInTheDocument();
-    expect(screen.getByText(/1 evento registrado/i)).toBeInTheDocument();
+    expect(screen.getByText(/25 eventos registrados/i)).toBeInTheDocument();
+  });
+
+  it('envía el tamaño de página seleccionado al servidor', async () => {
+    render(<Auditoria />);
+    await screen.findByText('Inicio de sesión exitoso');
+
+    fireEvent.change(screen.getByTitle('Registros por página'), {
+      target: { value: '50' },
+    });
+
+    await waitFor(() => {
+      const llamadas = apiMocks.get.mock.calls.filter((c) => c[0] === '/auditoria');
+      const ultima = llamadas[llamadas.length - 1];
+      expect((ultima as any[])[1].params).toEqual({ page: 0, size: 50 });
+    });
   });
 
   it('aplica el filtro de usuario al pulsar Buscar', async () => {

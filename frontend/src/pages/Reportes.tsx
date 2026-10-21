@@ -19,6 +19,8 @@ export default function Reportes() {
   const [trazaStock, setTrazaStock] = useState<number | null>(null);
   const [trazaCargando, setTrazaCargando] = useState(false);
   const [trazaPagina, setTrazaPagina] = useState(0);
+  const [trazaSize, setTrazaSize] = useState(10);
+  const [trazaTotal, setTrazaTotal] = useState(0);
   const [trazaTotalPaginas, setTrazaTotalPaginas] = useState(0);
 
   useEffect(() => {
@@ -80,10 +82,40 @@ export default function Reportes() {
   } = usePaginacion(movimientosFiltrados, TAMANIO_PAGINA);
 
   const formatDate = (isoString: string) => {
-    return new Date(isoString).toLocaleDateString('es-ES', { 
-      year: 'numeric', month: 'short', day: 'numeric', 
-      hour: '2-digit', minute: '2-digit' 
+    return new Date(isoString).toLocaleDateString('es-ES', {
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
     });
+  };
+
+  const buscarTraza = async (pagina = trazaPagina, tamanio = trazaSize) => {
+    if (!trazaPresentationId) {
+      alert('Selecciona una presentación');
+      return;
+    }
+
+    setTrazaCargando(true);
+    try {
+      const res = await api.get('/movimientos/paginado', {
+        params: { page: pagina, size: tamanio, presentationId: trazaPresentationId }
+      });
+      setTrazaMovimientos(res.data.content || []);
+      setTrazaTotal(res.data.totalElements || 0);
+      setTrazaTotalPaginas(res.data.totalPages || 0);
+      setTrazaPagina(pagina);
+      setTrazaSize(tamanio);
+
+      try {
+        const pres = await api.get(`/presentations/${trazaPresentationId}`);
+        setTrazaStock(pres.data.stock ?? null);
+      } catch {
+        setTrazaStock(null);
+      }
+    } catch (error) {
+      console.error('Error cargando la trazabilidad del producto', error);
+    } finally {
+      setTrazaCargando(false);
+    }
   };
 
   const handleExportExcel = async () => {
@@ -252,36 +284,20 @@ export default function Reportes() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1">Insumo</label>
-                <select value={trazaItemId} onChange={(e) => { setTrazaItemId(e.target.value); setTrazaPresentationId(''); }} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+                <select value={trazaItemId} onChange={(e) => { setTrazaItemId(e.target.value); setTrazaPresentationId(''); setTrazaMovimientos([]); setTrazaStock(null); setTrazaPagina(0); setTrazaTotal(0); setTrazaTotalPaginas(0); }} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
                   <option value="">Seleccionar insumo</option>
                   {insumos.map((i: any) => <option key={i.id} value={i.id}>{i.item}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1">Presentación</label>
-                <select value={trazaPresentationId} onChange={(e) => setTrazaPresentationId(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+                <select value={trazaPresentationId} onChange={(e) => { setTrazaPresentationId(e.target.value); setTrazaMovimientos([]); setTrazaStock(null); setTrazaPagina(0); setTrazaTotal(0); setTrazaTotalPaginas(0); }} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
                   <option value="">Seleccionar presentación</option>
                   {(insumos.find((i:any)=> i.id.toString()===trazaItemId)?.presentations || []).map((p:any) => <option key={p.id} value={p.id}>{p.name} {p.size}</option>)}
                 </select>
               </div>
               <div className="flex items-end">
-                <button onClick={async () => {
-                  if (!trazaPresentationId) { alert('Selecciona una presentación'); return; }
-                  setTrazaCargando(true);
-                  try {
-                    const res = await api.get('/movimientos/paginado', { params: { page: trazaPagina, size: trazaSize, presentationId: trazaPresentationId } });
-                    setTrazaMovimientos(res.data.content || []);
-                    setTrazaTotalPaginas(res.data.totalPages || 0);
-                    try {
-                      const pres = await api.get(`/presentations/${trazaPresentationId}`);
-                      setTrazaStock(pres.data.stock ?? null);
-                    } catch {}
-                  } catch (e) {
-                    console.error(e);
-                  } finally {
-                    setTrazaCargando(false);
-                  }
-                }} className={btn('primario', 'barra')}>Buscar trazabilidad</button>
+                <button onClick={() => buscarTraza(0, trazaSize)} className={btn('primario', 'barra')}>Buscar trazabilidad</button>
               </div>
             </div>
             {trazaStock !== null && <p className="mt-3 text-sm text-slate-600">Stock actual: <span className="font-semibold">{trazaStock}</span></p>}
@@ -324,8 +340,8 @@ export default function Reportes() {
                   pagina={trazaPagina}
                   totalPaginas={trazaTotalPaginas}
                   total={trazaTotal}
-                  onCambioPagina={(p) => setTrazaPagina(p)}
-                  onCambioTamanio={(sz) => { setTrazaSize(sz); setTrazaPagina(0); buscarTraza(); }}
+                  onCambioPagina={(p) => buscarTraza(p)}
+                  onCambioTamanio={(sz) => buscarTraza(0, sz)}
                   tamanioPagina={trazaSize}
                   tamanios={[10,20,50]}
                   etiqueta="movimientos"

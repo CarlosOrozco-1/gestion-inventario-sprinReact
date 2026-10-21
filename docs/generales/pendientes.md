@@ -1,13 +1,14 @@
 # Pendientes a ejecutar
 
-**Última actualización:** 2026-10-12
+**Última actualización:** 2026-10-20
 **Motivo de este documento:** cierre de sesión con el historial respaldado en el
 remoto y la máquina de trabajo a punto de formatearse. Aquí queda la lista viva
 de lo que falta, con los comandos concretos para retomarlo sin contexto previo.
 
-> Estado de partida: `origin/desa = 78bbef2` (incluye Fase 9 + inactivación
-> lógica de presentaciones), `origin/deploy-local = f640fe5` (incluye la IP
-> centralizada en el `.env` y el alias SSH). Sin CI/CD: el despliegue es manual.
+> Estado de referencia antes de esta publicación: `desa`/`origin/desa` en `41bf0c8` y
+> `origin/deploy-local` en `f640fe5`. La rama local `deploy-local` (tracking al remoto)
+> contiene la integración selectiva verificada `b2f32f6`; su publicación remota está
+> pendiente de confirmación. Sin CI/CD: el despliegue es manual.
 
 ---
 
@@ -217,3 +218,21 @@ Referencias: AGENTS.md, docs/despliegue/flujo_despliegue.md, docs/SEGURIDAD_CHEC
 - [ ] Verificar que el saldo cuadra con el stock actual en `presentations.stock`.
 - [ ] Probar inactivos (no deben permitir movimientos, pero deben conservar trazabilidad histórica).
 
+---
+
+## 11. Continuidad de trabajo: ramas y pruebas
+
+- [x] Completar la sincronización **selectiva** de aplicación desde `desa` hacia
+      `deploy-local`, conservando intactos `deploy-local.sh`, `tunnel-local/`,
+      `DESPLIEGUE_LOCAL_UBUNTU.md` y las configuraciones de servidor local. No
+      hacer merge completo de `desa` ni de `deploy-local` hacia ramas de servidor.
+- [x] Preparar la integración basada en `origin/deploy-local`; comparar archivos
+      con `origin/desa`, portar cambios selectivos y validar tests/build antes de
+      actualizar la rama local `deploy-local`.
+- [x] Configurar `origin/desa` como upstream de `desa` al hacer el push solicitado.
+      Mantener `origin/HEAD -> origin/master` sin cambios hasta confirmar la política.
+- [x] Actualizar `frontend/src/pages/Movimientos.test.tsx` para probar el flujo
+      vigente: tarjeta de Kárdex que navega a Reportes (la tabla paginada ya no
+      pertenece a esta pantalla); suite completa frontend: 73 tests aprobados.
+- [x] Corregir y validar el error de render en Trazabilidad por producto
+      (`trazaTotal`/paginación indefinidos); probar búsqueda, saldo y paginación.

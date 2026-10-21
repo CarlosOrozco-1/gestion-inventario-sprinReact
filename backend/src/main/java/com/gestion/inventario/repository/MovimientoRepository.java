@@ -15,6 +15,25 @@ import java.util.List;
 @Repository
 public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
     List<Movimiento> findByPresentationId(Long presentationId);
+    long countByPresentationId(Long presentationId);
+
+    // Historial completo de una presentación para cálculo de saldo acumulado
+    @EntityGraph(attributePaths = {"presentation", "presentation.item", "usuario"})
+    @Query("SELECT m FROM Movimiento m WHERE m.presentation.id = :presentationId ORDER BY m.createdAt ASC, m.id ASC")
+    List<Movimiento> findAllByPresentationIdOrderByCreatedAtAsc(@Param("presentationId") Long presentationId);
+
+    // Historial paginado de una presentación (vista con saldo calculado)
+    @EntityGraph(attributePaths = {"presentation", "presentation.item", "usuario"})
+    @Query(value = "SELECT m FROM Movimiento m WHERE m.presentation.id = :presentationId ORDER BY m.createdAt DESC, m.id DESC",
+           countQuery = "SELECT count(m) FROM Movimiento m WHERE m.presentation.id = :presentationId")
+    Page<Movimiento> findByPresentationIdWithDetailsOrderByCreatedAtDesc(@Param("presentationId") Long presentationId, Pageable pageable);
+
+    // Historial paginado por item (todas las presentaciones del insumo)
+    @EntityGraph(attributePaths = {"presentation", "presentation.item", "usuario"})
+    @Query(value = "SELECT m FROM Movimiento m WHERE m.presentation.item.id = :itemId ORDER BY m.createdAt DESC, m.id DESC",
+           countQuery = "SELECT count(m) FROM Movimiento m WHERE m.presentation.item.id = :itemId")
+    Page<Movimiento> findByItemIdWithDetailsOrderByCreatedAtDesc(@Param("itemId") Long itemId, Pageable pageable);
+
     List<Movimiento> findAllByOrderByCreatedAtDesc();
 
     // Listado con las relaciones precargadas (evita N+1 de presentación/íem/usuario).

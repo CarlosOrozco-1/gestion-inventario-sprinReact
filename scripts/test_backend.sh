@@ -4,9 +4,9 @@
 #
 # El entorno local no tiene un JDK con compilador, así que estos tests se
 # ejecutan en la imagen oficial de Gradle con Java 21 (igual a la de build).
-# Se corre SOLO los tests unitarios (los que no requieren BD): `service` y
-# `exception`. `BackendApplicationTests` (@SpringBootTest) necesita PostgreSQL y
-# se excluye.
+# Se corren los tests unitarios que no requieren BD: `service`, `exception` y
+# `config` (incluye DataSeederTest). `BackendApplicationTests` (@SpringBootTest)
+# necesita PostgreSQL y se excluye.
 # ============================================================================
 set -euo pipefail
 
@@ -34,6 +34,7 @@ docker run --rm \
   "$IMG" \
   gradle test --tests "com.gestion.inventario.service.*" \
               --tests "com.gestion.inventario.exception.*" \
+              --tests "com.gestion.inventario.config.*" \
               --no-daemon --console=plain
 
 echo "[3/3] Reporte HTML: $WORKDIR/build/reports/tests/test/index.html"

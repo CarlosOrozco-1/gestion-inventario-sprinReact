@@ -11,13 +11,17 @@ export default function Reportes() {
   const [insumos, setInsumos] = useState<any[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<'reportes' | 'trazabilidad'>('reportes');
 
-  // Estados de Filtros
-  const [filtroUsuario, setFiltroUsuario] = useState('');
-  const [filtroInsumo, setFiltroInsumo] = useState('');
-  const [filtroTipo, setFiltroTipo] = useState('');
-  const [fechaInicio, setFechaInicio] = useState('');
-  const [fechaFin, setFechaFin] = useState('');
+  const [trazaPresentationId, setTrazaPresentationId] = useState<string>('');
+  const [trazaItemId, setTrazaItemId] = useState<string>('');
+  const [trazaMovimientos, setTrazaMovimientos] = useState<any[]>([]);
+  const [trazaStock, setTrazaStock] = useState<number | null>(null);
+  const [trazaCargando, setTrazaCargando] = useState(false);
+  const [trazaPagina, setTrazaPagina] = useState(0);
+  const [trazaSize, setTrazaSize] = useState(10);
+  const [trazaTotal, setTrazaTotal] = useState(0);
+  const [trazaTotalPaginas, setTrazaTotalPaginas] = useState(0);
 
   useEffect(() => {
     const fetchDatosBase = async () => {
@@ -39,7 +43,12 @@ export default function Reportes() {
     fetchDatosBase();
   }, []);
 
-  // Aplicar filtros en memoria
+  const [filtroUsuario, setFiltroUsuario] = useState('');
+  const [filtroInsumo, setFiltroInsumo] = useState('');
+  const [filtroTipo, setFiltroTipo] = useState('');
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
+
   const movimientosFiltrados = useMemo(() => {
     return movimientos.filter(mov => {
       let coincideUsuario = true;
@@ -48,10 +57,12 @@ export default function Reportes() {
       let coincideFecha = true;
 
       if (filtroUsuario) {
-        coincideUsuario = mov.usuarioName === usuarios.find(u => u.id.toString() === filtroUsuario)?.name;
+        const u = usuarios.find((u: any) => u.id.toString() === filtroUsuario);
+        coincideUsuario = u ? mov.usuarioName === u.name : true;
       }
       if (filtroInsumo) {
-        coincideInsumo = mov.itemName === insumos.find(i => i.id.toString() === filtroInsumo)?.item;
+        const i = insumos.find((x: any) => x.id.toString() === filtroInsumo);
+        coincideInsumo = i ? mov.itemName === i.item : true;
       }
       if (filtroTipo) {
         coincideTipo = mov.type === filtroTipo;
@@ -66,18 +77,45 @@ export default function Reportes() {
     });
   }, [movimientos, filtroUsuario, filtroInsumo, filtroTipo, fechaInicio, fechaFin, usuarios, insumos]);
 
-  // Solo se pagina la tabla de resultados. Los <select> de filtro y los exports
-  // (Excel/PDF) siguen usando el conjunto filtrado completo: un reporte debe
-  // incluir todo lo que el filtro seleccionó, no solo la página visible.
   const {
     pagina, totalPaginas, total, visibles: movimientosVisibles, setPagina,
   } = usePaginacion(movimientosFiltrados, TAMANIO_PAGINA);
 
   const formatDate = (isoString: string) => {
-    return new Date(isoString).toLocaleDateString('es-ES', { 
-      year: 'numeric', month: 'short', day: 'numeric', 
-      hour: '2-digit', minute: '2-digit' 
+    return new Date(isoString).toLocaleDateString('es-ES', {
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
     });
+  };
+
+  const buscarTraza = async (pagina = trazaPagina, tamanio = trazaSize) => {
+    if (!trazaPresentationId) {
+      alert('Selecciona una presentación');
+      return;
+    }
+
+    setTrazaCargando(true);
+    try {
+      const res = await api.get('/movimientos/paginado', {
+        params: { page: pagina, size: tamanio, presentationId: trazaPresentationId }
+      });
+      setTrazaMovimientos(res.data.content || []);
+      setTrazaTotal(res.data.totalElements || 0);
+      setTrazaTotalPaginas(res.data.totalPages || 0);
+      setTrazaPagina(pagina);
+      setTrazaSize(tamanio);
+
+      try {
+        const pres = await api.get(`/presentations/${trazaPresentationId}`);
+        setTrazaStock(pres.data.stock ?? null);
+      } catch {
+        setTrazaStock(null);
+      }
+    } catch (error) {
+      console.error('Error cargando la trazabilidad del producto', error);
+    } finally {
+      setTrazaCargando(false);
+    }
   };
 
   const handleExportExcel = async () => {
@@ -87,22 +125,14 @@ export default function Reportes() {
     }
 
     try {
-      // Extraemos solo los IDs de los movimientos que están actualmente filtrados
       const idsMovimientos = movimientosFiltrados.map(m => m.id);
-      
-      const response = await api.post('/reportes/excel', idsMovimientos, {
-        responseType: 'blob' // Importante para recibir archivos binarios
-      });
-
-      // Crear un enlace temporal para forzar la descarga del archivo en el navegador
+      const response = await api.post('/reportes/excel', idsMovimientos, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `Reporte_Inventario_${new Date().getTime()}.xlsx`);
       document.body.appendChild(link);
       link.click();
-      
-      // Limpieza
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
@@ -119,18 +149,13 @@ export default function Reportes() {
 
     try {
       const idsMovimientos = movimientosFiltrados.map(m => m.id);
-      
-      const response = await api.post('/reportes/pdf', idsMovimientos, {
-        responseType: 'blob'
-      });
-
+      const response = await api.post('/reportes/pdf', idsMovimientos, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `Reporte_Inventario_${new Date().getTime()}.pdf`);
       document.body.appendChild(link);
       link.click();
-      
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
@@ -139,168 +164,194 @@ export default function Reportes() {
     }
   };
 
+
   return (
     <div className="page-container animate-in fade-in duration-300">
-      
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Reportería Dinámica</h1>
-          <p className="text-slate-500 mt-1">Filtra y exporta los movimientos exactos que necesitas.</p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={handleExportPdf}
-            className={btn('peligro', 'barra')}
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-            </svg>
-            Exportar PDF
-          </button>
-          
-          <button 
-            onClick={handleExportExcel}
-            className={btn('exito', 'barra')}
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Exportar Excel
-          </button>
+          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Kárdex</h1>
+          <p className="text-slate-500 mt-1">Trazabilidad por producto con saldo acumulado.</p>
         </div>
       </div>
 
-      {/* Panel de Filtros */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
-        <h3 className="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wider flex items-center gap-2">
-          <svg className="w-4 h-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
-          Filtros Cruzados
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Usuario</label>
-            <select 
-              value={filtroUsuario} onChange={(e) => setFiltroUsuario(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-            >
-              <option value="">Todos los Usuarios</option>
-              {usuarios.map(u => (
-                <option key={u.id} value={u.id}>{u.name} ({u.rol})</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Insumo</label>
-            <select 
-              value={filtroInsumo} onChange={(e) => setFiltroInsumo(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-            >
-              <option value="">Cualquier Insumo</option>
-              {insumos.map(i => (
-                <option key={i.id} value={i.id}>{i.item}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Tipo Movimiento</label>
-            <select 
-              value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-            >
-              <option value="">Todos</option>
-              <option value="ENTRADA">Entradas</option>
-              <option value="SALIDA">Salidas</option>
-              <option value="AJUSTE_POSITIVO">Ajuste (+)</option>
-              <option value="AJUSTE_NEGATIVO">Ajuste (-)</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Desde Fecha</label>
-            <input 
-              type="date" 
-              value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Hasta Fecha</label>
-            <input 
-              type="date" 
-              value={fechaFin} onChange={(e) => setFechaFin(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-            />
-          </div>
-        </div>
-        
-        <div className="mt-4 flex justify-between items-center text-sm">
-          <span className="text-slate-500">
-            Mostrando <strong className="text-brand-600">{movimientosFiltrados.length}</strong> resultados
-          </span>
-          <button 
-            onClick={() => { setFiltroUsuario(''); setFiltroInsumo(''); setFiltroTipo(''); setFechaInicio(''); setFechaFin(''); }}
-            className="text-brand-600 font-medium hover:underline"
-          >
-            Limpiar Filtros
-          </button>
-        </div>
+      <div className="flex items-center gap-2 mb-6">
+        <button onClick={() => setTab('trazabilidad')} className={`${btn(tab === 'trazabilidad' ? 'primario' : 'neutro', 'barra')}`}>Trazabilidad por producto</button>
+        <button onClick={() => setTab('reportes')} className={`${btn(tab === 'reportes' ? 'primario' : 'neutro', 'barra')}`}>Histórico global con filtros</button>
       </div>
 
-      {/* Tabla de Resultados (Previsualización) */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
-                <th className="p-4 font-semibold">Fecha</th>
-                <th className="p-4 font-semibold">Usuario</th>
-                <th className="p-4 font-semibold">Movimiento</th>
-                <th className="p-4 font-semibold">Insumo</th>
-                <th className="p-4 font-semibold text-right">Cant.</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-sm">
-              {loading ? (
-                <tr><td colSpan={5} className="p-8 text-center text-slate-400">Cargando datos...</td></tr>
-              ) : total === 0 ? (
-                <tr><td colSpan={5} className="p-12 text-center text-slate-500">No hay movimientos que coincidan con estos filtros.</td></tr>
-              ) : (
-                movimientosVisibles.map((mov) => (
-                  <tr key={mov.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="p-4 text-slate-500 whitespace-nowrap">{formatDate(mov.createdAt)}</td>
-                    <td className="p-4 font-medium text-slate-700">{mov.usuarioName}</td>
-                    <td className="p-4">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold ${
-                        mov.type.includes('ENTRADA') || mov.type === 'AJUSTE_POSITIVO' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-                      }`}>
-                        {mov.type}
-                      </span>
-                    </td>
-                    <td className="p-4 font-medium text-slate-900">{mov.itemName}</td>
-                    <td className="p-4 text-right font-bold text-slate-700">{mov.quantity}</td>
+      {tab === 'reportes' && (
+        <div>
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div></div>
+            <div className="flex items-center gap-3">
+              <button onClick={handleExportPdf} className={btn('peligro', 'barra')}>
+                Exportar PDF
+              </button>
+              <button onClick={handleExportExcel} className={btn('exito', 'barra')}>
+                Exportar Excel
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
+            <h3 className="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wider">Filtros Cruzados</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Usuario</label>
+                <select value={filtroUsuario} onChange={(e) => setFiltroUsuario(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+                  <option value="">Todos los Usuarios</option>
+                  {usuarios.map((u: any) => (<option key={u.id} value={u.id}>{u.name} ({u.rol})</option>))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Insumo</label>
+                <select value={filtroInsumo} onChange={(e) => setFiltroInsumo(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+                  <option value="">Todos los Insumos</option>
+                  {insumos.map((i: any) => (<option key={i.id} value={i.id}>{i.item}</option>))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Tipo de Movimiento</label>
+                <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+                  <option value="">Todos</option>
+                  <option value="ENTRADA">ENTRADA</option>
+                  <option value="SALIDA">SALIDA</option>
+                  <option value="AJUSTE_POSITIVO">AJUSTE POSITIVO</option>
+                  <option value="AJUSTE_NEGATIVO">AJUSTE NEGATIVO</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Fecha Inicio</label>
+                <input type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Fecha Fin</label>
+                <input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-800">Resultados</h2>
+              <span className="text-sm text-slate-500">{total} registros encontrados</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Fecha</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Usuario</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Movimiento</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Insumo</th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Cantidad</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Justificación</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {loading ? (
+                    <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-400">Cargando...</td></tr>
+                  ) : movimientosVisibles.length === 0 ? (
+                    <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-400">No hay resultados con los filtros aplicados</td></tr>
+                  ) : (
+                    movimientosVisibles.map((mov: any) => (
+                      <tr key={mov.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-4 text-sm text-slate-600">{formatDate(mov.createdAt)}</td>
+                        <td className="px-6 py-4 text-sm text-slate-600">{mov.usuarioName}</td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
+                            mov.type === 'ENTRADA' || mov.type === 'AJUSTE_POSITIVO' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                          }`}>{mov.type}</span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-700 font-medium">{mov.itemName}</td>
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-slate-800">{mov.quantity}</td>
+                        <td className="px-6 py-4 text-sm text-slate-500 max-w-xs truncate">{mov.detail || '-'}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <Paginacion pagina={pagina} totalPaginas={totalPaginas} total={total} onCambioPagina={setPagina} etiqueta="movimientos" />
         </div>
-        <Paginacion
-          pagina={pagina}
-          totalPaginas={totalPaginas}
-          total={total}
-          onCambioPagina={setPagina}
-          etiqueta="movimientos"
-        />
-      </div>
+      )}
 
+      {tab === 'trazabilidad' && (
+        <div>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-6">
+            <h3 className="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wider">Buscar trazabilidad por producto</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Insumo</label>
+                <select value={trazaItemId} onChange={(e) => { setTrazaItemId(e.target.value); setTrazaPresentationId(''); setTrazaMovimientos([]); setTrazaStock(null); setTrazaPagina(0); setTrazaTotal(0); setTrazaTotalPaginas(0); }} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+                  <option value="">Seleccionar insumo</option>
+                  {insumos.map((i: any) => <option key={i.id} value={i.id}>{i.item}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Presentación</label>
+                <select value={trazaPresentationId} onChange={(e) => { setTrazaPresentationId(e.target.value); setTrazaMovimientos([]); setTrazaStock(null); setTrazaPagina(0); setTrazaTotal(0); setTrazaTotalPaginas(0); }} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+                  <option value="">Seleccionar presentación</option>
+                  {(insumos.find((i:any)=> i.id.toString()===trazaItemId)?.presentations || []).map((p:any) => <option key={p.id} value={p.id}>{p.name} {p.size}</option>)}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button onClick={() => buscarTraza(0, trazaSize)} className={btn('primario', 'barra')}>Buscar trazabilidad</button>
+              </div>
+            </div>
+            {trazaStock !== null && <p className="mt-3 text-sm text-slate-600">Stock actual: <span className="font-semibold">{trazaStock}</span></p>}
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Fecha</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Tipo</th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Cantidad</th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Saldo después</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Usuario</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Justificación</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {trazaCargando ? (
+                    <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400">Cargando...</td></tr>
+                  ) : trazaMovimientos.length === 0 ? (
+                    <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400">Sin movimientos para mostrar</td></tr>
+                  ) : trazaMovimientos.map((m: any) => (
+                    <tr key={m.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4 text-sm text-slate-600">{formatDate(m.createdAt)}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-slate-700">{m.type}</td>
+                      <td className="px-6 py-4 text-sm text-right font-semibold text-slate-800">{m.quantity}</td>
+                      <td className="px-6 py-4 text-sm text-right text-slate-700">{m.balanceAfter ?? '-'}</td>
+                      <td className="px-6 py-4 text-sm text-slate-600">{m.usuarioName}</td>
+                      <td className="px-6 py-4 text-sm text-slate-600">{m.detail || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {(trazaTotalPaginas > 1 || trazaTotal > 0) && (
+              <div className="p-4 border-t border-slate-100">
+                <Paginacion
+                  pagina={trazaPagina}
+                  totalPaginas={trazaTotalPaginas}
+                  total={trazaTotal}
+                  onCambioPagina={(p) => buscarTraza(p)}
+                  onCambioTamanio={(sz) => buscarTraza(0, sz)}
+                  tamanioPagina={trazaSize}
+                  tamanios={[10,20,50]}
+                  etiqueta="movimientos"
+                  variant="tarjeta"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

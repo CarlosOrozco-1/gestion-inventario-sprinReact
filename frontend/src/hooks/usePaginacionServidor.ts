@@ -17,23 +17,26 @@ export function usePaginacionServidor<T>(
     totalElements: number;
     number?: number;
   }>,
-  tamanoPagina = 10
+  tamanoPaginaInicial = 10
 ) {
   const [pagina, setPagina] = useState(0);
   const [totalPaginas, setTotalPaginas] = useState(0);
   const [total, setTotal] = useState(0);
   const [elementos, setElementos] = useState<T[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [tamanoPagina, setTamanoPagina] = useState(tamanoPaginaInicial);
 
   const refrescar = useCallback(
-    async (nuevaPagina: number) => {
+    async (nuevaPagina: number, nuevoSize?: number) => {
+      const size = nuevoSize ?? tamanoPagina;
       setCargando(true);
       try {
-        const data = await cargar(nuevaPagina, tamanoPagina);
+        const data = await cargar(nuevaPagina, size);
         setElementos(data.content);
         setTotalPaginas(data.totalPages);
         setTotal(data.totalElements);
         setPagina(data.number ?? nuevaPagina);
+        if (nuevoSize) setTamanoPagina(nuevoSize);
       } finally {
         setCargando(false);
       }
@@ -41,5 +44,10 @@ export function usePaginacionServidor<T>(
     [cargar, tamanoPagina]
   );
 
-  return { pagina, totalPaginas, total, elementos, cargando, refrescar, tamanoPagina };
+  const cambiarTamanio = useCallback((nuevoSize: number) => {
+    setTamanoPagina(nuevoSize);
+    refrescar(0, nuevoSize);
+  }, [refrescar]);
+
+  return { pagina, totalPaginas, total, elementos, cargando, refrescar, tamanoPagina, cambiarTamanio };
 }

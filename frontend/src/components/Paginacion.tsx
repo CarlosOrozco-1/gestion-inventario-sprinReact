@@ -23,6 +23,12 @@ interface Props {
   total: number;
   /** Cambia de página (0-based). */
   onCambioPagina: (pagina: number) => void;
+  /** Cambia tamaño de página (opcional, para paginación servidor). */
+  onCambioTamanio?: (tamanio: number) => void;
+  /** Tamaño de página actual (opcional). */
+  tamanioPagina?: number;
+  /** Opciones de tamaño de página. */
+  tamanios?: number[];
   /** Etiqueta del contador: "movimientos", "eventos", "insumos"... */
   etiqueta?: string;
   /** Oculta el pie mientras carga una página para evitar cambios de layout. */
@@ -39,6 +45,9 @@ export default function Paginacion({
   totalPaginas,
   total,
   onCambioPagina,
+  onCambioTamanio,
+  tamanioPagina = 10,
+  tamanios = [10, 20, 50],
   etiqueta,
   cargando = false,
   variant = 'tabla',
@@ -54,9 +63,28 @@ export default function Paginacion({
 
   return (
     <div className={clasesContenedor}>
-      <span className="text-sm text-slate-500">
-        Página {primera} de {totalPaginas} · {total} {etiquetaLimpia || 'registros'}
-      </span>
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-slate-500">
+          Página {primera} de {totalPaginas} · {total} {etiquetaLimpia || 'registros'}
+        </span>
+        {onCambioTamanio && (
+          <select
+            value={tamanioPagina}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              onCambioTamanio(v);
+            }}
+            className="text-sm border border-slate-200 rounded-lg px-2 py-1 text-slate-600 bg-white"
+            title="Registros por página"
+          >
+            {tamanios.map((t) => (
+              <option key={t} value={t}>
+                {t} / página
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
       <div className="flex gap-2">
         <button
           onClick={() => onCambioPagina(pagina - 1)}

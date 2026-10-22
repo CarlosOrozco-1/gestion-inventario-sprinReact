@@ -177,21 +177,28 @@ public class MovimientoService {
 
         // Calcular saldo acumulado ascendente para esta presentación
         List<Movimiento> asc = movimientoRepository.findAllByPresentationIdOrderByCreatedAtAsc(presentationId);
-        Map<Long, Integer> saldoPorId = new HashMap<>();
-        int saldo = 0;
-        for (Movimiento m : asc) {
-            switch (m.getType()) {
-                case "ENTRADA", "AJUSTE_POSITIVO" -> saldo += m.getQuantity();
-                case "SALIDA", "AJUSTE_NEGATIVO" -> saldo -= m.getQuantity();
-            }
-            saldoPorId.put(m.getId(), saldo);
-        }
+        Map<Long, Integer> saldoPorId = calcularSaldosDespuesDeMovimiento(asc);
 
         return pageMov.map(mov -> {
             MovimientoResponseDTO dto = aDTO(mov);
             dto.setBalanceAfter(saldoPorId.getOrDefault(mov.getId(), null));
             return dto;
         });
+    }
+
+    /**
+     * Historial completo de una presentación, ordenado cronológicamente para exportación.
+     */
+    @Transactional(readOnly = true)
+    public List<MovimientoResponseDTO> listarKardexCompletoPorPresentacion(Long presentationId) {
+        List<Movimiento> movimientos = movimientoRepository.findAllByPresentationIdOrderByCreatedAtAsc(presentationId);
+        Map<Long, Integer> saldoPorId = calcularSaldosDespuesDeMovimiento(movimientos);
+
+        return movimientos.stream().map(movimiento -> {
+            MovimientoResponseDTO dto = aDTO(movimiento);
+            dto.setBalanceAfter(saldoPorId.get(movimiento.getId()));
+            return dto;
+        }).toList();
     }
 
     /**
@@ -202,6 +209,19 @@ public class MovimientoService {
         Pageable pageable = PageRequest.of(Math.max(page, 0), clampSize(size));
         return movimientoRepository.findByItemIdWithDetailsOrderByCreatedAtDesc(itemId, pageable)
                 .map(this::aDTO);
+    }
+
+    private Map<Long, Integer> calcularSaldosDespuesDeMovimiento(List<Movimiento> movimientos) {
+        Map<Long, Integer> saldoPorId = new HashMap<>();
+        int saldo = 0;
+        for (Movimiento movimiento : movimientos) {
+            switch (movimiento.getType()) {
+                case "ENTRADA", "AJUSTE_POSITIVO" -> saldo += movimiento.getQuantity();
+                case "SALIDA", "AJUSTE_NEGATIVO" -> saldo -= movimiento.getQuantity();
+            }
+            saldoPorId.put(movimiento.getId(), saldo);
+        }
+        return saldoPorId;
     }
 
     /** Límite duro del tamaño de página para no permitir que el cliente pida el histórico entero. */

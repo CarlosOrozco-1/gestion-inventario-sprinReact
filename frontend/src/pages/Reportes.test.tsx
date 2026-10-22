@@ -49,10 +49,18 @@ describe('Reportes: trazabilidad por producto', () => {
       if (url === '/movimientos') return Promise.resolve({ data: [] });
       if (url === '/insumos') {
         return Promise.resolve({
+          data: [{ id: 22, item: 'Guantes Nitrilo', presentation: 'Caja', size: '100 unidades', stock: 45 }],
+        });
+      }
+      if (url === '/items') {
+        return Promise.resolve({
           data: [{
             id: 7,
-            item: 'Guantes Nitrilo',
-            presentations: [{ id: 22, name: 'Caja', size: '100 unidades' }],
+            name: 'Guantes Nitrilo',
+            presentations: [
+              { id: 22, name: 'Caja', size: '100 unidades', stock: 45, activo: true },
+              { id: 23, name: 'Bolsa', size: '50 unidades', stock: 0, activo: false },
+            ],
           }],
         });
       }
@@ -63,6 +71,19 @@ describe('Reportes: trazabilidad por producto', () => {
       }
       throw new Error(`Endpoint inesperado: ${url}`);
     });
+  });
+
+  it('carga presentaciones desde el catálogo jerárquico y conserva las inactivas para trazabilidad', async () => {
+    render(<Reportes />);
+    fireEvent.click(screen.getByRole('button', { name: 'Trazabilidad por producto' }));
+    await screen.findByRole('option', { name: 'Guantes Nitrilo' });
+
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[0], { target: { value: '7' } });
+
+    expect(await screen.findByRole('option', { name: 'Caja 100 unidades' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Bolsa 50 unidades (Inactiva)' })).toBeInTheDocument();
+    expect(apiMocks.get).toHaveBeenCalledWith('/items');
   });
 
   it('muestra los movimientos, el saldo y el total sin romper el render', async () => {
@@ -82,14 +103,46 @@ describe('Reportes: trazabilidad por producto', () => {
     fireEvent.change(screen.getByTitle('Registros por página'), { target: { value: '50' } });
     await waitFor(() => {
       const requests = apiMocks.get.mock.calls.filter((call) => call[0] === '/movimientos/paginado');
-      expect((requests.at(-1) as any[])[1].params).toEqual({ page: 0, size: 50, presentationId: '22' });
+      expect((requests[requests.length - 1] as any[])[1].params).toEqual({ page: 0, size: 50, presentationId: '22' });
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
     expect(await screen.findByText('Movimiento de prueba página 1')).toBeInTheDocument();
     await waitFor(() => {
       const requests = apiMocks.get.mock.calls.filter((call) => call[0] === '/movimientos/paginado');
-      expect((requests.at(-1) as any[])[1].params).toEqual({ page: 1, size: 50, presentationId: '22' });
+      expect((requests[requests.length - 1] as any[])[1].params).toEqual({ page: 1, size: 50, presentationId: '22' });
     });
+  });
+
+  it.each([
+    ['Excel', 'excel'],
+    ['PDF', 'pdf'],
+  ] as const)('exporta la trazabilidad completa a %s', async (nombre, formato) => {
+    Object.defineProperty(window.URL, 'createObjectURL', { configurable: true, value: vi.fn(() => 'blob:test') });
+    Object.defineProperty(window.URL, 'revokeObjectURL', { configurable: true, value: vi.fn() });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    apiMocks.get.mockImplementation((url: string, config?: any) => {
+      if (url === `/reportes/kardex/22/${formato}`) {
+        return Promise.resolve({ data: new Blob(['archivo']), config });
+      }
+      if (url === '/movimientos') return Promise.resolve({ data: [] });
+      if (url === '/insumos') return Promise.resolve({ data: [{ id: 22, item: 'Guantes Nitrilo', stock: 45 }] });
+      if (url === '/items') {
+        return Promise.resolve({ data: [{ id: 7, name: 'Guantes Nitrilo', presentations: [{ id: 22, name: 'Caja', size: '100 unidades', stock: 45 }] }] });
+      }
+      if (url === '/usuarios') return Promise.resolve({ data: [] });
+      if (url === '/presentations/22') return Promise.resolve({ data: { stock: 45 } });
+      if (url === '/movimientos/paginado') return paginaTrazabilidad(config?.params?.page ?? 0);
+      throw new Error(`Endpoint inesperado: ${url}`);
+    });
+
+    await abrirTrazabilidad();
+    fireEvent.click(screen.getByRole('button', { name: `Exportar ${nombre}` }));
+
+    await waitFor(() => {
+      expect(apiMocks.get).toHaveBeenCalledWith(`/reportes/kardex/22/${formato}`, { responseType: 'blob' });
+    });
+    expect(click).toHaveBeenCalled();
+    click.mockRestore();
   });
 });

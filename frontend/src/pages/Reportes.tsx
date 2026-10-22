@@ -9,6 +9,7 @@ const TAMANIO_PAGINA = 10;
 export default function Reportes() {
   const [movimientos, setMovimientos] = useState<any[]>([]);
   const [insumos, setInsumos] = useState<any[]>([]);
+  const [catalogoItems, setCatalogoItems] = useState<any[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'reportes' | 'trazabilidad'>('reportes');
@@ -22,17 +23,20 @@ export default function Reportes() {
   const [trazaSize, setTrazaSize] = useState(10);
   const [trazaTotal, setTrazaTotal] = useState(0);
   const [trazaTotalPaginas, setTrazaTotalPaginas] = useState(0);
+  const [exportandoTraza, setExportandoTraza] = useState<'excel' | 'pdf' | null>(null);
 
   useEffect(() => {
     const fetchDatosBase = async () => {
       try {
-        const [movRes, insRes, usrRes] = await Promise.all([
+        const [movRes, insRes, itemsRes, usrRes] = await Promise.all([
           api.get('/movimientos'),
           api.get('/insumos'),
+          api.get('/items'),
           api.get('/usuarios')
         ]);
         setMovimientos(movRes.data);
         setInsumos(insRes.data);
+        setCatalogoItems(itemsRes.data);
         setUsuarios(usrRes.data);
       } catch (err) {
         console.error('Error cargando datos para reportes', err);
@@ -115,6 +119,29 @@ export default function Reportes() {
       console.error('Error cargando la trazabilidad del producto', error);
     } finally {
       setTrazaCargando(false);
+    }
+  };
+
+  const exportarTrazabilidad = async (formato: 'excel' | 'pdf') => {
+    if (!trazaPresentationId || trazaTotal === 0) return;
+
+    setExportandoTraza(formato);
+    try {
+      const response = await api.get(`/reportes/kardex/${trazaPresentationId}/${formato}`, { responseType: 'blob' });
+      const extension = formato === 'excel' ? 'xlsx' : 'pdf';
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Kardex_${trazaPresentationId}_${Date.now()}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(`Error exportando Kárdex a ${formato.toUpperCase()}`, error);
+      alert(`No se pudo exportar el Kárdex a ${formato.toUpperCase()}.`);
+    } finally {
+      setExportandoTraza(null);
     }
   };
 
@@ -286,14 +313,18 @@ export default function Reportes() {
                 <label className="block text-xs font-semibold text-slate-500 mb-1">Insumo</label>
                 <select value={trazaItemId} onChange={(e) => { setTrazaItemId(e.target.value); setTrazaPresentationId(''); setTrazaMovimientos([]); setTrazaStock(null); setTrazaPagina(0); setTrazaTotal(0); setTrazaTotalPaginas(0); }} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
                   <option value="">Seleccionar insumo</option>
-                  {insumos.map((i: any) => <option key={i.id} value={i.id}>{i.item}</option>)}
+                  {catalogoItems.map((item: any) => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1">Presentación</label>
                 <select value={trazaPresentationId} onChange={(e) => { setTrazaPresentationId(e.target.value); setTrazaMovimientos([]); setTrazaStock(null); setTrazaPagina(0); setTrazaTotal(0); setTrazaTotalPaginas(0); }} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
                   <option value="">Seleccionar presentación</option>
-                  {(insumos.find((i:any)=> i.id.toString()===trazaItemId)?.presentations || []).map((p:any) => <option key={p.id} value={p.id}>{p.name} {p.size}</option>)}
+                  {(catalogoItems.find((item: any) => item.id.toString() === trazaItemId)?.presentations || []).map((presentation: any) => (
+                    <option key={presentation.id} value={presentation.id}>
+                      {presentation.name} {presentation.size}{presentation.activo === false ? ' (Inactiva)' : ''}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="flex items-end">
@@ -301,6 +332,23 @@ export default function Reportes() {
               </div>
             </div>
             {trazaStock !== null && <p className="mt-3 text-sm text-slate-600">Stock actual: <span className="font-semibold">{trazaStock}</span></p>}
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-3 mb-4">
+            <button
+              onClick={() => exportarTrazabilidad('pdf')}
+              disabled={!trazaPresentationId || trazaTotal === 0 || trazaCargando || exportandoTraza !== null}
+              className={btn('peligro', 'barra')}
+            >
+              {exportandoTraza === 'pdf' ? 'Generando PDF...' : 'Exportar PDF'}
+            </button>
+            <button
+              onClick={() => exportarTrazabilidad('excel')}
+              disabled={!trazaPresentationId || trazaTotal === 0 || trazaCargando || exportandoTraza !== null}
+              className={btn('exito', 'barra')}
+            >
+              {exportandoTraza === 'excel' ? 'Generando Excel...' : 'Exportar Excel'}
+            </button>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">

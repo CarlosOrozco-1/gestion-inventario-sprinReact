@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { btn, iconBtn, TONOS, TAMANOS, TONOS_ICONO } from './buttonStyles';
+import { btn, iconBtn, TONOS, TAMANOS, TONOS_ICONO, COLORES_ICONO_EXPORTACION } from './buttonStyles';
 
 describe('buttonStyles (fuente única de estilos de botón)', () => {
   it('arma las clases base de todo botón con texto', () => {
@@ -26,6 +26,8 @@ describe('buttonStyles (fuente única de estilos de botón)', () => {
     expect(TONOS.peligro).not.toContain('red-');
     expect(TONOS.exito).toContain('emerald-600');
     expect(TONOS.exito).not.toContain('green-');
+    expect(COLORES_ICONO_EXPORTACION.pdf).toBe('text-rose-600');
+    expect(COLORES_ICONO_EXPORTACION.excel).toBe('text-emerald-600');
   });
 
   it('los tonos sólidos llevan sombra; los de texto no', () => {

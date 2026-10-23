@@ -1,4 +1,5 @@
 import { btn } from '../utils/buttonStyles';
+import ExportIconButton from '../components/ExportIconButton';
 import { useState, useEffect, useMemo } from "react";
 import api from "../api/axios";
 import { useAuthStore } from "../store/useAuthStore";
@@ -162,46 +163,9 @@ export default function Proyecciones() {
             Smart Restock: Planificación financiera para abastecimiento óptimo.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => handleExport("pdf")}
-            className={btn('peligro', 'barra')}
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-              />
-            </svg>
-            Exportar a PDF
-          </button>
-
-          <button
-            onClick={() => handleExport("excel")}
-            className={btn('exito', 'barra')}
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-              />
-            </svg>
-            Exportar a Excel
-          </button>
+        <div className="flex items-center gap-2">
+          <ExportIconButton formato="pdf" onClick={() => handleExport("pdf")} />
+          <ExportIconButton formato="excel" onClick={() => handleExport("excel")} />
         </div>
       </div>
 

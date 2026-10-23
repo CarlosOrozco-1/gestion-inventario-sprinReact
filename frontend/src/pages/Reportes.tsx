@@ -1,30 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '../api/axios';
 import Paginacion from '../components/Paginacion';
+import ExportIconButton from '../components/ExportIconButton';
 import { usePaginacion } from '../hooks/usePaginacion';
 import { btn } from '../utils/buttonStyles';
 
 const TAMANIO_PAGINA = 10;
-
-function IconoPdf() {
-  return (
-    <svg aria-hidden="true" className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <path d="M14 2v6h6" />
-      <text x="6" y="17" fontFamily="sans-serif" fontSize="6" fontWeight="700" fill="currentColor" stroke="none">PDF</text>
-    </svg>
-  );
-}
-
-function IconoExcel() {
-  return (
-    <svg aria-hidden="true" className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M13 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V9z" />
-      <path d="M13 2v7h7M12 12h5M12 16h5M12 19h5" />
-      <path d="M2 10h8v10H2zM4 13l4 4m0-4-4 4" />
-    </svg>
-  );
-}
 
 export default function Reportes() {
   const [movimientos, setMovimientos] = useState<any[]>([]);
@@ -273,12 +254,8 @@ export default function Reportes() {
               <div className="flex items-center gap-3">
                 <span className="text-sm text-slate-500">{total} registros encontrados</span>
                 <div className="flex items-center gap-2">
-                  <button onClick={handleExportPdf} aria-label="Exportar PDF" title="Exportar a PDF" className={btn('contorno', 'inline')}>
-                    <IconoPdf />
-                  </button>
-                  <button onClick={handleExportExcel} aria-label="Exportar Excel" title="Exportar a Excel" className={btn('contorno', 'inline')}>
-                    <IconoExcel />
-                  </button>
+                  <ExportIconButton formato="pdf" onClick={handleExportPdf} />
+                  <ExportIconButton formato="excel" onClick={handleExportExcel} />
                 </div>
               </div>
             </div>
@@ -357,26 +334,18 @@ export default function Reportes() {
             <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-3">
               <h2 className="text-lg font-bold text-slate-800">Resultados</h2>
               <div className="flex items-center gap-2">
-                <button
+                <ExportIconButton
+                  formato="pdf"
                   onClick={() => exportarTrazabilidad('pdf')}
                   disabled={!trazaPresentationId || trazaTotal === 0 || trazaCargando || exportandoTraza !== null}
-                  aria-label={exportandoTraza === 'pdf' ? 'Generando PDF' : 'Exportar PDF'}
-                  aria-busy={exportandoTraza === 'pdf'}
-                  title={exportandoTraza === 'pdf' ? 'Generando PDF...' : 'Exportar a PDF'}
-                  className={btn('contorno', 'inline')}
-                >
-                  <IconoPdf />
-                </button>
-                <button
+                  cargando={exportandoTraza === 'pdf'}
+                />
+                <ExportIconButton
+                  formato="excel"
                   onClick={() => exportarTrazabilidad('excel')}
                   disabled={!trazaPresentationId || trazaTotal === 0 || trazaCargando || exportandoTraza !== null}
-                  aria-label={exportandoTraza === 'excel' ? 'Generando Excel' : 'Exportar Excel'}
-                  aria-busy={exportandoTraza === 'excel'}
-                  title={exportandoTraza === 'excel' ? 'Generando Excel...' : 'Exportar a Excel'}
-                  className={btn('contorno', 'inline')}
-                >
-                  <IconoExcel />
-                </button>
+                  cargando={exportandoTraza === 'excel'}
+                />
               </div>
             </div>
             <div className="overflow-x-auto">

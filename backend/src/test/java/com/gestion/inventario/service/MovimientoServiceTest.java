@@ -330,6 +330,38 @@ public class MovimientoServiceTest {
     }
 
     @Test
+    void debeExportarTodoElKardexEnOrdenCronologicoConSaldosAcumulados() {
+        Movimiento entrada = movimientoConDatos(1L);
+        entrada.setType("ENTRADA");
+        entrada.setQuantity(10);
+        entrada.setCreatedAt(LocalDateTime.of(2026, 1, 1, 8, 0));
+
+        Movimiento salida = movimientoConDatos(2L);
+        salida.setType("SALIDA");
+        salida.setQuantity(3);
+        salida.setCreatedAt(LocalDateTime.of(2026, 1, 2, 8, 0));
+
+        Movimiento ajustePositivo = movimientoConDatos(3L);
+        ajustePositivo.setType("AJUSTE_POSITIVO");
+        ajustePositivo.setQuantity(5);
+        ajustePositivo.setCreatedAt(LocalDateTime.of(2026, 1, 3, 8, 0));
+
+        Movimiento ajusteNegativo = movimientoConDatos(4L);
+        ajusteNegativo.setType("AJUSTE_NEGATIVO");
+        ajusteNegativo.setQuantity(2);
+        ajusteNegativo.setCreatedAt(LocalDateTime.of(2026, 1, 4, 8, 0));
+
+        when(movimientoRepository.findAllByPresentationIdOrderByCreatedAtAsc(1L))
+                .thenReturn(List.of(entrada, salida, ajustePositivo, ajusteNegativo));
+
+        List<MovimientoResponseDTO> resultado = movimientoService.listarKardexCompletoPorPresentacion(1L);
+
+        assertEquals(List.of(1L, 2L, 3L, 4L), resultado.stream().map(MovimientoResponseDTO::getId).toList());
+        assertEquals(List.of(10, 7, 12, 10), resultado.stream().map(MovimientoResponseDTO::getBalanceAfter).toList());
+        verify(movimientoRepository).findAllByPresentationIdOrderByCreatedAtAsc(1L);
+    }
+
+    @Test
     void debeAcotarElTamanoDePaginaParaNoDevolverElHistoricoEntero() {
         when(movimientoRepository.findAllWithDetailsOrderByCreatedAtDesc(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 100), 5000L));

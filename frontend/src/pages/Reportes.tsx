@@ -6,9 +6,30 @@ import { btn } from '../utils/buttonStyles';
 
 const TAMANIO_PAGINA = 10;
 
+function IconoPdf() {
+  return (
+    <svg aria-hidden="true" className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+      <text x="6" y="17" fontFamily="sans-serif" fontSize="6" fontWeight="700" fill="currentColor" stroke="none">PDF</text>
+    </svg>
+  );
+}
+
+function IconoExcel() {
+  return (
+    <svg aria-hidden="true" className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M13 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V9z" />
+      <path d="M13 2v7h7M12 12h5M12 16h5M12 19h5" />
+      <path d="M2 10h8v10H2zM4 13l4 4m0-4-4 4" />
+    </svg>
+  );
+}
+
 export default function Reportes() {
   const [movimientos, setMovimientos] = useState<any[]>([]);
   const [insumos, setInsumos] = useState<any[]>([]);
+  const [catalogoItems, setCatalogoItems] = useState<any[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'reportes' | 'trazabilidad'>('reportes');
@@ -22,17 +43,20 @@ export default function Reportes() {
   const [trazaSize, setTrazaSize] = useState(10);
   const [trazaTotal, setTrazaTotal] = useState(0);
   const [trazaTotalPaginas, setTrazaTotalPaginas] = useState(0);
+  const [exportandoTraza, setExportandoTraza] = useState<'excel' | 'pdf' | null>(null);
 
   useEffect(() => {
     const fetchDatosBase = async () => {
       try {
-        const [movRes, insRes, usrRes] = await Promise.all([
+        const [movRes, insRes, itemsRes, usrRes] = await Promise.all([
           api.get('/movimientos'),
           api.get('/insumos'),
+          api.get('/items'),
           api.get('/usuarios')
         ]);
         setMovimientos(movRes.data);
         setInsumos(insRes.data);
+        setCatalogoItems(itemsRes.data);
         setUsuarios(usrRes.data);
       } catch (err) {
         console.error('Error cargando datos para reportes', err);
@@ -118,6 +142,29 @@ export default function Reportes() {
     }
   };
 
+  const exportarTrazabilidad = async (formato: 'excel' | 'pdf') => {
+    if (!trazaPresentationId || trazaTotal === 0) return;
+
+    setExportandoTraza(formato);
+    try {
+      const response = await api.get(`/reportes/kardex/${trazaPresentationId}/${formato}`, { responseType: 'blob' });
+      const extension = formato === 'excel' ? 'xlsx' : 'pdf';
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Kardex_${trazaPresentationId}_${Date.now()}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(`Error exportando Kárdex a ${formato.toUpperCase()}`, error);
+      alert(`No se pudo exportar el Kárdex a ${formato.toUpperCase()}.`);
+    } finally {
+      setExportandoTraza(null);
+    }
+  };
+
   const handleExportExcel = async () => {
     if (movimientosFiltrados.length === 0) {
       alert('No hay datos para exportar.');
@@ -181,17 +228,6 @@ export default function Reportes() {
 
       {tab === 'reportes' && (
         <div>
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-            <div></div>
-            <div className="flex items-center gap-3">
-              <button onClick={handleExportPdf} className={btn('peligro', 'barra')}>
-                Exportar PDF
-              </button>
-              <button onClick={handleExportExcel} className={btn('exito', 'barra')}>
-                Exportar Excel
-              </button>
-            </div>
-          </div>
 
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
             <h3 className="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wider">Filtros Cruzados</h3>
@@ -232,9 +268,19 @@ export default function Reportes() {
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between gap-3">
               <h2 className="text-lg font-bold text-slate-800">Resultados</h2>
-              <span className="text-sm text-slate-500">{total} registros encontrados</span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-slate-500">{total} registros encontrados</span>
+                <div className="flex items-center gap-2">
+                  <button onClick={handleExportPdf} aria-label="Exportar PDF" title="Exportar a PDF" className={btn('contorno', 'inline')}>
+                    <IconoPdf />
+                  </button>
+                  <button onClick={handleExportExcel} aria-label="Exportar Excel" title="Exportar a Excel" className={btn('contorno', 'inline')}>
+                    <IconoExcel />
+                  </button>
+                </div>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -281,29 +327,58 @@ export default function Reportes() {
         <div>
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-6">
             <h3 className="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wider">Buscar trazabilidad por producto</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1">Insumo</label>
                 <select value={trazaItemId} onChange={(e) => { setTrazaItemId(e.target.value); setTrazaPresentationId(''); setTrazaMovimientos([]); setTrazaStock(null); setTrazaPagina(0); setTrazaTotal(0); setTrazaTotalPaginas(0); }} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
                   <option value="">Seleccionar insumo</option>
-                  {insumos.map((i: any) => <option key={i.id} value={i.id}>{i.item}</option>)}
+                  {catalogoItems.map((item: any) => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1">Presentación</label>
                 <select value={trazaPresentationId} onChange={(e) => { setTrazaPresentationId(e.target.value); setTrazaMovimientos([]); setTrazaStock(null); setTrazaPagina(0); setTrazaTotal(0); setTrazaTotalPaginas(0); }} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
                   <option value="">Seleccionar presentación</option>
-                  {(insumos.find((i:any)=> i.id.toString()===trazaItemId)?.presentations || []).map((p:any) => <option key={p.id} value={p.id}>{p.name} {p.size}</option>)}
+                  {(catalogoItems.find((item: any) => item.id.toString() === trazaItemId)?.presentations || []).map((presentation: any) => (
+                    <option key={presentation.id} value={presentation.id}>
+                      {presentation.name} {presentation.size}{presentation.activo === false ? ' (Inactiva)' : ''}
+                    </option>
+                  ))}
                 </select>
               </div>
-              <div className="flex items-end">
-                <button onClick={() => buscarTraza(0, trazaSize)} className={btn('primario', 'barra')}>Buscar trazabilidad</button>
-              </div>
+            </div>
+            <div className="flex justify-end mt-4">
+              <button onClick={() => buscarTraza(0, trazaSize)} className={btn('primario', 'barra')}>Buscar trazabilidad</button>
             </div>
             {trazaStock !== null && <p className="mt-3 text-sm text-slate-600">Stock actual: <span className="font-semibold">{trazaStock}</span></p>}
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-3">
+              <h2 className="text-lg font-bold text-slate-800">Resultados</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => exportarTrazabilidad('pdf')}
+                  disabled={!trazaPresentationId || trazaTotal === 0 || trazaCargando || exportandoTraza !== null}
+                  aria-label={exportandoTraza === 'pdf' ? 'Generando PDF' : 'Exportar PDF'}
+                  aria-busy={exportandoTraza === 'pdf'}
+                  title={exportandoTraza === 'pdf' ? 'Generando PDF...' : 'Exportar a PDF'}
+                  className={btn('contorno', 'inline')}
+                >
+                  <IconoPdf />
+                </button>
+                <button
+                  onClick={() => exportarTrazabilidad('excel')}
+                  disabled={!trazaPresentationId || trazaTotal === 0 || trazaCargando || exportandoTraza !== null}
+                  aria-label={exportandoTraza === 'excel' ? 'Generando Excel' : 'Exportar Excel'}
+                  aria-busy={exportandoTraza === 'excel'}
+                  title={exportandoTraza === 'excel' ? 'Generando Excel...' : 'Exportar a Excel'}
+                  className={btn('contorno', 'inline')}
+                >
+                  <IconoExcel />
+                </button>
+              </div>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">

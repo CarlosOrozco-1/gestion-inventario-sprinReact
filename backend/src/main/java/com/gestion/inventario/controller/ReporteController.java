@@ -3,9 +3,11 @@ package com.gestion.inventario.controller;
 import com.gestion.inventario.model.Item;
 import com.gestion.inventario.model.Movimiento;
 import com.gestion.inventario.model.Presentation;
+import com.gestion.inventario.dto.MovimientoResponseDTO;
 import com.gestion.inventario.repository.MovimientoRepository;
 import com.gestion.inventario.service.AuditService;
 import com.gestion.inventario.service.ItemService;
+import com.gestion.inventario.service.MovimientoService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -37,6 +39,9 @@ public class ReporteController {
 
     @Autowired
     private AuditService auditService;
+
+    @Autowired
+    private MovimientoService movimientoService;
 
     @PostMapping("/excel")
     @Transactional(readOnly = true)
@@ -170,6 +175,126 @@ public class ReporteController {
         } catch (Exception e) {
             throw new RuntimeException("Error generando archivo PDF", e);
         }
+    }
+
+    @GetMapping("/kardex/{presentationId}/excel")
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMIN','JEFE','AUXILIAR')")
+    public ResponseEntity<byte[]> exportarKardexExcel(@PathVariable Long presentationId,
+                                                       Authentication authentication, HttpServletRequest httpRequest) {
+        List<MovimientoResponseDTO> movimientos = movimientoService.listarKardexCompletoPorPresentacion(presentationId);
+        String[] columnas = {"Fecha", "Usuario", "Movimiento", "Insumo", "Presentación", "Cantidad", "Saldo después", "Justificación/Detalle"};
+
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Kárdex");
+            CellStyle headerStyle = workbook.createCellStyle();
+            headerStyle.setFillForegroundColor(IndexedColors.PALE_BLUE.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            Row header = sheet.createRow(0);
+            for (int column = 0; column < columnas.length; column++) {
+                Cell cell = header.createCell(column);
+                cell.setCellValue(columnas[column]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+            int rowNumber = 1;
+            for (MovimientoResponseDTO movimiento : movimientos) {
+                Row row = sheet.createRow(rowNumber++);
+                row.createCell(0).setCellValue(movimiento.getCreatedAt() == null ? "" : movimiento.getCreatedAt().format(formatter));
+                row.createCell(1).setCellValue(texto(movimiento.getUsuarioName()));
+                row.createCell(2).setCellValue(texto(movimiento.getType()));
+                row.createCell(3).setCellValue(texto(movimiento.getItemName()));
+                row.createCell(4).setCellValue(texto(movimiento.getPresentationName()));
+                row.createCell(5).setCellValue(movimiento.getQuantity() == null ? 0 : movimiento.getQuantity());
+                row.createCell(6).setCellValue(movimiento.getBalanceAfter() == null ? 0 : movimiento.getBalanceAfter());
+                row.createCell(7).setCellValue(texto(movimiento.getDetail()));
+            }
+            for (int column = 0; column < columnas.length; column++) {
+                sheet.autoSizeColumn(column);
+            }
+
+            workbook.write(outputStream);
+            String filename = "kardex_presentacion_" + presentationId + ".xlsx";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentDispositionFormData("attachment", filename);
+            headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+            auditService.registrar(AuditService.EXPORTACION_EXCEL,
+                    "Exportación Excel del Kárdex de la presentación " + presentationId,
+                    "presentations", presentationId, authentication.getName(), authentication.getName(), httpRequest.getRemoteAddr());
+            return ResponseEntity.ok().headers(headers).body(outputStream.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException("Error generando el Excel del Kárdex", e);
+        }
+    }
+
+    @GetMapping("/kardex/{presentationId}/pdf")
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMIN','JEFE','AUXILIAR')")
+    public ResponseEntity<byte[]> exportarKardexPdf(@PathVariable Long presentationId,
+                                                     Authentication authentication, HttpServletRequest httpRequest) {
+        List<MovimientoResponseDTO> movimientos = movimientoService.listarKardexCompletoPorPresentacion(presentationId);
+        String[] columnas = {"Fecha", "Usuario", "Tipo", "Insumo", "Presentación", "Cant.", "Saldo", "Justificación"};
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            com.lowagie.text.Document document = new com.lowagie.text.Document(com.lowagie.text.PageSize.A4.rotate());
+            com.lowagie.text.pdf.PdfWriter.getInstance(document, outputStream);
+            document.open();
+
+            com.lowagie.text.Font titleFont = com.lowagie.text.FontFactory.getFont(
+                    com.lowagie.text.FontFactory.HELVETICA_BOLD, 18, java.awt.Color.BLACK);
+            com.lowagie.text.Paragraph title = new com.lowagie.text.Paragraph("Kárdex de presentación " + presentationId, titleFont);
+            title.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+            title.setSpacingAfter(20);
+            document.add(title);
+
+            com.lowagie.text.pdf.PdfPTable table = new com.lowagie.text.pdf.PdfPTable(columnas.length);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[] {2.0f, 2.0f, 1.6f, 2.2f, 2.2f, 1.0f, 1.0f, 3.0f});
+            com.lowagie.text.Font headerFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD);
+            com.lowagie.text.Font cellFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA, 9);
+            for (String columna : columnas) {
+                com.lowagie.text.pdf.PdfPCell cell = new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(columna, headerFont));
+                cell.setHorizontalAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+                cell.setBackgroundColor(new java.awt.Color(220, 230, 241));
+                cell.setPadding(5);
+                table.addCell(cell);
+            }
+
+            for (MovimientoResponseDTO movimiento : movimientos) {
+                table.addCell(new com.lowagie.text.Phrase(
+                        movimiento.getCreatedAt() == null ? "" : movimiento.getCreatedAt().format(formatter), cellFont));
+                table.addCell(new com.lowagie.text.Phrase(texto(movimiento.getUsuarioName()), cellFont));
+                table.addCell(new com.lowagie.text.Phrase(texto(movimiento.getType()), cellFont));
+                table.addCell(new com.lowagie.text.Phrase(texto(movimiento.getItemName()), cellFont));
+                table.addCell(new com.lowagie.text.Phrase(texto(movimiento.getPresentationName()), cellFont));
+                table.addCell(new com.lowagie.text.Phrase(texto(movimiento.getQuantity()), cellFont));
+                table.addCell(new com.lowagie.text.Phrase(texto(movimiento.getBalanceAfter()), cellFont));
+                table.addCell(new com.lowagie.text.Phrase(texto(movimiento.getDetail()), cellFont));
+            }
+
+            document.add(table);
+            document.close();
+            String filename = "kardex_presentacion_" + presentationId + ".pdf";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentDispositionFormData("attachment", filename);
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            auditService.registrar(AuditService.EXPORTACION_PDF,
+                    "Exportación PDF del Kárdex de la presentación " + presentationId,
+                    "presentations", presentationId, authentication.getName(), authentication.getName(), httpRequest.getRemoteAddr());
+            return ResponseEntity.ok().headers(headers).body(outputStream.toByteArray());
+        } catch (Exception e) {
+            throw new RuntimeException("Error generando el PDF del Kárdex", e);
+        }
+    }
+
+    private String texto(Object valor) {
+        return valor == null ? "" : valor.toString();
     }
 
     @PostMapping("/proyecciones/excel")

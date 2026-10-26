@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import Reportes from './Reportes';
 
 const apiMocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
@@ -30,18 +30,17 @@ function paginaTrazabilidad(pagina: number) {
 async function abrirTrazabilidad() {
   render(<Reportes />);
   fireEvent.click(screen.getByRole('button', { name: 'Trazabilidad por producto' }));
-  await screen.findByRole('option', { name: 'Guantes Nitrilo' });
 
-  const selects = screen.getAllByRole('combobox');
-  fireEvent.change(selects[0], { target: { value: '7' } });
-  await screen.findByRole('option', { name: 'Caja 100 unidades' });
-  fireEvent.change(selects[1], { target: { value: '22' } });
+  const insumo = screen.getByRole('combobox', { name: 'Insumo' });
+  fireEvent.change(insumo, { target: { value: 'Guantes' } });
+  fireEvent.click(await screen.findByRole('option', { name: 'Guantes Nitrilo' }));
+  fireEvent.change(screen.getByRole('combobox', { name: 'Presentación' }), { target: { value: '22' } });
   fireEvent.click(screen.getByRole('button', { name: 'Buscar trazabilidad' }));
 
   expect(await screen.findByText('Movimiento de prueba página 0')).toBeInTheDocument();
 }
 
-describe('Reportes: trazabilidad por producto', () => {
+describe('Reportes', () => {
   beforeEach(() => {
     apiMocks.get.mockReset();
     apiMocks.post.mockReset();
@@ -73,17 +72,63 @@ describe('Reportes: trazabilidad por producto', () => {
     });
   });
 
+  it('filtra el histórico global al seleccionar un insumo buscado', async () => {
+    const getBase = apiMocks.get.getMockImplementation();
+    apiMocks.get.mockImplementation((url: string, config?: any) => {
+      if (url === '/movimientos') {
+        return Promise.resolve({ data: [
+          { id: 1, itemName: 'Guantes Nitrilo', type: 'ENTRADA', quantity: 5, createdAt: '2026-10-20T10:00:00', usuarioName: 'Admin' },
+          { id: 2, itemName: 'Mascarilla', type: 'SALIDA', quantity: 2, createdAt: '2026-10-20T11:00:00', usuarioName: 'Admin' },
+        ] });
+      }
+      if (url === '/insumos') {
+        return Promise.resolve({ data: [
+          { id: 22, item: 'Guantes Nitrilo', code: 1001, presentation: 'Caja', size: '100 unidades', stock: 45 },
+          { id: 24, item: 'Mascarilla', code: 1002, presentation: 'Paquete', size: '50 unidades', stock: 20 },
+        ] });
+      }
+      return getBase?.(url, config);
+    });
+    render(<Reportes />);
+
+    const insumo = screen.getByRole('combobox', { name: 'Insumo' });
+    fireEvent.change(insumo, { target: { value: 'Guantes' } });
+    fireEvent.click(await screen.findByRole('option', { name: 'Guantes Nitrilo' }));
+
+    expect(screen.getByText('Guantes Nitrilo', { selector: 'td' })).toBeInTheDocument();
+    expect(screen.queryByText('Mascarilla', { selector: 'td' })).not.toBeInTheDocument();
+  });
+
+  it('ubica las exportaciones del histórico global en el encabezado de resultados', async () => {
+    render(<Reportes />);
+
+    const encabezado = (await screen.findByRole('heading', { name: 'Resultados' })).parentElement;
+    expect(encabezado).not.toBeNull();
+    expect(within(encabezado as HTMLElement).getByRole('button', { name: 'Exportar PDF' })).toBeInTheDocument();
+    expect(within(encabezado as HTMLElement).getByRole('button', { name: 'Exportar Excel' })).toBeInTheDocument();
+  });
+
   it('carga presentaciones desde el catálogo jerárquico y conserva las inactivas para trazabilidad', async () => {
     render(<Reportes />);
     fireEvent.click(screen.getByRole('button', { name: 'Trazabilidad por producto' }));
-    await screen.findByRole('option', { name: 'Guantes Nitrilo' });
 
-    const selects = screen.getAllByRole('combobox');
-    fireEvent.change(selects[0], { target: { value: '7' } });
+    const insumo = screen.getByRole('combobox', { name: 'Insumo' });
+    fireEvent.change(insumo, { target: { value: 'Guantes' } });
+    fireEvent.click(await screen.findByRole('option', { name: 'Guantes Nitrilo' }));
 
     expect(await screen.findByRole('option', { name: 'Caja 100 unidades' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Bolsa 50 unidades (Inactiva)' })).toBeInTheDocument();
     expect(apiMocks.get).toHaveBeenCalledWith('/items');
+  });
+
+  it('muestra las exportaciones en el encabezado de resultados', async () => {
+    await abrirTrazabilidad();
+
+    const encabezado = screen.getByRole('heading', { name: 'Resultados' }).parentElement;
+    expect(encabezado).not.toBeNull();
+    expect(within(encabezado as HTMLElement).getByRole('button', { name: 'Exportar PDF' })).toBeInTheDocument();
+    expect(within(encabezado as HTMLElement).getByRole('button', { name: 'Exportar Excel' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Buscar trazabilidad' })).toBeInTheDocument();
   });
 
   it('muestra los movimientos, el saldo y el total sin romper el render', async () => {

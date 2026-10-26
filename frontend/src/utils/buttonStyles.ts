@@ -47,6 +47,11 @@ export const TONOS = {
 /**
  * Tamano por UBICACION, no por modulo.
  */
+export const COLORES_ICONO_EXPORTACION = {
+  pdf: 'text-rose-600',
+  excel: 'text-emerald-600',
+} as const;
+
 export const TAMANOS = {
   // Barra de acciones de la pagina.
   barra: 'px-5 py-2.5',

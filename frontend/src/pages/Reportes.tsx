@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import api from '../api/axios';
 import Paginacion from '../components/Paginacion';
 import ExportIconButton from '../components/ExportIconButton';
+import SearchableInsumoSelect, { type SearchableInsumoOption } from '../components/SearchableInsumoSelect';
 import { usePaginacion } from '../hooks/usePaginacion';
 import { btn } from '../utils/buttonStyles';
 
@@ -54,6 +55,23 @@ export default function Reportes() {
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
 
+  const opcionesFiltroInsumo = useMemo(() => {
+    const porNombre = new Map<string, SearchableInsumoOption>();
+    insumos.forEach((insumo: any) => {
+      const nombre = String(insumo.item ?? '').trim();
+      if (nombre && !porNombre.has(nombre)) {
+        porNombre.set(nombre, { value: nombre, label: nombre, searchText: String(insumo.code ?? '') });
+      }
+    });
+    return Array.from(porNombre.values());
+  }, [insumos]);
+
+  const opcionesItemsTrazabilidad = useMemo(() => catalogoItems.map((item: any) => ({
+    value: String(item.id),
+    label: item.name,
+    searchText: String(item.code ?? ''),
+  })), [catalogoItems]);
+
   const movimientosFiltrados = useMemo(() => {
     return movimientos.filter(mov => {
       let coincideUsuario = true;
@@ -66,8 +84,7 @@ export default function Reportes() {
         coincideUsuario = u ? mov.usuarioName === u.name : true;
       }
       if (filtroInsumo) {
-        const i = insumos.find((x: any) => x.id.toString() === filtroInsumo);
-        coincideInsumo = i ? mov.itemName === i.item : true;
+        coincideInsumo = mov.itemName === filtroInsumo;
       }
       if (filtroTipo) {
         coincideTipo = mov.type === filtroTipo;
@@ -221,11 +238,14 @@ export default function Reportes() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">Insumo</label>
-                <select value={filtroInsumo} onChange={(e) => setFiltroInsumo(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
-                  <option value="">Todos los Insumos</option>
-                  {insumos.map((i: any) => (<option key={i.id} value={i.id}>{i.item}</option>))}
-                </select>
+                <SearchableInsumoSelect
+                  options={opcionesFiltroInsumo}
+                  value={filtroInsumo}
+                  onChange={setFiltroInsumo}
+                  label="Insumo"
+                  placeholder="Buscar insumo o código..."
+                  emptyOptionLabel="Todos los insumos"
+                />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1">Tipo de Movimiento</label>
@@ -306,15 +326,25 @@ export default function Reportes() {
             <h3 className="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wider">Buscar trazabilidad por producto</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">Insumo</label>
-                <select value={trazaItemId} onChange={(e) => { setTrazaItemId(e.target.value); setTrazaPresentationId(''); setTrazaMovimientos([]); setTrazaStock(null); setTrazaPagina(0); setTrazaTotal(0); setTrazaTotalPaginas(0); }} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
-                  <option value="">Seleccionar insumo</option>
-                  {catalogoItems.map((item: any) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                </select>
+                <SearchableInsumoSelect
+                  options={opcionesItemsTrazabilidad}
+                  value={trazaItemId}
+                  onChange={(value) => {
+                    setTrazaItemId(value);
+                    setTrazaPresentationId('');
+                    setTrazaMovimientos([]);
+                    setTrazaStock(null);
+                    setTrazaPagina(0);
+                    setTrazaTotal(0);
+                    setTrazaTotalPaginas(0);
+                  }}
+                  label="Insumo"
+                  placeholder="Buscar insumo o código..."
+                />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">Presentación</label>
-                <select value={trazaPresentationId} onChange={(e) => { setTrazaPresentationId(e.target.value); setTrazaMovimientos([]); setTrazaStock(null); setTrazaPagina(0); setTrazaTotal(0); setTrazaTotalPaginas(0); }} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+                <label htmlFor="traza-presentacion" className="block text-xs font-semibold text-slate-500 mb-1">Presentación</label>
+                <select id="traza-presentacion" value={trazaPresentationId} onChange={(e) => { setTrazaPresentationId(e.target.value); setTrazaMovimientos([]); setTrazaStock(null); setTrazaPagina(0); setTrazaTotal(0); setTrazaTotalPaginas(0); }} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
                   <option value="">Seleccionar presentación</option>
                   {(catalogoItems.find((item: any) => item.id.toString() === trazaItemId)?.presentations || []).map((presentation: any) => (
                     <option key={presentation.id} value={presentation.id}>

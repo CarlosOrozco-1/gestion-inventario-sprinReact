@@ -1,8 +1,7 @@
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, Fragment, useMemo } from 'react';
 import api from '../api/axios';
 import InsumoModal from '../components/InsumoModal';
 import QrScanner from '../components/QrScanner';
-import SearchModal from '../components/SearchModal';
 import QrModal from '../components/QrModal';
 import EstadoInsumoModal from '../components/EstadoInsumoModal';
 import { useToastStore } from '../store/useToastStore';
@@ -28,7 +27,6 @@ export default function Insumos() {
   // Estado para controlar el Modal (mode: create-item | edit-item | create-presentation | edit-presentation)
   const [modalConfig, setModalConfig] = useState(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [qrModal, setQrModal] = useState(null);
   // { tipo: 'insumo'|'presentacion', item, pres?, activo, ... }. `activo` es el
   // estado ACTUAL: si es true, el modal va a inactivar. Nombrarlo asi evita el
@@ -37,6 +35,7 @@ export default function Insumos() {
   const [estadoModal, setEstadoModal] = useState(null);
   const [guardandoEstado, setGuardandoEstado] = useState(false);
   const [exportando, setExportando] = useState(false);
+  const [filtroCatalogo, setFiltroCatalogo] = useState('');
 
   const showToast = useToastStore((s: any) => s.showToast);
   const user = useAuthStore((s: any) => s.user);
@@ -175,15 +174,6 @@ export default function Insumos() {
     }
   };
 
-  const handleSearchSelectItem = (item) => {
-    setIsSearchOpen(false);
-    openModal('edit-item', item);
-  };
-
-  const handleSearchSelectPresentation = (item, pres) => {
-    setIsSearchOpen(false);
-    openModal('edit-presentation', item, pres);
-  };
 
   const stockBadge = (stock) => {
     const style = stock > 10 ? 'bg-green-100 text-green-700' : stock > 0 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700';
@@ -194,12 +184,21 @@ export default function Insumos() {
     );
   };
 
-  const totalPresentations = items.reduce((acc, it) => acc + it.presentations.length, 0);
+  const itemsFiltrados = useMemo(() => {
+    const termino = filtroCatalogo.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    if (!termino) return items;
 
-  // `items` es el catálogo completo; `visibles` es solo la página actual.
+    return items.filter((item) => {
+      const campos = [item.name, item.code, ...(item.presentations || []).flatMap((presentation: any) => [presentation.name, presentation.size])];
+      return campos.some((campo) => String(campo ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().includes(termino));
+    });
+  }, [items, filtroCatalogo]);
+  const totalPresentations = itemsFiltrados.reduce((acc, item) => acc + (item.presentations || []).length, 0);
+
+  // Se filtra primero el catálogo completo; la paginación solo pagina las coincidencias.
   const {
     pagina, totalPaginas, total, visibles: itemsVisibles, setPagina,
-  } = usePaginacion(items, TAMANIO_PAGINA);
+  } = usePaginacion(itemsFiltrados, TAMANIO_PAGINA);
 
   return (
     <div className="page-container">
@@ -219,14 +218,6 @@ export default function Insumos() {
         onScan={handleQrScan}
       />
 
-      {/* Búsqueda por nombre / código / presentación cuando no se tiene el QR */}
-      <SearchModal
-        isOpen={isSearchOpen}
-        items={items}
-        onClose={() => setIsSearchOpen(false)}
-        onSelectItem={handleSearchSelectItem}
-        onSelectPresentation={handleSearchSelectPresentation}
-      />
 
       {/* Vista ampliada del QR (descargar PNG / imprimir) */}
       <QrModal
@@ -280,15 +271,21 @@ export default function Insumos() {
             title="Descargar todo el catálogo con existencias (incluye los materiales que no están en esta página)"
           />
 
-          <button
-            onClick={() => setIsSearchOpen(true)}
-            className={btn('neutro', 'barra')}
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="relative w-full sm:w-64">
+            <label htmlFor="filtro-catalogo" className="sr-only">Buscar insumo</label>
+            <svg aria-hidden="true" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            Buscar insumo
-          </button>
+            <input
+              id="filtro-catalogo"
+              type="search"
+              value={filtroCatalogo}
+              onChange={(event) => { setFiltroCatalogo(event.target.value); setPagina(0); }}
+              placeholder="Nombre, código o presentación"
+              title="Filtra el catálogo por nombre, código o presentación"
+              className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+            />
+          </div>
 
           <button
             onClick={() => setIsScannerOpen(true)}
@@ -352,8 +349,10 @@ export default function Insumos() {
                     <svg className="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                     </svg>
-                    <p className="text-lg font-medium text-slate-700">No hay materiales registrados</p>
-                    <p className="text-sm mt-1">Haz clic en "Nuevo Material" para empezar.</p>
+                    <p className="text-lg font-medium text-slate-700">
+                      {filtroCatalogo.trim() ? 'No se encontraron coincidencias' : 'No hay materiales registrados'}
+                    </p>
+                    {!filtroCatalogo.trim() && <p className="text-sm mt-1">Haz clic en "Nuevo Material" para empezar.</p>}
                   </td>
                 </tr>
               ) : (
@@ -526,9 +525,9 @@ export default function Insumos() {
         {!loading && total > 0 && (
           <div className="bg-slate-50 border-t border-slate-100 p-4 flex items-center justify-between text-sm text-slate-500">
             <span>
-              <span className="font-semibold text-slate-700">{total}</span> material(es) y{' '}
-              <span className="font-semibold text-slate-700">{totalPresentations}</span> presentación(es) en total.
-            </span>
+                <span className="font-semibold text-slate-700">{total}</span> material(es) coinciden con la búsqueda ·{' '}
+                <span className="font-semibold text-slate-700">{totalPresentations}</span> presentación(es).
+              </span>
           </div>
         )}
       </div>

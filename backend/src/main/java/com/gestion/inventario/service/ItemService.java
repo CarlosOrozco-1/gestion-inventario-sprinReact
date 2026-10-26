@@ -11,8 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -167,6 +169,44 @@ public class ItemService {
     @Transactional(readOnly = true)
     public List<Item> listarItems() {
         return itemRepository.findAll();
+    }
+
+    /**
+     * Aplica el mismo criterio del buscador del catálogo: código, nombre de
+     * material, nombre de presentación o tamaño; ignora mayúsculas y tildes.
+     * Los resultados incluyen todas las presentaciones del material coincidente.
+     */
+    @Transactional(readOnly = true)
+    public List<Item> listarItemsFiltrados(String filtro) {
+        List<Item> items = itemRepository.findAll();
+        String termino = normalizarTexto(filtro);
+        if (termino.isEmpty()) {
+            return items;
+        }
+
+        return items.stream()
+                .filter(item -> coincideFiltro(item, termino))
+                .toList();
+    }
+
+    private boolean coincideFiltro(Item item, String termino) {
+        if (normalizarTexto(item.getName()).contains(termino)
+                || normalizarTexto(item.getCode()).contains(termino)) {
+            return true;
+        }
+        return item.getPresentations().stream().anyMatch(presentation ->
+                normalizarTexto(presentation.getName()).contains(termino)
+                        || normalizarTexto(presentation.getSize()).contains(termino));
+    }
+
+    private String normalizarTexto(Object valor) {
+        if (valor == null) {
+            return "";
+        }
+        return Normalizer.normalize(String.valueOf(valor), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT)
+                .trim();
     }
 
     @Transactional(readOnly = true)

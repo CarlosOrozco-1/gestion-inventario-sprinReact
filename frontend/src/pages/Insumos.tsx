@@ -86,14 +86,21 @@ export default function Insumos() {
     setModalConfig({ mode, item, presentation });
   };
 
-  // Descarga el catalogo completo en Excel. Va al backend con responseType blob
-  // porque el token viaja en el header Authorization: un <a href> sin token
-  // recibiria 403. El archivo lo genera el servidor con TODO el catalogo, no lo
-  // que hay en pantalla, porque la tabla esta paginada y nunca showed el total.
+  // El servidor genera el Excel con el catálogo completo o con el mismo filtro
+  // aplicado a la tabla. Se usa responseType blob para conservar el token JWT.
   const exportarExcel = async () => {
+    if (filtroCatalogo.trim() && itemsFiltrados.length === 0) {
+      showToast('No hay materiales que coincidan con la búsqueda.');
+      return;
+    }
+
     setExportando(true);
     try {
-      const response = await api.get('/reportes/catalogo/excel', { responseType: 'blob' });
+      const filtro = filtroCatalogo.trim();
+      const response = await api.get('/reportes/catalogo/excel', {
+        params: filtro ? { filtro } : {},
+        responseType: 'blob',
+      });
 
       const nombre = /filename="?([^";]+)"?/.exec(
         response.headers['content-disposition'] || ''
@@ -268,7 +275,9 @@ export default function Insumos() {
             onClick={exportarExcel}
             disabled={exportando}
             cargando={exportando}
-            title="Descargar todo el catálogo con existencias (incluye los materiales que no están en esta página)"
+            title={filtroCatalogo.trim()
+              ? 'Descargar los materiales que coinciden con la búsqueda'
+              : 'Descargar todo el catálogo con existencias (incluye los materiales que no están en esta página)'}
           />
 
           <div className="relative w-full sm:w-64">

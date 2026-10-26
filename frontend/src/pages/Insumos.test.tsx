@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import Insumos from './Insumos';
 
 const apiMocks = vi.hoisted(() => ({ get: vi.fn() }));
@@ -29,6 +29,55 @@ describe('Insumos', () => {
     render(<Insumos />);
 
     expect(await screen.findByRole('button', { name: 'Exportar Excel' })).toBeInTheDocument();
+  });
+
+  it('exporta el catálogo completo cuando no hay filtro', async () => {
+    render(<Insumos />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Exportar Excel' }));
+
+    await waitFor(() => {
+      expect(apiMocks.get).toHaveBeenCalledWith('/reportes/catalogo/excel', {
+        params: {},
+        responseType: 'blob',
+      });
+    });
+  });
+
+  it('no solicita un Excel si el filtro no tiene coincidencias', async () => {
+    render(<Insumos />);
+
+    fireEvent.change(await screen.findByRole('searchbox', { name: 'Buscar insumo' }), {
+      target: { value: 'sin coincidencias' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar Excel' }));
+
+    expect(apiMocks.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('envía el filtro activo al exportar el catálogo a Excel', async () => {
+    apiMocks.get.mockResolvedValueOnce({
+      data: [{
+        id: 1,
+        code: 101,
+        name: 'Guantes Nitrilo',
+        activo: true,
+        presentations: [{ id: 11, name: 'Caja', size: '100 unidades', stock: 15, minStock: 5, maxStock: 30, activo: true, qrCode: 'SIGES-PRES-11' }],
+      }],
+    });
+    render(<Insumos />);
+
+    fireEvent.change(await screen.findByRole('searchbox', { name: 'Buscar insumo' }), {
+      target: { value: 'guantes' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar Excel' }));
+
+    await waitFor(() => {
+      expect(apiMocks.get).toHaveBeenCalledWith('/reportes/catalogo/excel', {
+        params: { filtro: 'guantes' },
+        responseType: 'blob',
+      });
+    });
   });
 
   it('filtra el catálogo por nombre, código o presentación al escribir', async () => {

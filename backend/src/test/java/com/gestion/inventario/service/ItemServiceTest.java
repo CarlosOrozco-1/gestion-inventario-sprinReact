@@ -12,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -57,6 +58,26 @@ class ItemServiceTest {
         request = new PresentationRequestDTO();
         request.setName("Envase");
         request.setSize("1 Galón");
+    }
+
+    @Test
+    void filtroDeCatalogoBuscaNombreCodigoPresentacionYTamañoSinDistinguirTildes() {
+        Item otro = new Item();
+        otro.setId(2L);
+        otro.setCode(202);
+        otro.setName("Mascarilla");
+        Presentation presentacion = new Presentation();
+        presentacion.setName("Caja");
+        presentacion.setSize("500 ml");
+        otro.addPresentation(presentacion);
+        when(itemRepository.findAll()).thenReturn(List.of(item, otro));
+
+        assertEquals(List.of(item), itemService.listarItemsFiltrados("ETILICO"));
+        assertEquals(List.of(otro), itemService.listarItemsFiltrados("202"));
+        assertEquals(List.of(otro), itemService.listarItemsFiltrados("caja"));
+        assertEquals(List.of(otro), itemService.listarItemsFiltrados("500 ML"));
+        assertTrue(itemService.listarItemsFiltrados("sin coincidencias").isEmpty());
+        assertEquals(2, itemService.listarItemsFiltrados(" ").size());
     }
 
     @Test

@@ -444,23 +444,20 @@ public class ReporteController {
     }
 
     /**
-     * Exporta el catálogo completo de insumos con sus existencias, una fila por
-     * presentación. Es la única forma de sacar el inventario para compras: el
-     * listado de la UI está paginado, así que copiar la pantalla nunca dio el
-     * total. Trae también el costo estimado y el valor de la existencia, que es
-     * lo que permite decidir a qué productos comprar primero.
-     *
-     * Se exportan TODOS los materiales, incluidos los inactivos, y también las
-     * presentaciones inactivas de un material que sigue activo (V9), con una
-     * columna por nivel que indica el estado: si no se deja claro, se cuentan
-     * cosas que ya no se pueden mover.
+     * Exporta el catálogo de insumos con sus existencias, una fila por
+     * presentación. Si se recibe un filtro, exporta todos los materiales que
+     * coinciden con la búsqueda (no solo los de la página visible); sin filtro,
+     * conserva la exportación completa. Incluye los registros inactivos y sus
+     * estados para mantener la trazabilidad del inventario.
      */
     @GetMapping("/catalogo/excel")
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMIN','JEFE')")
-    public ResponseEntity<byte[]> exportarCatalogoExcel(Authentication authentication,
-                                                        HttpServletRequest httpRequest) {
-        List<Item> items = itemService.listarItems();
+    public ResponseEntity<byte[]> exportarCatalogoExcel(
+            @RequestParam(name = "filtro", required = false) String filtro,
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
+        List<Item> items = itemService.listarItemsFiltrados(filtro);
 
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Catalogo de Insumos");

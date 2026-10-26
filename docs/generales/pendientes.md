@@ -1,6 +1,6 @@
 # Pendientes a ejecutar
 
-**Última actualización:** 2026-10-20
+**Última actualización:** 2026-10-26
 **Motivo de este documento:** cierre de sesión con el historial respaldado en el
 remoto y la máquina de trabajo a punto de formatearse. Aquí queda la lista viva
 de lo que falta, con los comandos concretos para retomarlo sin contexto previo.
@@ -236,3 +236,19 @@ Referencias: AGENTS.md, docs/despliegue/flujo_despliegue.md, docs/SEGURIDAD_CHEC
       pertenece a esta pantalla); suite completa frontend: 73 tests aprobados.
 - [x] Corregir y validar el error de render en Trazabilidad por producto
       (`trazaTotal`/paginación indefinidos); probar búsqueda, saldo y paginación.
+
+---
+
+## 12. Diagnóstico del alta de usuarios en `deploy-local`
+
+- [ ] Reproducir el error al crear un usuario y recopilar el status HTTP y el
+      cuerpo JSON de `POST /api/usuarios/admin` desde la pestaña Network, junto
+      con los logs del backend del mismo momento.
+- [ ] Verificar si el usuario quedó persistido aunque la petición haya devuelto
+      error, antes de reintentar con el mismo correo.
+- [ ] Confirmar o descartar el desajuste de contraseña: el backend exige mínimo
+      8 caracteres, pero el modal frontend actualmente permite mínimo 6; si se
+      confirma, alinear validación y mensaje del frontend y mostrar `details`.
+- [ ] Según el status/respuesta, descartar problemas de rol `ADMIN` (`403`),
+      autenticación (`401`), correo duplicado (`400`) o fallo al registrar
+      auditoría (`500`).

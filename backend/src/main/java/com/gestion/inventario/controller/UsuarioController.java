@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -24,6 +25,11 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/usuarios")
 @PreAuthorize("hasRole('ADMIN')")
 public class UsuarioController {
+
+    // Política de contraseña: mínimo 8 caracteres con al menos una mayúscula,
+    // una minúscula, un dígito y un carácter especial.
+    private static final Pattern PASSWORD_PATTERN =
+            Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,}$");
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -105,8 +111,8 @@ public class UsuarioController {
         usuario.setName(dto.getName().trim());
 
         if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
-            if (dto.getPassword().length() < 6) {
-                throw new IllegalArgumentException("La contraseña debe tener al menos 6 caracteres");
+            if (!PASSWORD_PATTERN.matcher(dto.getPassword()).matches()) {
+                throw new IllegalArgumentException("La contraseña debe tener al menos 8 caracteres e incluir una mayúscula, una minúscula, un número y un carácter especial");
             }
             usuario.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         }

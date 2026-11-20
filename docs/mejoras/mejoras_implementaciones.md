@@ -865,6 +865,48 @@ un usuario real.
 
 ---
 
+## 19. Política de contraseña robusta en alta/edición de usuarios
+
+**Fecha:** 2026-11-19
+**Naturaleza:** Corrección de validación (seguridad) — diagnóstico de §12 de
+`docs/generales/pendientes.md`.
+
+### Problema
+El backend exigía mínimo 8 caracteres (`NuevoUsuarioDTO`), pero el frontend
+(`UsuarioModal.tsx`) permitía 6 (`minLength={6}`), generando un desajuste que
+provocaba errores al registrar/editar usuarios. Además no había validación de
+complejidad (mayúscula, minúscula, número, carácter especial).
+
+### Solución
+Política única: **mínimo 8 caracteres** e inclusión obligatoria de al menos
+una **mayúscula**, una **minúscula**, un **número** y un **carácter especial**.
+
+### Comportamiento
+- **Alta (`POST /api/usuarios/admin`):** `@Valid` valida `@Size(min=8)` y el
+  nuevo `@Pattern` de complejidad en `NuevoUsuarioDTO`; responde 400 con
+  `details.password` si no cumple.
+- **Edición (`PUT /api/usuarios/admin/{id}`):** validación manual en
+  `UsuarioController.actualizarUsuario` (solo si se envía contraseña no vacía),
+  con el mismo criterio; responde 400 con mensaje descriptivo.
+- **Frontend (`UsuarioModal.tsx`):** `minLength={8}`, atributo `pattern` con la
+  misma expresión, `title` con el requisito y placeholder actualizado. El catch
+  prioriza `details` del backend para mostrar el mensaje exacto del campo.
+
+### Archivos afectados
+- `backend/.../dto/NuevoUsuarioDTO.java` — `@Pattern` de complejidad + import.
+- `backend/.../controller/UsuarioController.java` — constante `PASSWORD_PATTERN`
+  y validación en `actualizarUsuario` (< 6 → criterio completo).
+- `frontend/src/components/UsuarioModal.tsx` — `minLength`, `pattern`, `title`,
+  placeholder y manejo de `details` en el error.
+
+### Notas
+- `ActualizarUsuarioDTO.password` sigue siendo opcional (null/vacío = no cambiar).
+- La política **no** se aplicó al flujo de recuperación de contraseña
+  (`PasswordResetService.restablecer`); queda como mejora futura si se desea
+  consistencia total.
+
+---
+
 ## 20. Próximas mejoras / pendientes
 - **Fase 10 — Bodegas por departamento** (pendiente de diseño; ver
   `docs/upgrade-V2-Manejo-de-bodegas.md` y `AGENTS.md` §8). Incluye el **motor de

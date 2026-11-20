@@ -57,7 +57,9 @@ export default function UsuarioModal({ isOpen, onClose, onSuccess, usuario }: Us
       setFormData({ name: '', email: '', password: '', rol: 'AUXILIAR' });
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.message || (isEditing ? 'Error al actualizar el usuario.' : 'Error al crear el usuario. Verifica que el correo no esté en uso.'));
+      const data = err.response?.data;
+      const detailMsg = data?.details ? Object.values(data.details).join(' ') : null;
+      setError(detailMsg || data?.message || (isEditing ? 'Error al actualizar el usuario.' : 'Error al crear el usuario. Verifica que el correo no esté en uso.'));
     } finally {
       setLoading(false);
     }
@@ -122,12 +124,14 @@ export default function UsuarioModal({ isOpen, onClose, onSuccess, usuario }: Us
             <label className="block text-sm font-semibold text-slate-700 mb-1">
               {isEditing ? 'Nueva Contraseña (opcional)' : 'Contraseña Inicial'}
             </label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               required={!isEditing}
-              minLength={isEditing ? undefined : 6}
+              minLength={8}
+              pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}"
+              title="Mínimo 8 caracteres: una mayúscula, una minúscula, un número y un carácter especial"
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all outline-none"
-              placeholder={isEditing ? 'Dejar en blanco para no cambiar' : 'Mínimo 6 caracteres'}
+              placeholder={isEditing ? 'Dejar en blanco para no cambiar' : 'Mín. 8: mayúscula, minúscula, número y símbolo'}
               value={formData.password}
               onChange={(e) => setFormData({...formData, password: e.target.value})}
             />

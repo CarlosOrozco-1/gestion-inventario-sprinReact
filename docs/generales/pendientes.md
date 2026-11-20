@@ -239,8 +239,11 @@ Referencias: AGENTS.md, docs/despliegue/flujo_despliegue.md, docs/SEGURIDAD_CHEC
 
 ---
 
-## 12. Diagnóstico del alta de usuarios en `deploy-local`
+## 12. Diagnóstico del alta de usuarios en `deploy-local` (RESUELTO 2026-11-19)
 
+- [x] Desajuste de contraseña corregido: frontend alineado a 8 caracteres y se
+      añadió validación de complejidad (mayúscula, minúscula, número y carácter
+      especial) en backend y frontend. Ver `docs/mejoras/mejoras_implementaciones.md` §19.
 - [ ] Reproducir el error al crear un usuario y recopilar el status HTTP y el
       cuerpo JSON de `POST /api/usuarios/admin` desde la pestaña Network, junto
       con los logs del backend del mismo momento.

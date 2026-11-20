@@ -907,6 +907,47 @@ una **mayúscula**, una **minúscula**, un **número** y un **carácter especial
 
 ---
 
+## 19b. Análisis del catálogo (Insumos): hallazgos para implementar
+
+**Fecha de propuesta:** 2026-11-19
+**Naturaleza:** Mejoras de rendimiento, consistencia y mantenibilidad (pendientes,
+NO implementadas aún).
+
+### Hallazgos backend (rendimiento / diseño)
+1. `ItemService.crearItem` verifica código duplicado con `findAll().stream().anyMatch()`
+   (O(n)) → cambiar a `existsByCode`/`findByCode` (O(1)).
+2. `ItemController.obtenerItem` (GET `/api/items/{id}`) filtra en memoria desde
+   `findAll()` → usar `itemRepository.findById(id)`.
+3. `/api/items` devuelve entidades JPA directamente (no DTO); acopla la API al
+   modelo. Mejor un DTO de vista (como ya hace `/api/insumos`).
+4. Sin paginación en backend; el frontend pagina en cliente. Aceptable hoy.
+5. `listarVistaInsumos()` (InsumoViewDTO) y `listarItems()` (entidad) duplican
+   la carga con dos endpoints solapados.
+
+### Hallazgos frontend (consistencia / UX)
+6. `stockBadge` en `Insumos.tsx` usa umbrales fijos (>10 verde, >0 ámbar) en
+   lugar de comparar contra `minStock`/`maxStock`. Inconsistente con el semáforo
+   del Dashboard.
+7. `Insumos.tsx` (545 líneas) es monolítico; conviene partirlo.
+8. Filtro duplicado entre frontend (`itemsFiltrados`) y backend
+   (`listarItemsFiltrados`): riesgo de divergencia.
+9. El botón "Ver trazabilidad en Kárdex" navega a `/reportes?presentationId=...`;
+   verificar que Reportes lea el query param.
+
+### Acceso / redundancia
+10. `/api/items` y `/api/insumos` ambos permiten AUXILIAR, pero la ruta
+    `/insumos` del frontend es solo ADMIN/JEFE. Considerar unificar: un solo
+    endpoint o reservar `/items` para edición.
+11. `code` es Integer (Opción A documentada): limita a 9 dígitos y obliga a
+    validar unicidad manualmente.
+
+### Prioridad sugerida
+- Alta: (1), (2), (6).
+- Media: (3), (10).
+- Baja: (4), (5), (7), (8), (9), (11).
+
+---
+
 ## 20. Próximas mejoras / pendientes
 - **Fase 10 — Bodegas por departamento** (pendiente de diseño; ver
   `docs/upgrade-V2-Manejo-de-bodegas.md` y `AGENTS.md` §8). Incluye el **motor de

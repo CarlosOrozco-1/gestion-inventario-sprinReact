@@ -284,6 +284,10 @@ los selects, del QR operativo y de `/api/insumos`.
   carga" (incluye verificación con Chromium headless).
 - **`auditoria-tecnica`** — auditoría de cumplimiento de estándares del stack
   (React/Spring Boot, endpoints, estructura); solo reporta hallazgos.
+- **`sync-deploy-local`** — sincronizar selectivamente `desa` → `deploy-local`
+  (cherry-pick de aplicación, preservando infraestructura local).
+- **`trabajo-git`** — flujo de ramas, respaldo `backup`, integración de código
+  ajeno y promoción `desa` → `pre` → `pro`.
 - Agregar una skill nueva = crear `.opencode/skills/<nombre>/SKILL.md` con
   frontmatter (`name`, `description`) y cuerpo en markdown. Tras crearla o
   editar config, **reiniciar opencode** para que la cargue.

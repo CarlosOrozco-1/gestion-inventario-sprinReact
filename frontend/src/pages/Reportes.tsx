@@ -14,7 +14,7 @@ export default function Reportes() {
   const [catalogoItems, setCatalogoItems] = useState<any[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'reportes' | 'trazabilidad'>('reportes');
+  const [tab, setTab] = useState<'reportes' | 'trazabilidad' | 'existencias'>('reportes');
 
   const [trazaPresentationId, setTrazaPresentationId] = useState<string>('');
   const [trazaItemId, setTrazaItemId] = useState<string>('');
@@ -26,6 +26,7 @@ export default function Reportes() {
   const [trazaTotal, setTrazaTotal] = useState(0);
   const [trazaTotalPaginas, setTrazaTotalPaginas] = useState(0);
   const [exportandoTraza, setExportandoTraza] = useState<'excel' | 'pdf' | null>(null);
+  const [filtroExistencias, setFiltroExistencias] = useState('');
 
   useEffect(() => {
     const fetchDatosBase = async () => {
@@ -98,6 +99,20 @@ export default function Reportes() {
       return coincideUsuario && coincideInsumo && coincideTipo && coincideFecha;
     });
   }, [movimientos, filtroUsuario, filtroInsumo, filtroTipo, fechaInicio, fechaFin, usuarios, insumos]);
+
+  const existenciasFiltradas = useMemo(() => {
+    const termino = filtroExistencias.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    if (!termino) return insumos;
+    return insumos.filter((p: any) => {
+      const campos = [p.item, p.code, p.presentation, p.size];
+      return campos.some((c) => String(c ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().includes(termino));
+    });
+  }, [insumos, filtroExistencias]);
+
+  const {
+    pagina: paginaExistencias, totalPaginas: totalPaginasExistencias, total: totalExistencias,
+    visibles: existenciasVisibles, setPagina: setPaginaExistencias,
+  } = usePaginacion(existenciasFiltradas, TAMANIO_PAGINA);
 
   const {
     pagina, totalPaginas, total, visibles: movimientosVisibles, setPagina,
@@ -222,7 +237,94 @@ export default function Reportes() {
       <div className="flex items-center gap-2 mb-6">
         <button onClick={() => setTab('trazabilidad')} className={`${btn(tab === 'trazabilidad' ? 'primario' : 'neutro', 'barra')}`}>Trazabilidad por producto</button>
         <button onClick={() => setTab('reportes')} className={`${btn(tab === 'reportes' ? 'primario' : 'neutro', 'barra')}`}>Histórico global con filtros</button>
+        <button onClick={() => setTab('existencias')} className={`${btn(tab === 'existencias' ? 'primario' : 'neutro', 'barra')}`}>Existencias</button>
       </div>
+
+      {tab === 'existencias' && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-slate-800">Existencias</h2>
+              <p className="text-sm text-slate-500 mt-1">Consulta de stock actual por presentación (solo lectura).</p>
+            </div>
+            <div className="relative w-full md:w-72">
+              <label htmlFor="filtro-existencias" className="sr-only">Buscar existencia</label>
+              <svg aria-hidden="true" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                id="filtro-existencias"
+                type="search"
+                value={filtroExistencias}
+                onChange={(e) => { setFiltroExistencias(e.target.value); setPaginaExistencias(0); }}
+                placeholder="Material, código o presentación"
+                title="Filtra las existencias por material, código o presentación"
+                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 text-sm uppercase tracking-wider">
+                  <th className="p-4 font-semibold">Nº</th>
+                  <th className="p-4 font-semibold">Material</th>
+                  <th className="p-4 font-semibold">Presentación</th>
+                  <th className="p-4 font-semibold">Tamaño</th>
+                  <th className="p-4 font-semibold text-right">Stock</th>
+                  <th className="p-4 font-semibold text-center">Mín / Máx</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {existenciasVisibles.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-slate-400">
+                      {filtroExistencias.trim() ? 'No se encontraron coincidencias' : 'Sin existencias registradas'}
+                    </td>
+                  </tr>
+                ) : (
+                  existenciasVisibles.map((p: any) => (
+                    <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="p-4 text-slate-500 font-medium">{p.code}</td>
+                      <td className="p-4 font-semibold text-slate-900">
+                        <span className="flex items-center gap-2">
+                          {p.item}
+                          {p.activo === false && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-slate-200 text-slate-600">
+                              Inactivo
+                            </span>
+                          )}
+                        </span>
+                      </td>
+                      <td className="p-4 text-slate-900">{p.presentation}</td>
+                      <td className="p-4 text-slate-600">{p.size}</td>
+                      <td className="p-4 text-right">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
+                          (p.stock ?? 0) > 10 ? 'bg-green-100 text-green-700' : (p.stock ?? 0) > 0 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-rose-700'
+                        }`}>
+                          {p.stock ?? 0}
+                        </span>
+                      </td>
+                      <td className="p-4 text-center text-slate-500 text-sm">
+                        {p.minStock ?? '—'} / {p.maxStock ?? '—'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <Paginacion
+            pagina={paginaExistencias}
+            totalPaginas={totalPaginasExistencias}
+            total={totalExistencias}
+            onCambioPagina={setPaginaExistencias}
+            etiqueta="presentaciones"
+          />
+        </div>
+      )}
 
       {tab === 'reportes' && (
         <div>
